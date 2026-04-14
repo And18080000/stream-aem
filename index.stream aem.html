@@ -144,12 +144,31 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 
-<link rel="manifest" href="data:application/json;charset=utf-8,%7B%22name%22%3A%22index.stream%20aem.html%22%2C%22short_name%22%3A%22index.stream%20aem.html%22%2C%22display%22%3A%22standalone%22%2C%22start_url%22%3A%22.%22%2C%22background_color%22%3A%22%230f111a%22%2C%22theme_color%22%3A%22%233b82f6%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Fapi.dicebear.com%2F7.x%2Fbottts%2Fsvg%3Fseed%3Dindex.stream%2520aem.html%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%2C%7B%22src%22%3A%22https%3A%2F%2Fapi.dicebear.com%2F7.x%2Fbottts%2Fsvg%3Fseed%3Dindex.stream%2520aem.html%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
-<meta name="theme-color" content="#3b82f6">
+<link rel="manifest" href="data:application/json;charset=utf-8,%7B%22name%22%3A%22A%26M%20streaming%22%2C%22short_name%22%3A%22A%26M%20streaming%22%2C%22display%22%3A%22standalone%22%2C%22start_url%22%3A%22.%22%2C%22background_color%22%3A%22%230B0D12%22%2C%22theme_color%22%3A%22%23D6B778%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Fpub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev%2F3_f9cu8v%2520(1).png%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fpng%22%7D%5D%7D">
+<meta name="theme-color" content="#0B0D12">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <script>
-let dP; window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); dP = e; const b = document.createElement('button'); b.innerHTML = '<svg style="width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;margin-right:6px" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Instalar App'; b.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:99999;background:#3b82f6;color:#fff;border:none;padding:12px 24px;border-radius:50px;font-family:sans-serif;font-weight:600;font-size:14px;box-shadow:0 4px 20px rgba(59,130,246,0.4);cursor:pointer;display:flex;align-items:center;white-space:nowrap;transition:transform 0.2s;'; b.onclick = async () => { if (!dP) return; dP.prompt(); const { outcome } = await dP.userChoice; if (outcome === 'accepted') b.remove(); dP = null; }; document.body.appendChild(b); });
+let dP; 
+window.addEventListener('beforeinstallprompt', e => { 
+    e.preventDefault(); dP = e; 
+    const btnHeader = document.getElementById('btn-install-header');
+    if(btnHeader) btnHeader.classList.remove('hidden');
+
+    const b = document.createElement('button'); 
+    b.innerHTML = '<svg style="width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;margin-right:6px" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Instalar App'; 
+    b.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:99999;background:#D6B778;color:#000;border:none;padding:12px 24px;border-radius:50px;font-family:sans-serif;font-weight:600;font-size:14px;box-shadow:0 4px 20px rgba(214,183,120,0.4);cursor:pointer;display:flex;align-items:center;white-space:nowrap;transition:transform 0.2s;'; 
+    
+    window.triggerInstall = async () => { 
+        if (!dP) return; 
+        dP.prompt(); 
+        const { outcome } = await dP.userChoice; 
+        if (outcome === 'accepted') { b.remove(); if(btnHeader) btnHeader.classList.add('hidden'); }
+        dP = null; 
+    };
+    b.onclick = window.triggerInstall;
+    document.body.appendChild(b); 
+});
 const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase()); const isStandalone = () => ('standalone' in window.navigator) && window.navigator.standalone; if (isIos() && !isStandalone()) { const ib = document.createElement('div'); ib.innerHTML = 'Para instalar como App: toque em <b>Compartilhar</b> e depois <b>Adicionar ao Ecrã Principal</b><button style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:#a1a1aa;font-size:16px;" onclick="this.parentElement.remove()">✕</button>'; ib.style.cssText = 'position:fixed;bottom:0;left:0;width:100%;background:#1c1e2b;color:#fff;padding:15px 30px 15px 15px;font-family:sans-serif;font-size:12px;text-align:center;z-index:99999;border-top:1px solid #2b2d3a;box-shadow:0 -5px 15px rgba(0,0,0,0.2);'; setTimeout(() => document.body.appendChild(ib), 2000); }
 </script>
 </head>
@@ -177,6 +196,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 <button id="menu-2-label" class="pb-1 hover:text-white transition">FILMES</button>
                 <button id="menu-3-label" class="pb-1 hover:text-white transition">ORIGINAIS</button>
                 <button class="pb-1 hover:text-white transition">MINHA LISTA</button>
+                <button id="btn-install-header" onclick="triggerInstall()" class="hidden pb-1 hover:text-brand-gold transition flex items-center gap-1 text-brand-gold font-bold"><i class="ph ph-download-simple"></i> INSTALAR APP</button>
                 
                 <!-- Links Restritos -->
                 <button onclick="navigate('admin')" id="nav-admin" class="hidden pb-1 hover:text-white transition text-brand-gold">ADMINISTRAÇÃO</button>
@@ -841,8 +861,11 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                         <div>
                             <p class="text-white font-bold text-sm uppercase">${lead.nome}</p>
                             <p class="text-brand-text text-[10px]">${lead.empresa || 'Pessoa Física'} • ${lead.documento}</p>
+                            ${lead.signedAt ? '<span class="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 text-[8px] font-bold"><i class="ph-fill ph-check-circle"></i> ASSINADO</span>' : ''}
                         </div>
-                        <i class="ph ph-signature text-brand-gold opacity-0 group-hover:opacity-100 transition text-xl"></i>
+                        <div class="flex items-center gap-3">
+                            <i class="ph ph-signature text-brand-gold opacity-0 group-hover:opacity-100 transition text-xl"></i>
+                        </div>
                     </div>
                 `).join('') || `<p class="text-xs text-brand-text">Nenhum lead cadastrado ainda.</p>`;
             });
@@ -974,6 +997,21 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             }
 
             document.getElementById('texto-contrato-ativo').value = corpoFinal;
+
+            // Restaura assinatura anterior se existir para permitir re-edição
+            if (activeLead.savedSignature && activeLead.savedSignatureMode) {
+                setTimeout(() => {
+                    toggleSigMode(activeLead.savedSignatureMode);
+                    if (activeLead.savedSignatureMode === 'draw') {
+                        signaturePad.fromDataURL(activeLead.savedSignature);
+                    } else {
+                        document.getElementById('input-sig-name').value = activeLead.savedSignature;
+                        updateTextSignature(activeLead.savedSignature);
+                    }
+                }, 200);
+            } else {
+                clearSignature();
+            }
             
             document.getElementById('doc-signer-name').innerText = "Assinante: " + activeLead.nome;
             document.getElementById('pdf-footer-name').innerText = activeLead.nome.toUpperCase();
@@ -1298,8 +1336,20 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 
                 pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
                 pdf.save(`Contrato_Assinado_${activeLead.nome.replace(/\s/g, '_')}.pdf`);
+
+                // PERSISTÊNCIA FINAL: Salva o estado assinado e o texto atual no Lead
+                if (activeLead) {
+                    const finalSignatureData = (signatureMode === 'draw') ? signaturePad.toDataURL() : document.getElementById('input-sig-name').value;
+                    const leadDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'leads', activeLead.id);
+                    await updateDoc(leadDocRef, { 
+                        savedContract: document.getElementById('texto-contrato-ativo').value,
+                        savedSignature: finalSignatureData,
+                        savedSignatureMode: signatureMode,
+                        signedAt: new Date().getTime()
+                    });
+                }
                 
-                showToast("PDF gerado e baixado com sucesso!");
+                showToast("PDF gerado e contrato salvo no Lead!");
                 setTimeout(() => fecharModalAssinatura(), 1500);
             } catch(err) {
                 console.error(err);
