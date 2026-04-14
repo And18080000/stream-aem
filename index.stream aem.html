@@ -155,19 +155,13 @@ window.addEventListener('beforeinstallprompt', e => {
     const btnHeader = document.getElementById('btn-install-header');
     if(btnHeader) btnHeader.classList.remove('hidden');
 
-    const b = document.createElement('button'); 
-    b.innerHTML = '<svg style="width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;margin-right:6px" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Instalar App'; 
-    b.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:99999;background:#D6B778;color:#000;border:none;padding:12px 24px;border-radius:50px;font-family:sans-serif;font-weight:600;font-size:14px;box-shadow:0 4px 20px rgba(214,183,120,0.4);cursor:pointer;display:flex;align-items:center;white-space:nowrap;transition:transform 0.2s;'; 
-    
     window.triggerInstall = async () => { 
         if (!dP) return; 
         dP.prompt(); 
         const { outcome } = await dP.userChoice; 
-        if (outcome === 'accepted') { b.remove(); if(btnHeader) btnHeader.classList.add('hidden'); }
+        if (outcome === 'accepted') { if(btnHeader) btnHeader.classList.add('hidden'); }
         dP = null; 
     };
-    b.onclick = window.triggerInstall;
-    document.body.appendChild(b); 
 });
 const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase()); const isStandalone = () => ('standalone' in window.navigator) && window.navigator.standalone; if (isIos() && !isStandalone()) { const ib = document.createElement('div'); ib.innerHTML = 'Para instalar como App: toque em <b>Compartilhar</b> e depois <b>Adicionar ao Ecrã Principal</b><button style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:#a1a1aa;font-size:16px;" onclick="this.parentElement.remove()">✕</button>'; ib.style.cssText = 'position:fixed;bottom:0;left:0;width:100%;background:#1c1e2b;color:#fff;padding:15px 30px 15px 15px;font-family:sans-serif;font-size:12px;text-align:center;z-index:99999;border-top:1px solid #2b2d3a;box-shadow:0 -5px 15px rgba(0,0,0,0.2);'; setTimeout(() => document.body.appendChild(ib), 2000); }
 </script>
