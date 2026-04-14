@@ -1,0 +1,1744 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>A&M Produções</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Bibliotecas para PDF e Assinatura -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+
+    <!-- AWS SDK para Browser -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/aws-sdk/2.1408.0/aws-sdk.min.js"></script>
+
+    <!-- Configuração do Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'brand-dark': '#0B0D12',
+                        'brand-panel': '#15171C',
+                        'brand-gold': '#D6B778',
+                        'brand-gold-hover': '#e8c989',
+                        'brand-blue': '#2563EB',
+                        'brand-blue-hover': '#1d4ed8',
+                        'brand-gray': '#2A2C33',
+                        'brand-text': '#A1A1AA'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cedarville+Cursive&display=swap');
+        
+        .font-signature { font-family: 'Cedarville Cursive', cursive; }
+
+        body {
+            background-color: #0B0D12;
+            color: white;
+            overflow-x: hidden;
+        }
+
+        /* Scrollbar customizada para página geral */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0B0D12;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2A2C33;
+            border-radius: 4px;
+        }
+
+        /* Ocultar scrollbar em carrosséis horizontais */
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Scrollbar interna para lista de aulas admin */
+        .admin-scroll::-webkit-scrollbar { width: 4px; }
+        .admin-scroll::-webkit-scrollbar-track { background: transparent; }
+        .admin-scroll::-webkit-scrollbar-thumb { background: #4A4B50; border-radius: 4px; }
+
+        /* Gradientes para textos */
+        .hero-gradient {
+            background: linear-gradient(to top, #0B0D12 0%, transparent 100%),
+                        linear-gradient(to right, #0B0D12 0%, rgba(11,13,18,0.8) 60%, transparent 100%);
+        }
+
+        .nav-link.active {
+            color: #D6B778;
+            border-bottom: 2px solid #D6B778;
+        }
+
+        /* Estilo para inputs customizados */
+        input, select, textarea {
+            background-color: #2A2C33;
+            border: 1px solid transparent;
+            color: white;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #D6B778;
+        }
+
+        .hidden { display: none !important; }
+
+        /* Animações Player Netflix */
+        #player-controls { transition: opacity 0.4s ease; }
+        .hide-cursor { cursor: none; }
+        .netflix-progress-bar:hover #netflix-progress-thumb { transform: scale(1.5); }
+
+        /* Estilo Papel de Contrato e Marca d'Água */
+        .contract-paper-effect {
+            background-color: #ffffff;
+            background-image: linear-gradient(#f1f1f1 1px, transparent 1px);
+            background-size: 100% 2.5rem;
+            position: relative;
+            box-shadow: 0 0 40px rgba(0,0,0,0.1);
+            border: 1px solid #e5e7eb;
+        }
+        .watermark-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            opacity: 0.05;
+            pointer-events: none;
+            width: 80%;
+            z-index: 0;
+        }
+        #doc-text { position: relative; z-index: 1; }
+        .ia-suggestion-box {
+            background: #f0f7ff;
+            border-left: 4px solid #2563eb;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.85rem;
+            color: #1e40af;
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+
+<link rel="manifest" href="data:application/json;charset=utf-8,%7B%22name%22%3A%22index.stream%20aem.html%22%2C%22short_name%22%3A%22index.stream%20aem.html%22%2C%22display%22%3A%22standalone%22%2C%22start_url%22%3A%22.%22%2C%22background_color%22%3A%22%230f111a%22%2C%22theme_color%22%3A%22%233b82f6%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Fapi.dicebear.com%2F7.x%2Fbottts%2Fsvg%3Fseed%3Dindex.stream%2520aem.html%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%2C%7B%22src%22%3A%22https%3A%2F%2Fapi.dicebear.com%2F7.x%2Fbottts%2Fsvg%3Fseed%3Dindex.stream%2520aem.html%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
+<meta name="theme-color" content="#3b82f6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<script>
+let dP; window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); dP = e; const b = document.createElement('button'); b.innerHTML = '<svg style="width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;margin-right:6px" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Instalar App'; b.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:99999;background:#3b82f6;color:#fff;border:none;padding:12px 24px;border-radius:50px;font-family:sans-serif;font-weight:600;font-size:14px;box-shadow:0 4px 20px rgba(59,130,246,0.4);cursor:pointer;display:flex;align-items:center;white-space:nowrap;transition:transform 0.2s;'; b.onclick = async () => { if (!dP) return; dP.prompt(); const { outcome } = await dP.userChoice; if (outcome === 'accepted') b.remove(); dP = null; }; document.body.appendChild(b); });
+const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase()); const isStandalone = () => ('standalone' in window.navigator) && window.navigator.standalone; if (isIos() && !isStandalone()) { const ib = document.createElement('div'); ib.innerHTML = 'Para instalar como App: toque em <b>Compartilhar</b> e depois <b>Adicionar ao Ecrã Principal</b><button style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:#a1a1aa;font-size:16px;" onclick="this.parentElement.remove()">✕</button>'; ib.style.cssText = 'position:fixed;bottom:0;left:0;width:100%;background:#1c1e2b;color:#fff;padding:15px 30px 15px 15px;font-family:sans-serif;font-size:12px;text-align:center;z-index:99999;border-top:1px solid #2b2d3a;box-shadow:0 -5px 15px rgba(0,0,0,0.2);'; setTimeout(() => document.body.appendChild(ib), 2000); }
+</script>
+</head>
+<body class="antialiased flex flex-col min-h-screen" id="app-body">
+
+    <!-- Toast de Notificação -->
+    <div id="toast" class="fixed top-20 right-5 z-[200] transform transition-all duration-300 translate-x-full opacity-0 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3">
+        <i class="ph ph-check-circle text-2xl"></i>
+        <span id="toast-msg">Sucesso!</span>
+    </div>
+
+    <!-- HEADER / NAVBAR -->
+    <header class="fixed w-full top-0 z-40 bg-[#0B0D12]/90 backdrop-blur-md border-b border-white/5 transition-all py-3 px-4 md:px-8 flex justify-between items-center">
+        <div class="flex items-center gap-6 md:gap-10 overflow-x-auto scrollbar-hide">
+            <!-- Logo -->
+            <div class="flex flex-col cursor-pointer shrink-0" onclick="navigate('home')">
+                <h1 class="text-xl md:text-2xl font-serif text-brand-gold tracking-widest font-bold">A&M</h1>
+                <span class="text-[0.5rem] md:text-[0.6rem] tracking-[0.2em] text-brand-text -mt-1">PRODUÇÕES</span>
+            </div>
+
+            <!-- Navegação -->
+            <nav class="flex gap-4 md:gap-6 text-xs md:text-sm font-medium text-brand-text whitespace-nowrap">
+                <button onclick="navigate('home')" id="nav-home" class="nav-link active pb-1 hover:text-white transition">INÍCIO</button>
+                <button id="menu-1-label" class="pb-1 hover:text-white transition">SÉRIES</button>
+                <button id="menu-2-label" class="pb-1 hover:text-white transition">FILMES</button>
+                <button id="menu-3-label" class="pb-1 hover:text-white transition">ORIGINAIS</button>
+                <button class="pb-1 hover:text-white transition">MINHA LISTA</button>
+                
+                <!-- Links Restritos -->
+                <button onclick="navigate('admin')" id="nav-admin" class="hidden pb-1 hover:text-white transition text-brand-gold">ADMINISTRAÇÃO</button>
+                <button onclick="navigate('crm')" id="nav-crm" class="hidden pb-1 hover:text-white transition text-brand-gold">CRM & CONTRATOS</button>
+            </nav>
+        </div>
+
+        <div class="flex items-center gap-3 md:gap-5 text-lg md:text-xl text-brand-text shrink-0 pl-4 bg-[#0B0D12]/90">
+            <i class="ph ph-magnifying-glass cursor-pointer hover:text-white transition"></i>
+            <button onclick="openAuthModal()" class="p-1.5 md:p-2 border border-brand-gold/30 rounded-lg text-brand-gold hover:bg-brand-gold/10 transition">
+                <i class="ph ph-gear"></i>
+            </button>
+            <div class="hidden md:flex items-center gap-2 cursor-pointer">
+                <div class="w-7 h-7 md:w-8 md:h-8 rounded-full bg-brand-gold flex items-center justify-center text-xs md:text-sm text-black font-bold">AM</div>
+                <i class="ph ph-caret-down text-sm"></i>
+            </div>
+        </div>
+    </header>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <main class="flex-grow pt-16 md:pt-20">
+        
+        <!-- ========================================== -->
+        <!-- VIEW 1: HOME PRINCIPAL -->
+        <!-- ========================================== -->
+        <section id="view-home" class="block w-full">
+            <!-- Hero Section -->
+            <div class="relative w-full h-[65vh] md:h-[85vh] bg-[#0B0D12] overflow-hidden group">
+                <img src="https://images.unsplash.com/photo-1518773553398-650c184e0bb3?q=80&w=2070&auto=format&fit=crop" id="hero-img" alt="" class="absolute inset-0 w-full h-full object-cover opacity-70 transition-opacity duration-1000 z-0">
+                <video id="hero-video" class="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-1000 z-0 pointer-events-none" muted playsinline></video>
+                <div class="absolute inset-0 bg-gradient-to-t from-[#0B0D12] via-[#0B0D12]/40 to-transparent z-10 pointer-events-none"></div>
+                <div class="absolute inset-0 bg-gradient-to-r from-[#0B0D12] via-[#0B0D12]/60 to-transparent z-10 pointer-events-none"></div>
+                
+                <button id="btn-mute-hero" onclick="toggleMuteHero()" class="hidden absolute bottom-16 md:bottom-1/4 right-4 md:right-16 w-10 h-10 md:w-12 md:h-12 rounded-full border border-white/40 flex items-center justify-center bg-black/20 text-white hover:bg-white/10 hover:border-white transition z-30">
+                    <i id="icon-mute-hero" class="ph ph-speaker-slash text-lg md:text-xl"></i>
+                </button>
+
+                <div class="absolute bottom-12 md:bottom-1/4 left-4 md:left-16 max-w-3xl px-4 md:px-0 z-20">
+                    <h2 id="hero-title" class="text-4xl md:text-[5rem] leading-none font-bold mb-3 md:mb-6 font-serif text-[#D6B778] tracking-wider uppercase drop-shadow-lg transition-all duration-500">
+                        O MISTÉRIO DE VERÃO
+                    </h2>
+                    <p class="text-white text-sm md:text-lg mb-1 leading-relaxed line-clamp-3 md:line-clamp-none font-light drop-shadow-md">
+                        <span id="hero-selo" class="font-bold">A&M ORIGINALS</span> | Selecione um conteúdo abaixo.
+                    </p>
+                    <p class="text-brand-text text-xs md:text-sm mb-6 md:mb-8 font-medium">
+                        Classificação: 14+ | Estreia Exclusiva
+                    </p>
+                    
+                    <div class="flex flex-wrap items-center gap-3 md:gap-5">
+                        <button onclick="abrirPlayerFull()" class="bg-[#2563EB] hover:bg-[#1d4ed8] text-white px-6 md:px-8 py-2.5 md:py-3.5 rounded-full flex items-center gap-2 font-bold transition text-xs md:text-sm tracking-wide shadow-[0_0_20px_rgba(37,99,235,0.4)]">
+                            <i class="ph-fill ph-play text-lg"></i> ASSISTIR AGORA
+                        </button>
+                        <button class="bg-transparent border border-white/40 hover:border-white text-white px-6 md:px-8 py-2.5 md:py-3.5 rounded-full font-bold transition text-xs md:text-sm tracking-wide hidden sm:block">
+                            MAIS INFORMAÇÕES
+                        </button>
+                        
+                        <button id="btn-add-lista" onclick="toggleMinhaLista()" class="w-10 h-10 md:w-12 md:h-12 rounded-full border border-white/40 flex items-center justify-center hover:border-white hover:bg-white/10 text-white transition group relative" title="Minha Lista">
+                            <i id="icon-add-lista" class="ph ph-plus text-lg md:text-xl"></i>
+                        </button>
+                        <button onclick="toggleJoinha()" class="w-10 h-10 md:w-12 md:h-12 rounded-full border border-white/40 flex items-center justify-center hover:border-white hover:bg-white/10 text-white transition group relative" title="Gostei">
+                            <i id="icon-joinha" class="ph ph-thumbs-up text-lg md:text-xl active:scale-125 transition-transform"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trilhos de Conteúdo -->
+            <div class="px-4 md:px-16 -mt-8 md:-mt-12 relative z-30 space-y-10 md:space-y-14 pb-12 md:pb-24">
+                <div id="section-minha-lista" class="hidden">
+                    <h3 class="text-lg md:text-xl font-medium mb-3 md:mb-5 text-white uppercase tracking-wide">MINHA LISTA</h3>
+                    <div id="container-minha-lista" class="flex gap-3 md:gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory min-h-[120px] md:min-h-[150px]"></div>
+                </div>
+                
+                <div id="dynamic-rails-container" class="space-y-10 md:space-y-14"></div>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VIEW 2: ADMINISTRAÇÃO DE CONTEÚDO -->
+        <!-- ========================================== -->
+        <section id="view-admin" class="hidden w-full max-w-[1400px] mx-auto px-4 md:px-8 py-6 md:py-10">
+            <!-- Edição de Menus no Topo -->
+            <div class="bg-brand-panel border border-brand-gold/30 rounded-2xl p-4 md:p-6 mb-8 flex flex-col md:flex-row gap-6 md:items-end shadow-lg">
+                <div class="flex-grow">
+                    <h2 class="text-brand-gold text-lg font-bold mb-4 flex items-center gap-2">
+                        <i class="ph ph-text-aa"></i> Editar Menus Principais
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs text-brand-text mb-1">Menu 1 (Séries)</label>
+                            <input type="text" id="edit-menu-1" class="w-full p-2.5 rounded-lg bg-[#2A2C33] text-white text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-brand-text mb-1">Menu 2 (Filmes)</label>
+                            <input type="text" id="edit-menu-2" class="w-full p-2.5 rounded-lg bg-[#2A2C33] text-white text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-brand-text mb-1">Menu 3 (Originais)</label>
+                            <input type="text" id="edit-menu-3" class="w-full p-2.5 rounded-lg bg-[#2A2C33] text-white text-sm">
+                        </div>
+                    </div>
+                </div>
+                <button onclick="salvarMenus()" class="bg-[#D6B778] text-black px-6 py-2.5 rounded-full font-bold transition hover:bg-[#e8c989] shadow-md whitespace-nowrap">
+                    Salvar Menus
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                <!-- COLUNA ESQUERDA: Formulário -->
+                <div class="lg:col-span-5 bg-[#15171C] rounded-[24px] p-6 md:p-8 shadow-2xl flex flex-col border border-white/5">
+                    <h2 class="text-[#D6B778] text-2xl font-bold mb-6 font-sans">Configurações de Conteúdo</h2>
+                    
+                    <form id="form-conteudo" onsubmit="salvarConteudo(event)" class="flex flex-col gap-6 h-full">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-white text-sm mb-2 font-medium">Título</label>
+                                <input type="text" id="admin-titulo" required placeholder="Ex: O Mistério de Verão" class="w-full p-3 rounded-xl bg-[#2A2C33] text-white text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-white text-sm mb-2 font-medium">Selo</label>
+                                <input type="text" id="admin-selo" placeholder="Ex: A&M ORIGINALS" class="w-full p-3 rounded-xl bg-[#2A2C33] text-white text-sm">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-6 items-start">
+                            <div>
+                                <label class="block text-white text-sm mb-3 font-medium">Capa do Conteúdo</label>
+                                <div class="flex items-center gap-3">
+                                    <div class="w-16 h-16 md:w-20 md:h-20 bg-[#2A2C33] rounded-xl relative overflow-hidden flex-shrink-0 shadow-md">
+                                        <img id="preview-capa-img" src="" class="hidden absolute inset-0 w-full h-full object-cover">
+                                        <i id="preview-capa-text" class="ph ph-image text-2xl text-brand-text absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></i>
+                                    </div>
+                                    <input type="file" id="upload-capa" accept="image/*" required class="hidden" onchange="previewImage(event)">
+                                    <button type="button" onclick="document.getElementById('upload-capa').click()" class="bg-[#D6B778] hover:bg-[#e8c989] text-black px-4 py-2 rounded-full font-bold text-xs md:text-sm whitespace-nowrap shadow-sm">Alterar Capa</button>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-white text-sm mb-3 font-medium">Categoria / Trilho</label>
+                                <div class="relative">
+                                    <input type="text" id="admin-trilho" list="existing-categories" placeholder="Ex: Filmes de Ação" required class="w-full p-3 rounded-xl bg-[#2A2C33] text-white text-sm">
+                                    <datalist id="existing-categories"></datalist>
+                                    <i class="ph ph-caret-down absolute right-3 top-1/2 transform -translate-y-1/2 text-white pointer-events-none"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-white text-sm mb-3 font-medium">Vídeo do Conteúdo</label>
+                            <div class="flex items-center gap-4">
+                                <div class="w-32 md:w-40 aspect-video bg-[#2A2C33] rounded-xl relative flex items-center justify-center overflow-hidden flex-shrink-0 shadow-md">
+                                    <i id="preview-video-icon" class="ph-fill ph-play text-white text-3xl z-10"></i>
+                                </div>
+                                <input type="file" id="upload-video" accept="video/*" class="hidden" onchange="previewVideo(event)">
+                                <button type="button" onclick="document.getElementById('upload-video').click()" class="bg-[#D6B778] hover:bg-[#e8c989] text-black px-5 py-2.5 rounded-full font-bold text-xs md:text-sm shadow-sm whitespace-nowrap">Substituir Vídeo</button>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col flex-grow mt-2">
+                            <label class="block text-white text-sm mb-3 font-medium">Lista de Conteúdos</label>
+                            <div id="admin-lista-conteudo" class="flex-grow space-y-2 overflow-y-auto max-h-[220px] pr-2 admin-scroll"></div>
+                        </div>
+                        
+                        <button type="submit" id="btn-salvar-conteudo" class="w-full bg-[#D6B778] hover:bg-[#e8c989] text-black py-3.5 rounded-xl font-bold transition text-base tracking-wide mt-2 shadow-[0_4px_15px_rgba(214,183,120,0.2)]">
+                            SALVAR ALTERAÇÕES
+                        </button>
+                    </form>
+                </div>
+
+                <!-- COLUNA DIREITA: Prévia Dinâmica do Layout (Live Preview) -->
+                <div class="lg:col-span-7 flex flex-col h-full w-full">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-[#D6B778] text-xl font-bold">Prévia Dinâmica do Layout da Tela Inicial</h2>
+                    </div>
+                    <div class="relative w-full aspect-video border-[3px] border-[#D6B778] rounded-2xl shadow-[0_0_50px_rgba(214,183,120,0.25)] overflow-hidden bg-[#0B0D12] group/admin-prev">
+                        <div id="admin-preview-container" class="absolute top-0 left-0 w-[200%] h-[200%] origin-top-left scale-50 pointer-events-auto bg-[#0B0D12] overflow-y-scroll scrollbar-hide custom-preview-scroller">
+                            <!-- Header Fake -->
+                            <div class="px-16 py-8 flex justify-between items-center border-b border-white/5 sticky top-0 bg-[#0B0D12]/90 backdrop-blur-xl z-50">
+                                <h1 class="text-4xl font-serif text-brand-gold tracking-widest font-bold">A&M</h1>
+                                <div class="flex gap-8 text-xl font-medium text-brand-text uppercase">
+                                    <span class="text-brand-gold border-b-2 border-brand-gold pb-1">INÍCIO</span>
+                                    <span id="preview-menu-1">SÉRIES</span>
+                                    <span id="preview-menu-2">FILMES</span>
+                                    <span id="preview-menu-3">ORIGINAIS</span>
+                                    <span>MINHA LISTA</span>
+                                </div>
+                                <div class="flex gap-6 text-2xl text-brand-text"><i class="ph ph-magnifying-glass"></i><i class="ph ph-gear"></i></div>
+                            </div>
+                            <!-- Hero Fake -->
+                            <div class="relative w-full h-[60vh] bg-brand-dark group">
+                                <img id="admin-preview-hero-img" src="https://images.unsplash.com/photo-1518773553398-650c184e0bb3?q=80&w=2070" class="absolute inset-0 w-full h-full object-cover opacity-70 transition-opacity duration-1000 z-0">
+                                <video id="admin-preview-hero-video" class="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-1000 z-0 pointer-events-none" muted playsinline></video>
+                                <div class="absolute inset-0 bg-gradient-to-t from-[#0B0D12] via-[#0B0D12]/40 to-transparent z-10 pointer-events-none"></div>
+                                <div class="absolute inset-0 bg-gradient-to-r from-[#0B0D12] via-[#0B0D12]/60 to-transparent z-10 pointer-events-none"></div>
+                                <div class="absolute bottom-24 left-16 max-w-4xl z-20">
+                                    <h2 id="admin-preview-hero-title" class="text-[4rem] leading-none font-bold mb-6 font-serif text-[#D6B778] tracking-wider uppercase">O MISTÉRIO DE VERÃO</h2>
+                                    <p class="text-white text-2xl mb-2 font-light"><span class="font-bold" id="admin-preview-hero-selo">A&M ORIGINALS</span> | O mistério que começa nas férias...</p>
+                                    <div class="flex gap-5 mt-8">
+                                        <div onclick="abrirPlayerFull()" class="w-56 h-14 bg-[#2563EB] rounded-full flex items-center justify-center text-white font-bold text-lg cursor-pointer hover:bg-[#1d4ed8] transition shadow-[0_0_20px_rgba(37,99,235,0.4)]"><i class="ph-fill ph-play mr-2 text-2xl"></i> ASSISTIR</div>
+                                        <div class="w-56 h-14 border border-white/40 rounded-full flex items-center justify-center text-white font-bold text-lg hover:border-white hover:bg-white/10 transition cursor-pointer">MAIS INFO</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Rails Fake -->
+                            <div id="admin-preview-rails" class="px-16 -mt-16 relative z-30 space-y-16 pb-24"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VIEW 3: CRM & CONTRATOS -->
+        <!-- ========================================== -->
+        <section id="view-crm" class="hidden w-full max-w-[1400px] mx-auto px-4 md:px-8 py-6 md:py-10">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                
+                <!-- Esquerda: Cadastro de Leads -->
+                <div class="lg:col-span-5 bg-[#15171C] rounded-[24px] p-6 md:p-8 shadow-2xl flex flex-col border border-white/5">
+                    <h2 class="text-[#D6B778] text-2xl font-bold mb-6 font-sans uppercase tracking-wider">Cadastro de Novos Leads</h2>
+                    
+                    <form id="lead-form" onsubmit="salvarLead(event)" class="flex flex-col gap-5 h-full">
+                        <div>
+                            <label class="block text-white text-sm mb-2 font-medium">Nome da Pessoa</label>
+                            <input type="text" id="lead-nome" placeholder="João da Silva" required class="w-full p-3.5 rounded-xl bg-[#2A2C33] text-white text-sm border border-transparent focus:border-[#D6B778] transition">
+                        </div>
+                        <div>
+                            <label class="block text-white text-sm mb-2 font-medium">Nome da Empresa</label>
+                            <input type="text" id="lead-empresa" placeholder="Tech Solutions LTDA" class="w-full p-3.5 rounded-xl bg-[#2A2C33] text-white text-sm border border-transparent focus:border-[#D6B778] transition">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-white text-sm mb-2 font-medium">CPF / CNPJ (Essencial)</label>
+                                <input type="text" id="lead-documento" placeholder="000.000.000-00" required class="w-full p-3.5 rounded-xl bg-[#2A2C33] text-white text-sm border border-transparent focus:border-[#D6B778] transition">
+                            </div>
+                            <div>
+                                <label class="block text-white text-sm mb-2 font-medium">Telefone</label>
+                                <input type="tel" id="lead-telefone" placeholder="(11) 98765-4321" required class="w-full p-3.5 rounded-xl bg-[#2A2C33] text-white text-sm border border-transparent focus:border-[#D6B778] transition">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-white text-sm mb-2 font-medium">Endereço Completo (Essencial)</label>
+                            <input type="text" id="lead-endereco" placeholder="Rua, Número, Bairro, Cidade - UF" required class="w-full p-3.5 rounded-xl bg-[#2A2C33] text-white text-sm border border-transparent focus:border-[#D6B778] transition">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-white text-sm mb-2 font-medium">RG (Opcional)</label>
+                                <input type="text" id="lead-rg" placeholder="00.000.000-0" class="w-full p-3.5 rounded-xl bg-[#2A2C33] text-white text-sm border border-transparent focus:border-[#D6B778] transition">
+                            </div>
+                            <div>
+                                <label class="block text-white text-sm mb-2 font-medium">Serviço</label>
+                                <input type="text" id="lead-servico" placeholder="Ex: Vídeo Clip" class="w-full p-3.5 rounded-xl bg-[#2A2C33] text-white text-sm border border-transparent focus:border-[#D6B778] transition">
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-4 mt-4">
+                            <button type="submit" class="bg-[#D6B778] hover:bg-[#e8c989] text-black px-8 py-3.5 rounded-full font-bold transition text-sm tracking-wide shadow-[0_4px_15px_rgba(214,183,120,0.2)]">
+                                SALVAR LEAD
+                            </button>
+                            <button type="button" onclick="document.getElementById('lead-form').reset()" class="bg-transparent hover:bg-white/5 text-white px-8 py-3.5 rounded-full font-bold transition text-sm tracking-wide uppercase">
+                                CANCELAR
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Direita: Contratos e Configurações -->
+                <div class="lg:col-span-7 flex flex-col gap-8 h-full w-full">
+                    
+                    <!-- Configuração do Modelo de Contrato -->
+                    <div class="bg-[#15171C] rounded-[24px] p-6 md:p-8 shadow-2xl flex flex-col border border-white/5">
+                        <h2 class="text-[#D6B778] text-xl font-bold mb-4 uppercase tracking-wider">Editor de Contrato & Logo</h2>
+                        <p class="text-sm text-brand-text mb-6">Suba a logo e insira o texto. Use as tags <b>{NOME}</b>, <b>{EMPRESA}</b>, <b>{DOCUMENTO}</b>, <b>{DATA}</b> para preenchimento automático.</p>
+                        
+                        <div class="flex flex-col gap-5">
+                            <div class="flex items-center gap-4 bg-[#2A2C33] p-4 rounded-xl border border-white/5">
+                                <div class="w-16 h-16 bg-black rounded-lg flex items-center justify-center border border-brand-gold/20 overflow-hidden">
+                                    <img id="contract-logo-preview" src="" class="hidden w-full h-full object-contain">
+                                    <i id="contract-logo-placeholder" class="ph ph-plus-circle text-brand-gold text-2xl"></i>
+                                </div>
+                                <div>
+                                    <p class="text-white text-xs font-bold uppercase mb-1">Logo do Contrato (PDF)</p>
+                                    <input type="file" id="upload-logo-contrato" accept="image/*" class="hidden" onchange="previewContractLogo(event)">
+                                    <button onclick="document.getElementById('upload-logo-contrato').click()" class="text-brand-gold text-[10px] font-bold border border-brand-gold/30 px-3 py-1 rounded-full hover:bg-brand-gold/10">SUBIR LOGOTIPO</button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-white text-xs font-bold mb-2 uppercase">Texto Base do Contrato</label>
+                                <textarea id="contract-text-base" rows="6" class="w-full p-4 rounded-xl bg-[#2A2C33] text-white text-xs leading-relaxed border border-white/5 focus:border-brand-gold outline-none" placeholder="Pelo presente instrumento firmado em {DATA}, acordam as partes: Contratante: {NOME} da empresa {EMPRESA}..."></textarea>
+                            </div>
+                            
+                            <button onclick="salvarConfigContrato()" class="bg-brand-gold text-black py-3 rounded-xl font-bold text-xs uppercase hover:bg-brand-gold-hover transition">Salvar Modelo e Logo</button>
+                        </div>
+                    </div>
+
+                    <!-- Lista de Leads para Assinatura -->
+                    <div class="bg-[#15171C] rounded-[24px] p-6 md:p-8 shadow-2xl flex flex-col border border-white/5">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-[#D6B778] text-xl font-bold uppercase tracking-wider">Leads & Gerar Contratos</h2>
+                            <span class="text-[10px] text-brand-text">CLIQUE NO LEAD PARA ACIONAR</span>
+                        </div>
+                        <div id="crm-leads-list" class="space-y-3 max-h-[400px] overflow-y-auto pr-2 admin-scroll">
+                            <!-- Preenchido via JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-white/10 bg-[#0B0D12] py-6 md:py-8 px-4 md:px-8 mt-auto text-brand-text text-xs flex flex-col md:flex-row justify-between items-center gap-4 text-center z-20 relative">
+        <h1 class="text-xl font-serif text-brand-gold tracking-widest font-bold">A&M</h1>
+        <div class="text-[10px] md:text-xs">&copy; 2024 A&M Produções. Todos os direitos reservados.</div>
+    </footer>
+
+    <!-- MODAL AUTH -->
+    <div id="auth-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div class="bg-[#15171C] border border-white/5 rounded-3xl w-full max-w-md p-8 shadow-2xl relative">
+            <h2 class="text-brand-gold text-lg font-bold mb-3 uppercase tracking-wide text-center">Acesso Restrito</h2>
+            <form onsubmit="handleLogin(event)" class="flex flex-col gap-3">
+                <input type="password" id="admin-pwd" placeholder="Senha..." required class="w-full px-4 py-3 rounded-xl bg-transparent border-2 border-[#2563EB] text-white outline-none mb-4">
+                <button type="submit" class="w-full bg-[#2563EB] text-white py-3.5 rounded-full font-bold">ENTRAR</button>
+                <button type="button" onclick="closeAuthModal()" class="w-full bg-[#52525B] text-white py-3.5 rounded-full font-bold">CANCELAR</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MODAL DE ASSINATURA DIGITAL E PREPARAÇÃO (IA) -->
+    <!-- ========================================== -->
+    <div id="signature-modal" class="hidden fixed inset-0 z-[150] flex items-center justify-center bg-black/95 p-4 md:p-10 overflow-y-auto">
+        <div class="bg-white text-black w-full max-w-4xl rounded-2xl flex flex-col shadow-2xl my-auto overflow-hidden">
+            
+            <!-- Header do Modal (Abas de Navegação) -->
+            <div class="p-4 md:p-6 border-b flex flex-col md:flex-row justify-between items-center bg-gray-100 gap-4">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800 uppercase tracking-tight">Gerenciamento de Contrato</h2>
+                    <p class="text-xs text-gray-500" id="doc-signer-name">Assinante: </p>
+                </div>
+                
+                <div class="flex gap-2 bg-gray-200 p-1 rounded-lg">
+                    <button id="tab-btn-editor" onclick="switchContratoTab('editor')" class="px-4 py-2 rounded-md bg-white shadow-sm text-sm font-bold text-brand-blue transition">1. Editor & IA</button>
+                    <button id="tab-btn-previa" onclick="switchContratoTab('previa')" class="px-4 py-2 rounded-md text-sm font-bold text-gray-500 hover:text-gray-800 transition">2. Prévia & Assinar</button>
+                </div>
+
+                <button onclick="fecharModalAssinatura()" class="text-gray-400 hover:text-red-500 transition absolute top-4 right-4 md:static">
+                    <i class="ph ph-x text-2xl md:text-3xl"></i>
+                </button>
+            </div>
+
+            <!-- ABA 1: EDITOR COM INTELIGÊNCIA ARTIFICIAL -->
+            <div id="modal-editor-view" class="p-6 md:p-10 flex flex-col gap-4 bg-gray-50 min-h-[500px]">
+                <div class="flex flex-col md:flex-row justify-between items-center bg-blue-50 border border-blue-100 p-4 rounded-xl gap-4">
+                    <div class="flex-grow w-full md:w-auto">
+                        <h3 class="font-bold text-gray-800 flex items-center gap-2"><i class="ph-fill ph-robot text-brand-blue text-xl"></i> Caiar: Inteligência Artificial A&M</h3>
+                        <div id="ai-suggestion-container" class="ia-suggestion-box mt-3">
+                            <p class="font-bold flex items-center gap-2 mb-1"><i class="ph ph-lightbulb"></i> Sugestão da Caiar:</p>
+                            <span id="ai-suggestion-text"></span>
+                        </div>
+                        <div class="relative mt-2">
+                            <input type="text" id="ia-instruction" placeholder="Ex: Mude o valor para R$ 5.000... OU Crie um contrato do zero de edição de vídeo..." class="w-full p-2.5 pr-12 bg-white border border-blue-200 rounded-lg text-sm text-gray-700 placeholder:text-gray-400 focus:ring-2 focus:ring-brand-blue outline-none transition">
+                            <button id="btn-voice" onclick="toggleVoiceCommand()" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-all p-1.5 rounded-full hover:bg-gray-100">
+                                <i id="icon-voice" class="ph ph-microphone text-xl"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-2 w-full md:w-auto justify-center">
+                        <button id="btn-ia" onclick="melhorarContratoIA('ajustar')" class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-4 py-2.5 rounded-full font-bold text-xs flex items-center gap-1 transition shadow-lg whitespace-nowrap flex-grow md:flex-grow-0 justify-center">
+                            <i id="icon-ia" class="ph-fill ph-sparkle text-base"></i> <span id="text-ia">Ajustar / Criar</span>
+                        </button>
+                        <button id="btn-auto-fill" onclick="melhorarContratoIA('preencher')" class="bg-brand-gold hover:bg-brand-gold-hover text-black px-4 py-2.5 rounded-full font-bold text-xs flex items-center gap-1 transition shadow-lg whitespace-nowrap flex-grow md:flex-grow-0 justify-center">
+                            <i class="ph-fill ph-magic-wand text-base"></i> <span>Preencher</span>
+                        </button>
+                        <button id="btn-rewrite" onclick="melhorarContratoIA('reescrever')" class="bg-gray-800 hover:bg-black text-white px-4 py-2.5 rounded-full font-bold text-xs flex items-center gap-1 transition shadow-lg whitespace-nowrap flex-grow md:flex-grow-0 justify-center">
+                            <i class="ph-bold ph-arrows-clockwise text-base"></i> <span>Reescrever Limpo</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <textarea id="texto-contrato-ativo" class="w-full flex-grow min-h-[350px] p-5 rounded-xl bg-white border border-gray-300 text-gray-800 text-sm focus:ring-2 focus:ring-brand-blue outline-none resize-none shadow-inner leading-relaxed" placeholder="Cole seu modelo aqui... Ou deixe em branco, digite o que precisa na barra acima e clique em 'Aplicar Ajustes / Criar' para a IA gerar um do zero."></textarea>
+                
+                <div class="flex justify-end mt-2">
+                    <button onclick="switchContratoTab('previa')" class="bg-[#D6B778] text-black px-8 py-3 rounded-full font-bold hover:bg-[#e8c989] shadow-md transition flex items-center gap-2">
+                        Avançar para Assinatura <i class="ph ph-arrow-right text-lg"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ABA 2: PRÉVIA E ASSINATURA DO CLIENTE -->
+            <div id="modal-signature-view" class="hidden flex-col">
+                <!-- Área do Documento (Fundo Branco Padrão A4) -->
+                <div id="pdf-content-area" class="p-10 md:p-16 overflow-y-auto bg-white min-h-[500px] max-h-[60vh] contract-paper-effect relative">
+                    <!-- Marca d'água -->
+                    <div class="watermark-container flex items-center justify-center">
+                        <img id="pdf-watermark" src="" class="w-full object-contain grayscale">
+                    </div>
+
+                    <div class="flex justify-center mb-10 relative z-10">
+                        <img id="pdf-logo-header" src="" class="h-20 object-contain hidden">
+                    </div>
+                    
+                    <div id="doc-text" class="text-gray-800 text-sm leading-loose text-justify font-serif">
+                        <!-- Conteúdo injetado da Tab 1 -->
+                    </div>
+                    
+                    <!-- Bloco de Assinaturas Duplo -->
+                    <div class="mt-24 flex flex-wrap justify-between gap-10 items-end relative z-10 px-4">
+                        <!-- Assinatura Cliente -->
+                        <div class="flex flex-col items-center w-64">
+                            <div id="client-signature-container" class="h-16 flex items-center justify-center mb-1">
+                                <img id="signature-preview-img" class="hidden h-16 object-contain">
+                                <span id="signature-text-preview" class="hidden font-signature text-2xl text-gray-800"></span>
+                            </div>
+                            <div class="w-full h-px bg-gray-400"></div>
+                            <p class="text-[10px] font-bold mt-2 uppercase" id="pdf-footer-name">NOME DO ASSINANTE</p>
+                            <p class="text-[8px] text-gray-500" id="pdf-footer-doc">CPF/CNPJ: 000.000.000-00</p>
+                            <p class="text-[9px] font-bold text-brand-blue mt-1 uppercase">CONTRATANTE</p>
+                        </div>
+
+                        <!-- Assinatura Empresa -->
+                        <div class="flex flex-col items-center w-64">
+                            <div class="h-16 flex items-center justify-center mb-1">
+                                <span class="font-signature text-2xl text-gray-800">A&M Produções</span>
+                            </div>
+                            <div class="w-full h-px bg-gray-400"></div>
+                            <p class="text-[10px] font-bold mt-2 uppercase">A&M PRODUÇÕES LTDA</p>
+                            <p class="text-[8px] text-gray-500">CNPJ: 45.123.456/0001-89</p>
+                            <p class="text-[9px] font-bold text-brand-blue mt-1 uppercase">CONTRATADA</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Painel de Controles de Assinatura -->
+                <div class="p-6 bg-gray-100 border-t flex flex-col items-center">
+                    <div class="flex bg-gray-200 p-1 rounded-full mb-4 shadow-inner">
+                        <button onclick="toggleSigMode('draw')" id="mode-draw" class="px-6 py-2 rounded-full text-[10px] font-bold transition-all bg-white shadow-sm text-brand-blue">DESENHAR</button>
+                        <button onclick="toggleSigMode('type')" id="mode-type" class="px-6 py-2 rounded-full text-[10px] font-bold transition-all text-gray-500">DIGITAR NOME</button>
+                    </div>
+
+                    <!-- Opção 1: Desenho -->
+                    <div id="sig-draw-area" class="w-full flex flex-col items-center">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase mb-2">Assine no quadro abaixo:</p>
+                        <canvas id="signature-pad" class="bg-white border-2 border-dashed border-gray-300 rounded-lg cursor-crosshair w-full max-w-md h-32 md:h-40"></canvas>
+                        <button onclick="clearSignature()" class="mt-2 text-[10px] font-bold text-gray-500 hover:text-red-500 transition uppercase">Limpar Desenho</button>
+                    </div>
+
+                    <!-- Opção 2: Texto -->
+                    <div id="sig-type-area" class="hidden w-full max-w-md flex flex-col items-center">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase mb-2">Digite o nome completo para gerar a assinatura:</p>
+                        <input type="text" id="input-sig-name" oninput="updateTextSignature(this.value)" placeholder="Nome completo..." class="w-full p-4 rounded-xl border-2 border-brand-blue/20 bg-white text-gray-800 font-bold text-center focus:border-brand-blue outline-none transition">
+                    </div>
+
+                    <div class="flex justify-center mt-6">
+                        <button id="btn-finalizar-contrato" onclick="gerarPDFContrato()" class="bg-[#2563EB] hover:bg-brand-blue-hover text-white px-12 py-4 rounded-full font-bold text-sm transition shadow-lg flex items-center gap-2">
+                            <i class="ph-fill ph-file-pdf text-xl"></i> FINALIZAR E GERAR PDF ASSINADO
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- PLAYER DE VÍDEO FULLSCREEN ESTILO NETFLIX -->
+    <!-- ========================================== -->
+    <div id="netflix-player" class="hidden fixed inset-0 z-[100] bg-black flex flex-col justify-center items-center">
+        <video id="main-full-video" class="w-full h-full object-contain absolute inset-0 cursor-pointer" playsinline></video>
+        <div id="player-controls" class="absolute inset-0 flex flex-col justify-between opacity-100 z-50">
+            <div class="w-full p-6 md:p-8 bg-gradient-to-b from-black/90 via-black/40 to-transparent flex items-center gap-4">
+                <button onclick="fecharPlayerFull()" class="text-white hover:text-brand-gold transition p-2">
+                    <i class="ph ph-arrow-left text-3xl md:text-4xl drop-shadow-lg"></i>
+                </button>
+                <h2 id="player-full-title" class="text-white text-lg md:text-xl font-bold uppercase drop-shadow-lg"></h2>
+            </div>
+            <div class="flex-grow flex items-center justify-center pointer-events-none">
+                <div id="center-play-icon" class="hidden w-24 h-24 bg-black/50 rounded-full flex items-center justify-center">
+                    <i class="ph-fill ph-play text-white text-5xl"></i>
+                </div>
+            </div>
+            <div class="w-full p-6 md:p-8 bg-gradient-to-t from-black/90 via-black/60 to-transparent flex flex-col gap-4">
+                <div class="w-full h-1.5 bg-white/30 cursor-pointer relative rounded-full group netflix-progress-bar" id="progress-container">
+                    <div id="progress-bar" class="h-full bg-red-600 rounded-full w-0 relative">
+                        <div id="netflix-progress-thumb" class="absolute right-0 top-1/2 transform -translate-y-1/2 w-4 h-4 bg-red-600 rounded-full shadow transition-transform"></div>
+                    </div>
+                </div>
+                <div class="flex justify-between items-center text-white">
+                    <div class="flex items-center gap-4 md:gap-6">
+                        <button onclick="togglePlayerPlay()" class="hover:text-gray-300 transition">
+                            <i id="control-play-icon" class="ph-fill ph-pause text-3xl md:text-4xl"></i>
+                        </button>
+                        <button onclick="seekPlayer(-10)" class="hover:text-gray-300 transition">
+                            <i class="ph ph-arrow-counter-clockwise text-2xl md:text-3xl"></i>
+                        </button>
+                        <button onclick="seekPlayer(10)" class="hover:text-gray-300 transition">
+                            <i class="ph ph-arrow-clockwise text-2xl md:text-3xl"></i>
+                        </button>
+                        <button onclick="togglePlayerMute()" class="hover:text-gray-300 transition ml-2">
+                            <i id="control-volume-icon" class="ph-fill ph-speaker-high text-2xl md:text-3xl"></i>
+                        </button>
+                    </div>
+                    <div id="player-time" class="text-sm md:text-base font-medium font-mono hidden md:block">00:00 / 00:00</div>
+                    <div class="flex items-center gap-4 md:gap-6">
+                        <button class="hover:text-gray-300 transition hidden sm:block"><i class="ph ph-subtitles text-2xl md:text-3xl"></i></button>
+                        <button onclick="toggleFullscreenPlayer()" class="hover:text-gray-300 transition">
+                            <i id="control-fs-icon" class="ph ph-corners-out text-2xl md:text-3xl"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- SCRIPTS -->
+    <!-- ========================================== -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, setDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC9mGKW38Dh8xIIphde_V41dit52CRctgo",
+            authDomain: "stream-aem.firebaseapp.com",
+            projectId: "stream-aem",
+            storageBucket: "stream-aem.firebasestorage.app",
+            messagingSenderId: "952590199617",
+            appId: "1:952590199617:web:49bd0e8189945445938fc0"
+        };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = firebaseConfig.appId;
+
+        const s3 = new window.AWS.S3({
+            endpoint: 'https://679ab4032c53de6dee298b613e90e0db.r2.cloudflarestorage.com',
+            accessKeyId: '69e552e54ff90a1e889b60d52b7554b6',
+            secretAccessKey: 'c3628552b794067bd258cb7c2777b6614ebe28f57ae3d763b7d55cc02fda99b1',
+            signatureVersion: 'v4',
+            region: 'auto',
+            s3ForcePathStyle: true
+        });
+
+        let currentUser = null;
+        let unsubscribeCatalog = null;
+        let unsubscribeMenus = null;
+        let unsubscribeLista = null;
+        let unsubscribeCurtidas = null;
+        
+        let cacheCatalogo = []; 
+        let cacheLeads = [];
+        let minhaListaDocs = []; 
+        let curtidasDocs = [];
+        let minhaListaIds = []; 
+        let curtidasIds = []; 
+        
+        let contractLogoBase64 = "";
+        let signaturePad = null;
+        let activeLead = null;
+        let isRecording = false;
+        let signatureMode = 'draw'; // 'draw' ou 'type'
+        let recognition = null;
+
+        window.currentDestaqueData = null;
+
+        // AUTH
+        const initAuth = async () => { try { await signInAnonymously(auth); } catch (e) {} };
+        initAuth();
+        onAuthStateChanged(auth, (user) => {
+            currentUser = user;
+            if (user) {
+                if (typeof window.carregarMenusRealtime === 'function') window.carregarMenusRealtime();
+                if (typeof window.carregarCatalogoRealtime === 'function') window.carregarCatalogoRealtime();
+                if (typeof window.carregarMinhaListaRealtime === 'function') window.carregarMinhaListaRealtime();
+                if (typeof window.carregarCurtidasRealtime === 'function') window.carregarCurtidasRealtime();
+                if (typeof window.carregarLeadsRealtime === 'function') window.carregarLeadsRealtime();
+                if (typeof window.carregarConfigContrato === 'function') window.carregarConfigContrato();
+            }
+        });
+
+        let isAdminAuthenticated = false;
+
+        window.navigate = function(viewId) {
+            if ((viewId === 'admin' || viewId === 'crm') && !isAdminAuthenticated) {
+                openAuthModal(); return;
+            }
+            document.getElementById('view-home').classList.add('hidden');
+            document.getElementById('view-admin').classList.add('hidden');
+            document.getElementById('view-crm').classList.add('hidden');
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            document.getElementById(`view-${viewId}`).classList.remove('hidden');
+            if(document.getElementById(`nav-${viewId}`)) document.getElementById(`nav-${viewId}`).classList.add('active');
+            
+            if(viewId !== 'home') {
+                const heroVideo = document.getElementById('hero-video');
+                if(heroVideo) { heroVideo.pause(); heroVideo.currentTime = 0; }
+                document.getElementById('btn-mute-hero').classList.add('hidden');
+            }
+            window.scrollTo(0,0);
+        }
+
+        window.openAuthModal = () => { document.getElementById('auth-modal').classList.remove('hidden'); }
+        window.closeAuthModal = () => { document.getElementById('auth-modal').classList.add('hidden'); }
+        window.handleLogin = (e) => {
+            e.preventDefault();
+            if(document.getElementById('admin-pwd').value === '123456') { 
+                isAdminAuthenticated = true; closeAuthModal(); showToast("Acesso Liberado!");
+                document.getElementById('nav-admin').classList.remove('hidden');
+                document.getElementById('nav-crm').classList.remove('hidden');
+                navigate('admin');
+            } else { showToast("Senha incorreta", true); }
+        }
+        window.showToast = (msg, isError = false) => {
+            const t = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            t.classList.remove('bg-green-600','bg-red-600');
+            t.classList.add(isError ? 'bg-red-600' : 'bg-green-600');
+            t.classList.remove('translate-x-full', 'opacity-0');
+            setTimeout(() => { t.classList.add('translate-x-full', 'opacity-0'); }, 3000);
+        }
+
+        // ==========================================
+        // CRM: LEADS E CONFIGURAÇÃO DE CONTRATOS
+        // ==========================================
+        window.contratoBaseGlobal = { logoUrl: "", texto: "" };
+
+        window.salvarLead = async function(e) {
+            e.preventDefault();
+            if (!currentUser) return showToast("Aguarde, conectando...", true);
+
+            const btn = e.target.querySelector('button[type="submit"]');
+            btn.innerText = "Salvando..."; btn.disabled = true;
+
+            const payload = {
+                nome: document.getElementById('lead-nome').value,
+                empresa: document.getElementById('lead-empresa').value,
+                documento: document.getElementById('lead-documento').value,
+                telefone: document.getElementById('lead-telefone').value,
+                endereco: document.getElementById('lead-endereco').value,
+                rg: document.getElementById('lead-rg').value,
+                servico: document.getElementById('lead-servico').value,
+                createdAt: new Date().getTime()
+            };
+            try {
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'leads'), payload);
+                showToast("Lead cadastrado!");
+                e.target.reset();
+            } catch(e) { showToast("Erro ao salvar lead", true); } finally {
+                btn.innerText = "SALVAR LEAD"; btn.disabled = false;
+            }
+        }
+
+        window.carregarLeadsRealtime = function() {
+            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'leads'), (snap) => {
+                cacheLeads = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => b.createdAt - a.createdAt);
+                const container = document.getElementById('crm-leads-list');
+                if(!container) return;
+                container.innerHTML = cacheLeads.map(lead => `
+                    <div onclick="openSignatureModal('${lead.id}')" class="flex justify-between items-center bg-[#2A2C33] p-4 rounded-2xl border border-white/5 hover:border-brand-gold transition cursor-pointer group">
+                        <div>
+                            <p class="text-white font-bold text-sm uppercase">${lead.nome}</p>
+                            <p class="text-brand-text text-[10px]">${lead.empresa || 'Pessoa Física'} • ${lead.documento}</p>
+                        </div>
+                        <i class="ph ph-signature text-brand-gold opacity-0 group-hover:opacity-100 transition text-xl"></i>
+                    </div>
+                `).join('') || `<p class="text-xs text-brand-text">Nenhum lead cadastrado ainda.</p>`;
+            });
+        }
+
+        window.previewContractLogo = function(e) {
+            const f = e.target.files[0];
+            if(!f) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                contractLogoBase64 = ev.target.result;
+                document.getElementById('contract-logo-preview').src = contractLogoBase64;
+                document.getElementById('contract-logo-preview').classList.remove('hidden');
+                document.getElementById('contract-logo-placeholder').classList.add('hidden');
+            };
+            reader.readAsDataURL(f);
+        }
+
+        window.salvarConfigContrato = async function() {
+            const text = document.getElementById('contract-text-base').value;
+            if(!text) return showToast("Insira um texto base.", true);
+            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'configuracoes', 'contrato'), {
+                corpo: text, logo: contractLogoBase64, updatedAt: new Date().getTime()
+            });
+            showToast("Configurações salvas!");
+        }
+
+        window.carregarConfigContrato = async function() {
+            const snap = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'configuracoes', 'contrato'));
+            if(snap.exists()) {
+                const d = snap.data();
+                window.contratoBaseGlobal.texto = d.corpo || "";
+                document.getElementById('contract-text-base').value = d.corpo || "";
+                if(d.logo) {
+                    contractLogoBase64 = d.logo;
+                    window.contratoBaseGlobal.logoUrl = d.logo;
+                    document.getElementById('contract-logo-preview').src = d.logo;
+                    document.getElementById('contract-logo-preview').classList.remove('hidden');
+                    document.getElementById('contract-logo-placeholder').classList.add('hidden');
+                }
+            }
+        }
+
+        // ==========================================
+        // ASSINATURA, INTEGRAÇÃO DE IA E PDF
+        // ==========================================
+        window.switchContratoTab = function(tab) {
+            const btnEditor = document.getElementById('tab-btn-editor');
+            const btnPrevia = document.getElementById('tab-btn-previa');
+            const viewEditor = document.getElementById('modal-editor-view');
+            const viewPrevia = document.getElementById('modal-signature-view');
+
+            if(tab === 'editor') {
+                viewEditor.classList.remove('hidden'); viewEditor.classList.add('flex');
+                viewPrevia.classList.add('hidden'); viewPrevia.classList.remove('flex');
+                
+                // Estilização dos botões
+                btnEditor.classList.add('bg-white', 'shadow-sm', 'text-brand-blue');
+                btnEditor.classList.remove('text-gray-500');
+                btnPrevia.classList.remove('bg-white', 'shadow-sm', 'text-brand-blue');
+                btnPrevia.classList.add('text-gray-500');
+            } else {
+                const texto = document.getElementById('texto-contrato-ativo').value;
+                
+                // Processamento inteligente para visualização: Destaca títulos, valores e dados em azul sem código no editor
+                let textoFormatado = texto
+                    .replace(/\n/g, '<br>')
+                    // Destaca Títulos em Caixa Alta (Ex: CLÁUSULA PRIMEIRA)
+                    .replace(/([A-Z\xC0-\xDF]{4,}(?:\s[A-Z\xC0-\xDF]{4,})*)/g, '<span style="color: #2563EB; font-weight: bold;">$1</span>')
+                    // Destaca Valores Monetários (Ex: R$ 1.500,00)
+                    .replace(/(R\$\s?[\d.,]+)/g, '<span style="color: #2563EB; font-weight: bold;">$1</span>')
+                    // Destaca Datas e Documentos (Ex: 000.000.000-00 ou 25/12/2024)
+                    .replace(/(\d{2,3}\.\d{3}\.\d{3}-\d{2}|\d{2}\/\d{2}\/\d{4})/g, '<span style="color: #2563EB;">$1</span>');
+
+                document.getElementById('doc-text').innerHTML = textoFormatado;
+                
+                // Atualiza marca d'água com a logo configurada
+                if(window.contratoBaseGlobal.logoUrl) {
+                    document.getElementById('pdf-watermark').src = window.contratoBaseGlobal.logoUrl;
+                }
+
+                viewPrevia.classList.remove('hidden'); viewPrevia.classList.add('flex');
+
+                // CORREÇÃO: Inicializa/Redimensiona o Pad de Assinatura apenas quando visível
+                setTimeout(() => {
+                    const canvas = document.getElementById('signature-pad');
+                    if(canvas) {
+                        const ratio = Math.max(window.devicePixelRatio || 1, 1);
+                        canvas.width = canvas.offsetWidth * ratio;
+                        canvas.height = canvas.offsetHeight * ratio;
+                        canvas.getContext("2d").scale(ratio, ratio);
+                        if(signaturePad) signaturePad.clear();
+                    }
+                }, 50);
+                viewEditor.classList.add('hidden'); viewEditor.classList.remove('flex');
+
+                // Estilização dos botões
+                btnPrevia.classList.add('bg-white', 'shadow-sm', 'text-brand-blue');
+                btnPrevia.classList.remove('text-gray-500');
+                btnEditor.classList.remove('bg-white', 'shadow-sm', 'text-brand-blue');
+                btnEditor.classList.add('text-gray-500');
+            }
+        }
+
+        window.openSignatureModal = function(leadId) {
+            if(!leadId) return showToast("Cadastre um lead na aba esquerda primeiro.", true);
+            activeLead = cacheLeads.find(l => l.id === leadId);
+            if(!activeLead) return;
+
+            const modal = document.getElementById('signature-modal'); 
+            
+            // CARREGAMENTO INDIVIDUAL: Se o lead já tiver um contrato salvo, carrega ele, senão usa o template
+            let corpoFinal = "";
+            if (activeLead.savedContract) {
+                corpoFinal = activeLead.savedContract;
+            } else {
+                let textoBase = window.contratoBaseGlobal.texto || "CONTRATO DE PRESTAÇÃO DE SERVIÇOS\n\nPelo presente instrumento firmado em {DATA}, acordam as partes:\nContratante: {NOME}, representante da empresa {EMPRESA}, inscrito no CPF/CNPJ {DOCUMENTO}, residente em {ENDERECO}.\n\nO presente contrato firma os serviços de {SERVICO}.";
+                const dataAtual = new Date().toLocaleDateString('pt-BR');
+
+                corpoFinal = textoBase
+                    .replace(/{NOME}/g, activeLead.nome)
+                    .replace(/{DOCUMENTO}/g, activeLead.documento)
+                    .replace(/{ENDERECO}/g, activeLead.endereco)
+                    .replace(/{RG}/g, activeLead.rg || "Não Informado")
+                    .replace(/{TELEFONE}/g, activeLead.telefone)
+                    .replace(/{EMPRESA}/g, activeLead.empresa || "Pessoa Física")
+                    .replace(/{SERVICO}/g, activeLead.servico || "Prestação de Serviços")
+                    .replace(/{DATA}/g, dataAtual);
+            }
+
+            document.getElementById('texto-contrato-ativo').value = corpoFinal;
+            
+            document.getElementById('doc-signer-name').innerText = "Assinante: " + activeLead.nome;
+            document.getElementById('pdf-footer-name').innerText = activeLead.nome.toUpperCase();
+            document.getElementById('pdf-footer-doc').innerText = "CPF/CNPJ: " + activeLead.documento;
+            
+            const logoImg = document.getElementById('pdf-logo-header');
+            if(window.contratoBaseGlobal.logoUrl) {
+                logoImg.src = window.contratoBaseGlobal.logoUrl;
+                logoImg.classList.remove('hidden');
+            } else { logoImg.classList.add('hidden'); }
+
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            switchContratoTab('editor');
+
+            const canvas = document.getElementById('signature-pad');
+            if(!signaturePad) {
+                signaturePad = new SignaturePad(canvas, { backgroundColor: 'rgb(255, 255, 255)' });
+            }
+            const ratio = Math.max(window.devicePixelRatio || 1, 1);
+            canvas.width = canvas.offsetWidth * ratio;
+            canvas.height = canvas.offsetHeight * ratio;
+            canvas.getContext("2d").scale(ratio, ratio);
+            signaturePad.clear();
+        }
+
+        // ==========================================
+        // SISTEMA DE VOZ (SPEECH TO TEXT)
+        // ==========================================
+        // Função auxiliar para efeito de digitação rápida
+        async function typeWriterEffect(text, elementId) {
+            const el = document.getElementById(elementId);
+            el.value = "";
+            const speed = 1; // Velocidade ultra rápida
+            let i = 0;
+            return new Promise(resolve => {
+                function type() {
+                    if (i < text.length) {
+                        el.value += text.charAt(i);
+                        i++;
+                        el.scrollTop = el.scrollHeight; // Auto-scroll
+                        if (i % 5 === 0) { // Pula alguns frames para parecer mais rápido
+                            setTimeout(type, speed);
+                        } else {
+                            type();
+                        }
+                    } else {
+                        resolve();
+                    }
+                }
+                type();
+            });
+        }
+
+        window.toggleVoiceCommand = function() {
+            const btn = document.getElementById('btn-voice');
+            const icon = document.getElementById('icon-voice');
+            const input = document.getElementById('ia-instruction');
+
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                return showToast("Seu navegador não suporta comandos de voz.", true);
+            }
+
+            if (!recognition) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.lang = 'pt-BR';
+                recognition.continuous = true;
+                recognition.interimResults = false;
+
+                recognition.onresult = (event) => {
+                    const text = event.results[event.results.length - 1][0].transcript;
+                    input.value += (input.value ? " " : "") + text;
+                };
+
+                recognition.onerror = () => stopRecording();
+                recognition.onend = () => stopRecording();
+            }
+
+            if (!isRecording) {
+                startRecording();
+            } else {
+                stopRecording();
+            }
+
+            function startRecording() {
+                isRecording = true;
+                recognition.start();
+                icon.className = "ph-fill ph-microphone-stage text-red-500 animate-pulse";
+                btn.classList.add('bg-red-50');
+                showToast("Microfone ativado. Fale agora...");
+            }
+
+            function stopRecording() {
+                isRecording = false;
+                recognition.stop();
+                icon.className = "ph ph-microphone text-xl";
+                btn.classList.remove('bg-red-50');
+                showToast("Voz capturada com sucesso!");
+            }
+        };
+
+        window.melhorarContratoIA = async function(actionType = 'ajustar') {
+            let btnId = 'btn-ia';
+            if (actionType === 'preencher') btnId = 'btn-auto-fill';
+            if (actionType === 'reescrever') btnId = 'btn-rewrite';
+            
+            const btn = document.getElementById(btnId);
+            const instruction = document.getElementById('ia-instruction').value.trim();
+            const texto = document.getElementById('texto-contrato-ativo').value.trim();
+            
+            btn.disabled = true;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `<i class="ph-fill ph-spinner animate-spin text-base"></i> Processando...`;
+
+            // Captura dados do Lead Ativo para enviar à IA como contexto de preenchimento
+            const leadContext = activeLead ? `
+            DADOS REAIS DO CONTRATANTE (PARA PREENCHIMENTO DO CONTRATO):
+            Nome: ${activeLead.nome}
+            Empresa: ${activeLead.empresa || 'Pessoa Física'}
+            CPF/CNPJ: ${activeLead.documento}
+            RG: ${activeLead.rg || 'Não informado'}
+            Telefone: ${activeLead.telefone}
+            Endereço: ${activeLead.endereco}
+            Serviço Contratado: ${activeLead.servico || 'Produção Audiovisual'}
+            Data de Hoje: ${new Date().toLocaleDateString('pt-BR')}
+            ` : "Nenhum dado de lead disponível.";
+
+            let prompt = "";
+
+            if (actionType === 'reescrever') {
+                prompt = `Você é Caiar, a Inteligência Artificial Definitiva da A&M Produções, especialista em contratos jurídicos e branding.
+                Sua missão é REESCREVER o contrato abaixo tornando-o uma peça jurídica de elite.
+
+                ${leadContext}
+                
+                REGRAS DE FORMATAÇÃO (ESTRITAMENTE OBRIGATÓRIAS):
+                1. TEXTO LIMPO: É PROIBIDO o uso de tags HTML (como <span>), asteriscos (*), símbolos de markdown (#) ou códigos de programação no corpo do texto. Retorne apenas o texto puro e limpo.
+                2. DESTAQUES: Para destacar pontos importantes (Títulos de Cláusulas, Valores, Prazos e Nomes), use apenas CAIXA ALTA (Letras Maiúsculas). O sistema de prévia cuidará das cores automaticamente.
+                3. LIMPEZA: Remova qualquer linha pontilhada ou sublinhado manual.
+                4. TOM DE VOZ: Profissional, imponente e seguro.
+                
+                SUGESTÕES DE MELHORIA:
+                Ao final do contrato, adicione obrigatoriamente um bloco iniciado por "[SUGESTOES]" contendo 3 dicas do que o usuário poderia mudar para proteger mais a empresa ou tornar o fechamento mais rápido.
+
+                ORDEM DO USUÁRIO: "${instruction || 'Reescreva com perfeição e destaque os pontos chaves.'}"
+                
+                CONTRATO ATUAL:
+                ${texto || 'Crie um contrato padrão de prestação de serviços audiovisual.'}`;
+
+            } else if (!texto) {
+                // MODO CRIAÇÃO DO ZERO SE A CAIXA ESTIVER VAZIA
+                prompt = `Aja como um Advogado Corporativo Especialista de Alto Nível. 
+                Sua missão é CRIAR DO ZERO um Contrato de Prestação de Serviços COMPLETO e válido juridicamente.
+                Utilize todo o seu conhecimento atual de mercado para incluir cláusulas vitais (Objeto, Valores, Prazos, Obrigações, Rescisão, Multas, Foro, etc).
+                
+                ${leadContext}
+
+                O QUE O USUÁRIO PEDIU PARA ESTE CONTRATO (Siga isso rigorosamente): 
+                "${instruction || 'Crie um contrato padrão e completo cobrindo a prestação dos serviços informados nos dados do cliente.'}"
+
+                REGRAS DE RESPOSTA:
+                - O contrato deve ser impecável, profissional e com linguagem jurídica atual.
+                - Preencha os dados do cliente fornecidos no cabeçalho e onde for necessário.
+                - Formate os títulos das cláusulas em CAIXA ALTA (MAIÚSCULAS). Sem asteriscos (*).
+                - Retorne APENAS o texto do contrato. Proibido usar marcações markdown como \`\`\` ou enviar notas extras.`;
+            } else {
+                // MODO EDIÇÃO E PREENCHIMENTO SE JÁ TIVER TEXTO LÁ
+                prompt = `Aja como um Advogado Especialista em Contratos. Sua missão é ler o contrato abaixo, identificar todas as lacunas de informação (como [NOME], _____, campos vazios ou falta de dados das partes) e preenchê-las automaticamente usando os DADOS REAIS DO CONTRATANTE fornecidos.
+
+                ${leadContext}
+
+                INSTRUÇÕES ADICIONAIS:
+                1. Aplique estritamente esta ordem do usuário no texto: "${instruction || 'Preencha os dados e corrija erros de ortografia'}". (Se o usuário pediu parcelamento, multa ou valor, crie/altere a cláusula necessária).
+                2. Se o texto estiver desorganizado ou incompleto, reorganize-o em um formato jurídico profissional e elegante.
+                3. Identifique e remova quaisquer placeholders (como [INSIRA AQUI]) substituindo-os pela informação correta.
+                4. NÃO USE asteriscos (*). Coloque títulos de cláusulas em CAIXA ALTA (MAIÚSCULAS).
+
+                REGRAS DE RESPOSTA:
+                - Retorne APENAS o texto integral do contrato atualizado.
+                - Proibido adicionar notas, explicações ou formatação markdown (\`\`\`).
+
+                TEXTO DO CONTRATO PARA PROCESSAR:
+                ${texto}`;
+            }
+
+            try {
+                const response = await fetch("https://meu-backend-ia.vercel.app/api/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message: prompt })
+                });
+
+                const data = await response.json();
+                if(data.reply) {
+                    let fullReply = data.reply.replace(/^```[a-z]*\n?/gm, '').replace(/```$/gm, '').trim();
+                    
+                    // Separa o contrato das sugestões e remove asteriscos/markdown para visualização limpa
+                    let parts = fullReply.split("[SUGESTOES]");
+                    let textoContrato = parts[0].replace(/\*/g, '').replace(/#/g, '').trim();
+                    let sugestoes = parts[1] ? parts[1].replace(/\*/g, '').trim() : "";
+
+                    // Efeito de digitação no editor
+                    await typeWriterEffect(textoContrato, 'texto-contrato-ativo');
+
+                    // PERSISTÊNCIA: Salva a versão reescrita/ajustada especificamente para este Lead
+                    if (activeLead) {
+                        try {
+                            const leadDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'leads', activeLead.id);
+                            await updateDoc(leadDocRef, { savedContract: textoContrato });
+                            showToast("Alterações salvas para este lead.");
+                        } catch(err) { console.error("Erro ao salvar contrato no lead:", err); }
+                    }
+                    
+                    document.getElementById('ia-instruction').value = ""; 
+                    
+                    const sugBox = document.getElementById('ai-suggestion-container');
+                    const sugText = document.getElementById('ai-suggestion-text');
+
+                    if(sugestoes) {
+                        sugText.innerText = sugestoes;
+                        sugBox.style.display = 'block';
+                        window.showToast("Caiar analisou e enviou sugestões!");
+                    } else {
+                        sugBox.style.display = 'none';
+                    }
+
+                    window.showToast("Contrato reescrito com perfeição por Caiar!");
+                } else {
+                    window.showToast("Erro ao processar com a Inteligência Artificial.", true);
+                }
+            } catch(e) {
+                console.error(e);
+                window.showToast("Erro de conexão com o servidor de IA.", true);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
+        window.toggleSigMode = function(mode) {
+            signatureMode = mode;
+            const drawArea = document.getElementById('sig-draw-area');
+            const typeArea = document.getElementById('sig-type-area');
+            const btnDraw = document.getElementById('mode-draw');
+            const btnType = document.getElementById('mode-type');
+            const sigTextPrev = document.getElementById('signature-text-preview');
+            const sigImgPrev = document.getElementById('signature-preview-img');
+
+            if(mode === 'draw') {
+                drawArea.classList.remove('hidden'); typeArea.classList.add('hidden');
+                btnDraw.classList.add('bg-white', 'shadow-sm', 'text-brand-blue');
+                btnDraw.classList.remove('text-gray-500');
+                btnType.classList.add('text-gray-500');
+                btnType.classList.remove('bg-white', 'shadow-sm', 'text-brand-blue');
+                sigImgPrev.classList.remove('hidden'); sigTextPrev.classList.add('hidden');
+            } else {
+                typeArea.classList.remove('hidden'); drawArea.classList.add('hidden');
+                btnType.classList.add('bg-white', 'shadow-sm', 'text-brand-blue');
+                btnType.classList.remove('text-gray-500');
+                btnDraw.classList.add('text-gray-500');
+                btnDraw.classList.remove('bg-white', 'shadow-sm', 'text-brand-blue');
+                sigTextPrev.classList.remove('hidden'); sigImgPrev.classList.add('hidden');
+                
+                // Pré-preenche se o lead estiver ativo
+                if(activeLead && !document.getElementById('input-sig-name').value) {
+                    document.getElementById('input-sig-name').value = activeLead.nome;
+                    updateTextSignature(activeLead.nome);
+                }
+            }
+        }
+
+        window.updateTextSignature = function(val) {
+            const preview = document.getElementById('signature-text-preview');
+            preview.innerText = val || "";
+            if(val) {
+                preview.classList.remove('hidden');
+                document.getElementById('signature-preview-img').classList.add('hidden');
+            }
+        }
+
+        window.clearSignature = () => { 
+            if(signaturePad) signaturePad.clear(); 
+            document.getElementById('input-sig-name').value = "";
+            document.getElementById('signature-text-preview').innerText = "";
+        }
+
+        window.fecharModalAssinatura = () => {
+            document.getElementById('signature-modal').classList.add('hidden'); // Correct ID
+            document.body.style.overflow = 'auto';
+            document.getElementById('signature-preview-img').classList.add('hidden');
+        }
+
+        window.gerarPDFContrato = async function() {
+            const isTextSig = (signatureMode === 'type' && document.getElementById('input-sig-name').value.trim() !== "");
+            const isDrawSig = (signatureMode === 'draw' && signaturePad && !signaturePad.isEmpty());
+
+            if(!isTextSig && !isDrawSig) return showToast("O cliente precisa assinar ou digitar o nome antes.", true);
+
+            const btn = document.getElementById('btn-finalizar-contrato');
+            btn.innerHTML = `<i class="ph-fill ph-spinner animate-spin text-xl"></i> PROCESSANDO PDF...`; 
+            btn.disabled = true;
+
+            try {
+                const sigData = signaturePad.toDataURL();
+                document.getElementById('signature-preview-img').src = sigData;
+                document.getElementById('signature-preview-img').classList.remove('hidden');
+
+                const element = document.getElementById('pdf-content-area');
+                element.classList.add('px-8', 'py-12'); 
+
+                const canvasPrint = await html2canvas(element, { scale: 2, useCORS: true });
+                const imgData = canvasPrint.toDataURL('image/png');
+                
+                element.classList.remove('px-8', 'py-12');
+
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const imgProps = pdf.getImageProperties(imgData);
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                
+                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                pdf.save(`Contrato_Assinado_${activeLead.nome.replace(/\s/g, '_')}.pdf`);
+                
+                showToast("PDF gerado e baixado com sucesso!");
+                setTimeout(() => fecharModalAssinatura(), 1500);
+            } catch(err) {
+                console.error(err);
+                showToast("Erro interno ao gerar o PDF.", true);
+                document.getElementById('signature-preview-img').classList.add('hidden');
+            } finally {
+                btn.innerHTML = `<i class="ph-fill ph-file-pdf text-xl"></i> FINALIZAR E GERAR PDF`; 
+                btn.disabled = false;
+            }
+        }
+
+        // ==========================================
+        // SISTEMA: MINHA LISTA E JOINHA (COM DELEÇÃO)
+        // ==========================================
+        window.toggleMinhaLista = async function() {
+            if(!window.currentDestaqueData || !currentUser) return;
+            const itemId = window.currentDestaqueData.id;
+            try {
+                if(minhaListaIds.includes(itemId)) {
+                    const docItem = minhaListaDocs.find(d => d.itemId === itemId);
+                    if(docItem) {
+                        await deleteDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'minha_lista', docItem.docId));
+                        window.showToast("Removido da sua lista.");
+                    }
+                } else {
+                    await addDoc(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'minha_lista'), { itemId: itemId, adicionadoEm: new Date().getTime() });
+                    window.showToast("Adicionado à Minha Lista!");
+                }
+            } catch (e) {
+                console.error("Erro ao alterar lista:", e);
+            }
+        }
+
+        window.toggleJoinha = async function() {
+            if(!window.currentDestaqueData || !currentUser) return;
+            const itemId = window.currentDestaqueData.id;
+            try {
+                if(curtidasIds.includes(itemId)) {
+                    const docItem = curtidasDocs.find(d => d.itemId === itemId);
+                    if(docItem) {
+                        await deleteDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'curtidas', docItem.docId));
+                        window.showToast("Curtida removida.");
+                    }
+                } else {
+                    await addDoc(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'curtidas'), { itemId: itemId, adicionadoEm: new Date().getTime() });
+                    window.showToast("Você curtiu este título!");
+                }
+            } catch (e) {
+                console.error("Erro ao alterar curtida:", e);
+            }
+        }
+
+        window.verificarStatusBotoes = function() {
+            if(!window.currentDestaqueData) return;
+            const itemId = window.currentDestaqueData.id;
+            
+            const iconLista = document.getElementById('icon-add-lista');
+            if(iconLista) {
+                if(minhaListaIds.includes(itemId)) { 
+                    iconLista.classList.replace('ph-plus', 'ph-check'); 
+                    iconLista.classList.add('text-green-400'); 
+                } else { 
+                    iconLista.classList.replace('ph-check', 'ph-plus'); 
+                    iconLista.classList.remove('text-green-400'); 
+                }
+            }
+
+            const iconJoinha = document.getElementById('icon-joinha');
+            if(iconJoinha) {
+                if(curtidasIds.includes(itemId)) {
+                    iconJoinha.classList.remove('ph');
+                    iconJoinha.classList.add('ph-fill');
+                    iconJoinha.classList.add('text-[#D6B778]');
+                } else {
+                    iconJoinha.classList.remove('ph-fill');
+                    iconJoinha.classList.add('ph');
+                    iconJoinha.classList.remove('text-[#D6B778]');
+                }
+            }
+        }
+
+        window.carregarMinhaListaRealtime = function() {
+            unsubscribeLista = onSnapshot(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'minha_lista'), (snap) => {
+                minhaListaDocs = snap.docs.map(d => ({ docId: d.id, itemId: d.data().itemId }));
+                minhaListaIds = minhaListaDocs.map(d => d.itemId);
+                if (typeof window.renderizarTrilhosNaHome === 'function') window.renderizarTrilhosNaHome(); 
+                if (typeof window.verificarStatusBotoes === 'function') window.verificarStatusBotoes();
+            });
+        }
+
+        window.carregarCurtidasRealtime = function() {
+            unsubscribeCurtidas = onSnapshot(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'curtidas'), (snap) => {
+                curtidasDocs = snap.docs.map(d => ({ docId: d.id, itemId: d.data().itemId }));
+                curtidasIds = curtidasDocs.map(d => d.itemId);
+                if (typeof window.verificarStatusBotoes === 'function') window.verificarStatusBotoes();
+            });
+        }
+
+        // ==========================================
+        // DEMAIS CÓDIGOS DA PLATAFORMA (Admin, R2, Home)
+        // ==========================================
+        window.salvarMenus = async function() {
+            const m1 = document.getElementById('edit-menu-1').value || 'SÉRIES';
+            const m2 = document.getElementById('edit-menu-2').value || 'FILMES';
+            const m3 = document.getElementById('edit-menu-3').value || 'ORIGINAIS';
+            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'configuracoes', 'menus'), { menu1: m1, menu2: m2, menu3: m3 });
+            showToast("Menus atualizados!");
+        }
+
+        window.carregarMenusRealtime = function() {
+            unsubscribeMenus = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'configuracoes', 'menus'), (snap) => {
+                if(snap.exists()) {
+                    const d = snap.data();
+                    ['1','2','3'].forEach(i => {
+                        document.getElementById(`menu-${i}-label`).innerText = d[`menu${i}`].toUpperCase();
+                        document.getElementById(`preview-menu-${i}`).innerText = d[`menu${i}`].toUpperCase();
+                        document.getElementById(`edit-menu-${i}`).value = d[`menu${i}`];
+                    });
+                }
+            });
+        }
+
+        // ADMIN PREVIEW DINÂMICO (LIVE TYPING)
+        document.getElementById('admin-titulo').addEventListener('input', (e) => {
+            const val = e.target.value;
+            const el = document.getElementById('admin-preview-hero-title');
+            if (el) el.innerText = val ? val.toUpperCase() : 'O MISTÉRIO DE VERÃO';
+        });
+
+        document.getElementById('admin-selo').addEventListener('input', (e) => {
+            const val = e.target.value;
+            const el = document.getElementById('admin-preview-hero-selo');
+            if (el) el.innerText = val ? val.toUpperCase() : 'A&M ORIGINALS';
+        });
+
+        // ADMIN R2 UPLOAD
+        window.previewImage = function(e) {
+            const f = e.target.files[0];
+            if (f) {
+                window.selectedCoverFile = f;
+                const r = new FileReader();
+                r.onload = (e) => {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 800; const MAX_HEIGHT = 800; 
+                        let width = img.width; let height = img.height;
+                        if (width > height) { if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } } 
+                        else { if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; } }
+                        canvas.width = width; canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        const currentCoverBase64 = canvas.toDataURL('image/jpeg', 0.7); 
+                        document.getElementById('preview-capa-img').src = currentCoverBase64;
+                        document.getElementById('preview-capa-img').classList.remove('hidden');
+                        document.getElementById('preview-capa-text').classList.add('hidden');
+                        
+                        const previewLiveImg = document.getElementById('admin-preview-hero-img');
+                        if (previewLiveImg) previewLiveImg.src = currentCoverBase64;
+
+                        showToast("Capa carregada e otimizada!");
+                    }
+                    img.src = e.target.result;
+                }
+                reader.readAsDataURL(f); 
+            }
+        };
+
+        window.previewVideo = function(e) {
+            const f = e.target.files[0];
+            if (f) {
+                window.selectedVideoFile = f;
+                document.getElementById('preview-video-icon').classList.replace('ph-play', 'ph-check-circle');
+                document.getElementById('preview-video-icon').classList.add('text-green-400');
+            }
+        };
+
+        window.salvarConteudo = async function(e) {
+            e.preventDefault();
+            if (!currentUser) return showToast("Autenticando...", true);
+            
+            const coverImgEl = document.getElementById('preview-capa-img');
+            if (coverImgEl.classList.contains('hidden')) return showToast("Faça upload de uma capa.", true);
+
+            const btn = document.getElementById('btn-salvar-conteudo');
+            btn.innerText = "ENVIANDO PARA R2..."; btn.disabled = true;
+
+            let finalCapaUrl = coverImgEl.src;
+            let finalVideoUrl = "";
+
+            try {
+                if (window.selectedCoverFile) {
+                    const ext = window.selectedCoverFile.name.split('.').pop();
+                    const fileName = `capas/${Date.now()}_img.${ext}`;
+                    await s3.putObject({ Bucket: "aem", Key: fileName, Body: window.selectedCoverFile, ContentType: window.selectedCoverFile.type }).promise();
+                    finalCapaUrl = `https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev/${fileName}`;
+                }
+
+                if (window.selectedVideoFile) {
+                    btn.innerText = "ENVIANDO VÍDEO (AGUARDE)...";
+                    const ext = window.selectedVideoFile.name.split('.').pop();
+                    const fileName = `videos/${Date.now()}_vid.${ext}`;
+                    await s3.putObject({ Bucket: "aem", Key: fileName, Body: window.selectedVideoFile, ContentType: window.selectedVideoFile.type }).promise();
+                    finalVideoUrl = `https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev/${fileName}`;
+                }
+
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'catalog'), {
+                    titulo: document.getElementById('admin-titulo').value,
+                    selo: document.getElementById('admin-selo').value || 'A&M ORIGINALS',
+                    trilho: document.getElementById('admin-trilho').value || 'Lançamentos Recentes',
+                    capaUrl: finalCapaUrl, videoUrl: finalVideoUrl,
+                    ownerId: currentUser.uid, createdAt: new Date().getTime() 
+                });
+                
+                showToast("Conteúdo publicado com sucesso!");
+                e.target.reset();
+                window.selectedCoverFile = null; window.selectedVideoFile = null;
+                document.getElementById('preview-capa-img').classList.add('hidden');
+                document.getElementById('preview-capa-text').classList.remove('hidden');
+                document.getElementById('preview-video-icon').classList.replace('ph-check-circle','ph-play');
+                document.getElementById('preview-video-icon').classList.remove('text-green-400');
+
+            } catch (err) {
+                console.error(err);
+                showToast("Erro no Upload. Verifique as configurações.", true);
+            } finally {
+                btn.innerText = "SALVAR ALTERAÇÕES"; btn.disabled = false;
+            }
+        }
+
+        window.excluirConteudo = async function(id) {
+            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'catalog', id));
+            showToast("Conteúdo excluído do banco.");
+        }
+
+        // HOME DESTAQUE
+        let heroTimeout, videoTimeout;
+        
+        window.mudarDestaque = function(dataStr) {
+            const data = JSON.parse(decodeURIComponent(atob(dataStr)));
+            window.currentDestaqueData = data; 
+
+            document.getElementById('hero-title').innerText = data.titulo;
+            document.getElementById('hero-selo').innerText = data.selo || 'A&M ORIGINALS';
+            if (typeof window.verificarStatusBotoes === 'function') window.verificarStatusBotoes();
+
+            const adminPreviewTitle = document.getElementById('admin-preview-hero-title');
+            const adminPreviewImg = document.getElementById('admin-preview-hero-img');
+            const adminPreviewSelo = document.getElementById('admin-preview-hero-selo');
+            const adminPreviewVideo = document.getElementById('admin-preview-hero-video');
+
+            if (adminPreviewTitle) adminPreviewTitle.innerText = data.titulo.toUpperCase();
+            if (adminPreviewImg) adminPreviewImg.src = data.capaUrl;
+            if (adminPreviewSelo) adminPreviewSelo.innerText = (data.selo || 'A&M ORIGINALS').toUpperCase();
+
+            const heroVideo = document.getElementById('hero-video');
+            const heroImg = document.getElementById('hero-img');
+            const btnMute = document.getElementById('btn-mute-hero');
+            
+            heroVideo.pause(); heroVideo.removeAttribute('src'); heroVideo.load();
+            heroImg.src = data.capaUrl; heroImg.style.opacity = '0.7'; heroVideo.style.opacity = '0'; 
+            btnMute.classList.add('hidden');
+
+            if(adminPreviewVideo) {
+                adminPreviewVideo.pause(); adminPreviewVideo.removeAttribute('src'); adminPreviewVideo.load();
+                adminPreviewVideo.style.opacity = '0';
+                if(adminPreviewImg) adminPreviewImg.style.opacity = '0.7';
+            }
+            
+            clearTimeout(heroTimeout); clearTimeout(videoTimeout);
+            
+            if (!document.getElementById('view-home').classList.contains('hidden')) {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                const previewContainer = document.getElementById('admin-preview-container');
+                if (previewContainer) previewContainer.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+            if (data.videoUrl && data.videoUrl.trim() !== "") {
+                heroTimeout = setTimeout(() => {
+                    heroVideo.src = data.videoUrl; heroVideo.load(); heroVideo.muted = true;
+                    if(adminPreviewVideo) { adminPreviewVideo.src = data.videoUrl; adminPreviewVideo.load(); adminPreviewVideo.muted = true; }
+
+                    const promises = [];
+                    promises.push(heroVideo.play().catch(e => {}));
+                    if(adminPreviewVideo) promises.push(adminPreviewVideo.play().catch(e => {}));
+
+                    Promise.all(promises).then(() => {
+                        heroImg.style.opacity = '0'; heroVideo.style.opacity = '0.7'; btnMute.classList.remove('hidden'); 
+                        if(adminPreviewVideo && adminPreviewImg) { adminPreviewImg.style.opacity = '0'; adminPreviewVideo.style.opacity = '0.7'; }
+
+                        videoTimeout = setTimeout(() => {
+                            heroVideo.pause(); heroImg.style.opacity = '0.7'; heroVideo.style.opacity = '0'; btnMute.classList.add('hidden');
+                            if(adminPreviewVideo && adminPreviewImg) { adminPreviewVideo.pause(); adminPreviewImg.style.opacity = '0.7'; adminPreviewVideo.style.opacity = '0'; }
+                        }, 5000);
+                    });
+                }, 2000);
+            }
+        };
+
+        window.toggleMuteHero = function() {
+            const v = document.getElementById('hero-video');
+            v.muted = !v.muted;
+            document.getElementById('icon-mute-hero').classList.replace(v.muted ? 'ph-speaker-high' : 'ph-speaker-slash', v.muted ? 'ph-speaker-slash' : 'ph-speaker-high');
+        };
+
+        // CONTROLES DO PLAYER NETFLIX
+        let controlsTimeout;
+        const playerDiv = document.getElementById('netflix-player');
+        const mainVid = document.getElementById('main-full-video');
+        const controlsUI = document.getElementById('player-controls');
+        const progressContainer = document.getElementById('progress-container');
+
+        playerDiv.addEventListener('mousemove', () => {
+            controlsUI.style.opacity = '1';
+            playerDiv.classList.remove('hide-cursor');
+            clearTimeout(controlsTimeout);
+            controlsTimeout = setTimeout(() => { if(!mainVid.paused) { controlsUI.style.opacity = '0'; playerDiv.classList.add('hide-cursor'); } }, 3000);
+        });
+
+        mainVid.addEventListener('click', () => window.togglePlayerPlay());
+
+        window.abrirPlayerFull = function() {
+            if(!window.currentDestaqueData || !window.currentDestaqueData.videoUrl) return showToast("Vídeo não cadastrado!", true);
+            
+            const heroVideo = document.getElementById('hero-video');
+            if(heroVideo) { heroVideo.pause(); clearTimeout(videoTimeout); clearTimeout(heroTimeout); }
+
+            document.getElementById('player-full-title').innerText = window.currentDestaqueData.titulo;
+            mainVid.src = window.currentDestaqueData.videoUrl;
+            playerDiv.classList.remove('hidden');
+            
+            mainVid.play().catch(e => {
+                mainVid.muted = true;
+                mainVid.play().then(() => showToast("Iniciado sem som. Ative abaixo.", true));
+            });
+            document.getElementById('control-play-icon').classList.replace('ph-play', 'ph-pause');
+            document.getElementById('center-play-icon').classList.add('hidden');
+        }
+
+        window.fecharPlayerFull = function() {
+            mainVid.pause(); mainVid.removeAttribute('src'); mainVid.load();
+            playerDiv.classList.add('hidden');
+            if (document.fullscreenElement) document.exitFullscreen();
+        }
+
+        window.togglePlayerPlay = function() {
+            const icon = document.getElementById('control-play-icon');
+            const centerIcon = document.getElementById('center-play-icon');
+            if(mainVid.paused) {
+                mainVid.play(); icon.classList.replace('ph-play', 'ph-pause'); centerIcon.classList.add('hidden');
+            } else {
+                mainVid.pause(); icon.classList.replace('ph-pause', 'ph-play'); centerIcon.classList.remove('hidden'); controlsUI.style.opacity = '1'; 
+            }
+        }
+        window.seekPlayer = function(sec) { mainVid.currentTime += sec; }
+        window.togglePlayerMute = function() {
+            mainVid.muted = !mainVid.muted;
+            document.getElementById('control-volume-icon').classList.replace(mainVid.muted ? 'ph-speaker-high' : 'ph-speaker-slash', mainVid.muted ? 'ph-speaker-slash' : 'ph-speaker-high');
+        }
+        window.toggleFullscreenPlayer = function() {
+            const fsIcon = document.getElementById('control-fs-icon');
+            if (!document.fullscreenElement) { playerDiv.requestFullscreen(); fsIcon.classList.replace('ph-corners-out', 'ph-corners-in'); } 
+            else { document.exitFullscreen(); fsIcon.classList.replace('ph-corners-in', 'ph-corners-out'); }
+        }
+
+        function formatTime(sec) {
+            let m = Math.floor(sec / 60); let s = Math.floor(sec % 60);
+            return `${m < 10 ? '0'+m : m}:${s < 10 ? '0'+s : s}`;
+        }
+        mainVid.addEventListener('timeupdate', () => {
+            if(!mainVid.duration) return;
+            const pct = (mainVid.currentTime / mainVid.duration) * 100;
+            document.getElementById('progress-bar').style.width = pct + '%';
+            document.getElementById('player-time').innerText = `${formatTime(mainVid.currentTime)} / ${formatTime(mainVid.duration)}`;
+        });
+        progressContainer.addEventListener('click', (e) => {
+            const rect = progressContainer.getBoundingClientRect();
+            const pos = (e.clientX - rect.left) / rect.width;
+            mainVid.currentTime = pos * mainVid.duration;
+        });
+
+        // RENDERIZAR TRILHOS
+        window.renderCardRetrato = function(data) {
+            const dataStr = btoa(encodeURIComponent(JSON.stringify(data)));
+            return `<div onclick="mudarDestaque('${dataStr}')" class="min-w-[130px] md:min-w-[170px] h-[190px] md:h-[250px] bg-[#1A1C23] rounded-xl overflow-hidden border border-white/5 hover:border-[#D6B778] relative group cursor-pointer snap-start transition-all hover:scale-105 shadow-lg"><img src="${data.capaUrl}" class="w-full h-full object-cover"><div class="absolute top-0 w-full p-2 bg-gradient-to-b from-black/80 to-transparent"><p class="text-[8px] text-[#D6B778] font-bold tracking-widest uppercase">${data.selo}</p></div><div class="absolute bottom-0 w-full p-4 bg-gradient-to-t from-black via-black/90 to-transparent text-center opacity-90 group-hover:opacity-100"><p class="text-xs font-bold uppercase text-white">${data.titulo}</p></div></div>`;
+        }
+        window.renderCardPaisagem = function(data, colorClass = "text-[#D6B778]") {
+            const dataStr = btoa(encodeURIComponent(JSON.stringify(data)));
+            return `<div onclick="mudarDestaque('${dataStr}')" class="min-w-[220px] md:min-w-[280px] h-[120px] md:h-[150px] bg-[#1A1C23] rounded-xl overflow-hidden border border-white/5 hover:border-[#D6B778] relative group cursor-pointer snap-start transition-all hover:scale-105 shadow-lg"><img src="${data.capaUrl}" class="w-full h-full object-cover"><div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex items-end p-4"><p class="text-sm font-bold ${colorClass} tracking-wider uppercase">${data.titulo}</p></div></div>`;
+        }
+
+        window.carregarCatalogoRealtime = function() {
+            unsubscribeCatalog = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'catalog'), (snap) => {
+                cacheCatalogo = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => b.createdAt - a.createdAt);
+                if(cacheCatalogo.length > 0 && !window.currentDestaqueData) mudarDestaque(btoa(encodeURIComponent(JSON.stringify(cacheCatalogo[0]))));
+                if (typeof window.renderizarTrilhosNaHome === 'function') window.renderizarTrilhosNaHome();
+            });
+        }
+
+        window.renderizarTrilhosNaHome = function() {
+            let lista = ""; let adm = "";
+            const categories = {};
+            const categoriasExistem = new Set(["Lançamentos Recentes", "Séries de Sucesso", "Filmes Exclusivos"]);
+
+            cacheCatalogo.forEach((item, index) => {
+                const cat = item.trilho || "Outros";
+                if (!categories[cat]) categories[cat] = "";
+                categoriasExistem.add(cat);
+
+                if (minhaListaIds.includes(item.id)) lista += renderCardPaisagem(item, "text-[#2563EB]");
+
+                if (cat.toLowerCase().includes('recente') || cat.toLowerCase().includes('retrato')) categories[cat] += renderCardRetrato(item);
+                else categories[cat] += renderCardPaisagem(item, "text-[#D6B778]");
+
+                adm += `<div class="flex justify-between items-center bg-[#2A2C33] p-2.5 rounded-lg border border-white/5 mb-2 hover:border-[#D6B778] transition cursor-pointer"><div class="flex items-center gap-4"><span class="text-white font-bold w-4 text-center">${index + 1}</span><img src="${item.capaUrl}" class="w-14 h-9 object-cover rounded shadow"><p class="text-xs text-white font-medium truncate max-w-[200px]">${item.titulo}</p></div><button onclick="excluirConteudo('${item.id}')" class="text-brand-text hover:text-red-500 transition px-2"><i class="ph ph-trash text-lg"></i></button></div>`;
+            });
+
+            const datalist = document.getElementById('existing-categories');
+            if(datalist) datalist.innerHTML = Array.from(categoriasExistem).map(c => `<option value="${c}">`).join('');
+
+            document.getElementById('section-minha-lista').classList.toggle('hidden', !lista);
+            if(lista) document.getElementById('container-minha-lista').innerHTML = lista;
+            
+            let homeRailsHTML = ""; let previewRailsHTML = "";
+            Object.keys(categories).forEach(catName => {
+                homeRailsHTML += `<div><h3 class="text-lg md:text-xl font-medium mb-3 md:mb-5 text-white uppercase tracking-wide">${catName}</h3><div class="flex gap-3 md:gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory min-h-[120px] md:min-h-[150px]">${categories[catName]}</div></div>`;
+                previewRailsHTML += `<div><h3 class="text-3xl font-bold mb-8 text-white uppercase tracking-[0.2em] border-l-4 border-brand-gold pl-6">${catName}</h3><div class="flex gap-8 overflow-x-auto pb-10 scrollbar-hide snap-x snap-mandatory">${categories[catName]}</div></div>`;
+            });
+
+            const homeContainer = document.getElementById('dynamic-rails-container');
+            if(homeContainer) homeContainer.innerHTML = homeRailsHTML || `<div class="w-full flex items-center justify-center text-brand-text text-sm h-[190px]">Nenhum conteúdo adicionado.</div>`;
+
+            const previewContainer = document.getElementById('admin-preview-rails');
+            if(previewContainer) previewContainer.innerHTML = previewRailsHTML || `<div class="text-brand-text">Vazio</div>`;
+
+            document.getElementById('admin-lista-conteudo').innerHTML = adm || "<p class='text-sm text-brand-text mt-2'>Nenhum conteúdo publicado.</p>";
+        }
+    </script>
+</body>
+</html>
