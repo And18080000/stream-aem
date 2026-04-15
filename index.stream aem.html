@@ -220,7 +220,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             <!-- Hero Section -->
             <div class="relative w-full h-[65vh] md:h-[85vh] bg-[#0B0D12] overflow-hidden group">
                 <img src="https://images.unsplash.com/photo-1518773553398-650c184e0bb3?q=80&w=2070&auto=format&fit=crop" id="hero-img" alt="" class="absolute inset-0 w-full h-full object-cover opacity-70 transition-opacity duration-1000 z-0">
-                <video id="hero-video" class="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-1000 z-0 pointer-events-none" muted playsinline preload="auto"></video>
+                <video id="hero-video" class="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-1000 z-0 pointer-events-none" muted playsinline></video>
                 <div class="absolute inset-0 bg-gradient-to-t from-[#0B0D12] via-[#0B0D12]/40 to-transparent z-10 pointer-events-none"></div>
                 <div class="absolute inset-0 bg-gradient-to-r from-[#0B0D12] via-[#0B0D12]/60 to-transparent z-10 pointer-events-none"></div>
                 
@@ -659,7 +659,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
     <!-- ========================================== -->
     <!-- PLAYER DE VÍDEO FULLSCREEN ESTILO NETFLIX -->
     <div id="netflix-player" class="hidden fixed inset-0 z-[100] bg-black flex flex-col justify-center items-center">
-        <video id="main-full-video" class="w-full h-full object-contain absolute inset-0 cursor-pointer" playsinline preload="auto"></video>
+        <video id="main-full-video" class="w-full h-full object-contain absolute inset-0 cursor-pointer" playsinline></video>
         <div id="player-controls" class="absolute inset-0 flex flex-col justify-between opacity-0 z-50">
             <div class="w-full p-6 md:p-8 bg-gradient-to-b from-black/90 via-black/40 to-transparent flex items-center gap-4">
                 <button onclick="fecharPlayerFull()" class="text-white hover:text-brand-gold transition p-2">
@@ -736,6 +736,43 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
         });
 
         let currentUser = null;
+
+
+// ==========================================
+        // CÉREBRO: OTIMIZAÇÃO DE VÍDEO POR DISPOSITIVO
+        // ==========================================
+        window.otimizarVideosParaDispositivo = function() {
+            // 1. O robô pergunta "Quem é você?"
+            const userAgent = navigator.userAgent.toLowerCase();
+            
+            // 2. O robô verifica se o nome do aparelho parece com uma TV
+            const isTV = /smarttv|webos|tizen|roku|appletv|android tv|bravia|aftv|leanback|tv/i.test(userAgent);
+            
+            // 3. O robô verifica se o aparelho é "fraquinho" (menos de 2GB de RAM)
+            const isLowRam = navigator.deviceMemory && navigator.deviceMemory <= 2;
+            
+            // Pega os dois vídeos da tela
+            const heroVideo = document.getElementById('hero-video');
+            const mainVideo = document.getElementById('main-full-video');
+
+            if (isTV || isLowRam) {
+                // SE FOR TV OU CELULAR FRACO:
+                // Preload "none" no fundo (não baixa nada) e "metadata" no player (baixa só a capa)
+                if(heroVideo) heroVideo.setAttribute('preload', 'none');
+                if(mainVideo) mainVideo.setAttribute('preload', 'metadata');
+                console.log("A&M Stream: Otimizado para TV / Aparelho Fraco");
+            } else {
+                // SE FOR PC OU CELULAR BOM:
+                // Preload "auto" (baixa logo para ficar rápido e liso)
+                if(heroVideo) heroVideo.setAttribute('preload', 'auto');
+                if(mainVideo) mainVideo.setAttribute('preload', 'auto');
+                console.log("A&M Stream: Performance Máxima (PC/Mobile)");
+            }
+        };
+        
+        // 4. Manda o robô rodar assim que a página abrir
+        window.otimizarVideosParaDispositivo();
+
         let unsubscribeCatalog = null;
         let unsubscribeMenus = null;
         let unsubscribeLista = null;
