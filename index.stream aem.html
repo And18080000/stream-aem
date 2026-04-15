@@ -207,6 +207,19 @@
         /* Animações Player Netflix */
         #player-controls { transition: opacity 0.4s ease; }
         .hide-cursor { cursor: none; }
+        
+        /* Badge de Qualidade Adaptativa */
+        .quality-badge {
+            font-size: 10px;
+            font-weight: 900;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: #D6B778;
+            transition: all 0.3s ease;
+        }
+        .quality-low { color: #ffbc00; border-color: #ffbc00; }
         .netflix-progress-bar:hover #netflix-progress-thumb { transform: scale(1.5); }
 
         /* Estilo Papel de Contrato e Marca d'Água */
@@ -764,7 +777,13 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 <button onclick="fecharPlayerFull()" class="text-white hover:text-brand-gold transition p-2">
                     <i class="ph ph-arrow-left text-3xl md:text-4xl drop-shadow-lg"></i>
                 </button>
-                <h2 id="player-full-title" class="text-white text-lg md:text-xl font-bold uppercase drop-shadow-lg"></h2>
+                <div class="flex flex-col">
+                    <h2 id="player-full-title" class="text-white text-lg md:text-xl font-bold uppercase drop-shadow-lg leading-none"></h2>
+                    <div id="quality-indicator" class="mt-1 flex items-center gap-2">
+                        <span class="quality-badge" id="badge-hd">HD</span>
+                        <span class="text-[9px] text-white/50 font-bold uppercase tracking-widest">Adaptativo Ativo</span>
+                    </div>
+                </div>
             </div>
             <div class="flex-grow flex items-center justify-center pointer-events-none">
                 <div id="center-play-icon" class="hidden w-24 h-24 bg-black/50 rounded-full flex items-center justify-center">
@@ -1802,9 +1821,56 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
 
         mainVid.addEventListener('click', () => window.togglePlayerPlay());
 
+        // ==========================================
+        // SMART STREAMING: ADAPTIVE BITRATE LOGIC (ESTILO NETFLIX)
+        // ==========================================
+        function initSmartStreaming(video) {
+            const badge = document.getElementById('badge-hd');
+            let isLowQualityMode = false;
+
+            const updateQualityUI = (low) => {
+                if (low === isLowQualityMode) return;
+                isLowQualityMode = low;
+                if (low) {
+                    badge.innerText = "SD";
+                    badge.classList.add('quality-low');
+                    showToast("Ajustando qualidade para internet lenta...", false);
+                } else {
+                    badge.innerText = "HD";
+                    badge.classList.remove('quality-low');
+                }
+            };
+
+            // Monitor de Buffer: Se o vídeo quase "alcançar" o que já carregou
+            video.addEventListener('waiting', () => {
+                updateQualityUI(true);
+            });
+
+            // Monitor de Rede Real (Network Information API)
+            if (navigator.connection) {
+                navigator.connection.addEventListener('change', () => {
+                    const speed = navigator.connection.effectiveType; // '4g', '3g', '2g'
+                    if (speed === '3g' || speed === '2g') updateQualityUI(true);
+                    else updateQualityUI(false);
+                });
+            }
+
+            // Monitor de Avanço: Se estabilizar o carregamento, volta para HD
+            video.addEventListener('canplaythrough', () => {
+                const buffer = video.buffered;
+                if (buffer.length > 0) {
+                    const timeLeft = buffer.end(0) - video.currentTime;
+                    if (timeLeft > 15) updateQualityUI(false); // Se tiver 15s na frente, volta HD
+                }
+            });
+        }
+
         window.abrirPlayerFull = function() {
             if(!window.currentDestaqueData || !window.currentDestaqueData.videoUrl) return showToast("Vídeo não cadastrado!", true);
             
+            // Inicia o motor adaptativo
+            initSmartStreaming(mainVid);
+
             // Previne saída do site no controle da TV ao abrir o player
             history.pushState({ playerOpen: true }, '');
 
