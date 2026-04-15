@@ -7,7 +7,106 @@
     
     <!-- Otimização de Performance: Conexões Antecipadas -->
     <link rel="preconnect" href="https:======================================
+        ======================================
         // TV SUPREMACY: CONTROLES DE COMANDO REMOTO
+        // ==========================================
+        window.addEventListener('keydown', (e) => {
+            const isPlayerOpen = !document.getElementById('netflix-player').classList.contains('hidden');
+            
+            if (isPlayerOpen) {
+====
+        // ==========================================
+        // TV & MOBILE SUPREMACY: SISTEMA DE TOQUE E NAVEGAÇÃO
+        // ==========================================
+        
+        /** 
+         * MOTOR DE EXECUÇÃO ULTRA-RÁPIDA (MOBILE FIX)
+         * Garante que o toque em celulares execute a ação imediatamente sem delay de 300ms
+         * e sem falhas de clique em navegadores de TV que emulam mouse.
+         */
+        document.addEventListener('touchend', function(e) {
+            const focusableEl = e.target.closest('.focusable');
+            if (focusableEl) {
+                // Previne scroll acidental de disparar o clique
+                if (window.isUserDraggingRail) return;
+                
+                focusableEl.focus();
+                focusableEl.click();
+                
+                // Impede o clique fantasma e o comportamento padrão que gera delay
+                if (e.cancelable) e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Algoritmo de Navegação Espacial (Cérebro da TV)
+        function navigateTV(direction) {
+            const current = document.activeElement;
+            const focusables = Array.from(document.querySelectorAll('.focusable:not(.hidden)'));
+            
+            if (!current || !current.classList.contains('focusable')) {
+                if (focusables.length > 0) focusables[0].focus();
+                return;
+            }
+
+            const currentRect = current.getBoundingClientRect();
+            let nextElement = null;
+            let minDistance = Infinity;
+
+            focusables.forEach(el => {
+                if (el === current) return;
+                const elRect = el.getBoundingClientRect();
+
+                let isCandidate = false;
+                const threshold = 15; // Margem para detectar alinhamento de trilhos
+
+                switch(direction) {
+                    case 'UP': isCandidate = elRect.bottom <= currentRect.top + threshold; break;
+                    case 'DOWN': isCandidate = elRect.top >= currentRect.bottom - threshold; break;
+                    case 'LEFT': isCandidate = elRect.right <= currentRect.left + threshold; break;
+                    case 'RIGHT': isCandidate = elRect.left >= currentRect.right - threshold; break;
+                }
+
+                if (isCandidate) {
+                    const dist = Math.sqrt(
+                        Math.pow((elRect.left + elRect.width/2) - (currentRect.left + currentRect.width/2), 2) +
+                        Math.pow((elRect.top + elRect.height/2) - (currentRect.top + currentRect.height/2), 2)
+                    );
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        nextElement = el;
+                    }
+                }
+            });
+
+            if (nextElement) {
+                nextElement.focus();
+                nextElement.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            const isPlayerOpen = !document.getElementById('netflix-player').classList.contains('hidden');
+            
+            // Mapeamento Universal de ENTER para Smart TVs (Samsung Tizen, LG WebOS, Android TV)
+            const isEnterKey = [13, 29443, 117, 65376].includes(e.keyCode);
+
+            // NAVEGAÇÃO NO CATÁLOGO (FORA DO PLAYER)
+            if (!isPlayerOpen) {
+                switch(e.keyCode) {
+                    case 37: navigateTV('LEFT'); e.preventDefault(); break;
+                    case 38: navigateTV('UP'); e.preventDefault(); break;
+                    case 39: navigateTV('RIGHT'); e.preventDefault(); break;
+                    case 40: navigateTV('DOWN'); e.preventDefault(); break;
+                    case 13: 
+                        if(isEnterKey && document.activeElement && document.activeElement.classList.contains('focusable')) {
+                            document.activeElement.click(); 
+                            e.preventDefault();
+                        }
+                        break;
+                }
+            }
+            
+            if (isPlayerOpen) { TV SUPREMACY: CONTROLES DE COMANDO REMOTO
         // ==========================================
         window.addEventListener('keydown', (e) => {
             const isPlayerOpen = !document.getElementById('netflix-player').classList.contains('hidden');
@@ -910,6 +1009,10 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                     </div>
                     <div id="player-time" class="text-sm md:text-base font-medium font-mono hidden md:block">00:00 / 00:00</div>
                     <div class="flex items-center gap-4 md:gap-6">
+                        <button onclick="rotateVideoOrientation()" class="focusable hover:text-brand-gold transition flex flex-col items-center gap-0.5" title="Girar Orientação" tabindex="0">
+                            <i class="ph ph-screen-rotate text-2xl md:text-3xl"></i>
+                            <span class="text-[7px] font-black uppercase">Girar</span>
+                        </button>
                         <button onclick="rotateVideoOrientation()" class="focusable hover:text-brand-gold transition flex flex-col items-center gap-0.5" title="Girar Orientação" tabindex="0">
                             <i class="ph ph-screen-rotate text-2xl md:text-3xl"></i>
                             <span class="text-[7px] font-black uppercase">Girar</span>
@@ -2380,6 +2483,32 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
 
         let viewer360 = null;
         let is360Mode = false;
+        let videoRotationAngle = 0;
+
+        window.rotateVideoOrientation = function() {
+            const video = document.getElementById('main-full-video');
+            const container360 = document.getElementById('video-360-container');
+            
+            videoRotationAngle = (videoRotationAngle + 90) % 360;
+            
+            // Algoritmo de Compensação de Escala: 
+            // Quando giramos 90 ou 270 graus, o vídeo vertical precisa ser escalonado para caber na tela horizontal
+            const isVertical = videoRotationAngle === 90 || videoRotationAngle === 270;
+            const scale = isVertical ? (window.innerHeight / window.innerWidth).toFixed(2) : 1;
+            
+            const transformValue = `rotate(${videoRotationAngle}deg) scale(${scale})`;
+            
+            if(video) video.style.transform = transformValue;
+            if(container360) container360.style.transform = transformValue;
+            
+            // Garante que o canvas 360 também receba a transformação se estiver ativo
+            if(viewer360 && container360) {
+                const canvas = container360.querySelector('canvas');
+                if(canvas) canvas.style.transform = transformValue;
+            }
+
+            showToast(`Orientação: ${videoRotationAngle}°`);
+        };
 
         window.toggle360Mode = function() {
             const videoElement = document.getElementById('main-full-video');
