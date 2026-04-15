@@ -779,23 +779,23 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 </div>
                 <div class="flex justify-between items-center text-white">
                     <div class="flex items-center gap-4 md:gap-6">
-                        <button onclick="togglePlayerPlay()" class="hover:text-gray-300 transition">
+                        <button onclick="togglePlayerPlay()" class="focusable hover:text-gray-300 transition" tabindex="0">
                             <i id="control-play-icon" class="ph-fill ph-pause text-3xl md:text-4xl"></i>
                         </button>
-                        <button onclick="seekPlayer(-10)" class="hover:text-gray-300 transition">
+                        <button onclick="seekPlayer(-10)" class="focusable hover:text-gray-300 transition" tabindex="0">
                             <i class="ph ph-arrow-counter-clockwise text-2xl md:text-3xl"></i>
                         </button>
-                        <button onclick="seekPlayer(10)" class="hover:text-gray-300 transition">
+                        <button onclick="seekPlayer(10)" class="focusable hover:text-gray-300 transition" tabindex="0">
                             <i class="ph ph-arrow-clockwise text-2xl md:text-3xl"></i>
                         </button>
-                        <button onclick="togglePlayerMute()" class="hover:text-gray-300 transition ml-2">
+                        <button onclick="togglePlayerMute()" class="focusable hover:text-gray-300 transition ml-2" tabindex="0">
                             <i id="control-volume-icon" class="ph-fill ph-speaker-high text-2xl md:text-3xl"></i>
                         </button>
                     </div>
                     <div id="player-time" class="text-sm md:text-base font-medium font-mono hidden md:block">00:00 / 00:00</div>
                     <div class="flex items-center gap-4 md:gap-6">
-                        <button class="hover:text-gray-300 transition hidden sm:block"><i class="ph ph-subtitles text-2xl md:text-3xl"></i></button>
-                        <button onclick="toggleFullscreenPlayer()" class="hover:text-gray-300 transition">
+                        <button class="focusable hover:text-gray-300 transition hidden sm:block" tabindex="0"><i class="ph ph-subtitles text-2xl md:text-3xl"></i></button>
+                        <button onclick="toggleFullscreenPlayer()" class="focusable hover:text-gray-300 transition" tabindex="0">
                             <i id="control-fs-icon" class="ph ph-corners-out text-2xl md:text-3xl"></i>
                         </button>
                     </div>
@@ -1975,16 +1975,30 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                     }
                 }, 3500);
 
-                // Mapeamento de Teclas do Controle Remoto
+                // Mapeamento de Teclas do Controle Remoto (Navegação Espacial dentro do Player)
                 switch(e.keyCode) {
-                    case 13: // ENTER / OK
-                        window.togglePlayerPlay();
+                    case 13: // ENTER / OK (Executa o botão focado)
+                        if (document.activeElement && document.activeElement.classList.contains('focusable')) {
+                            document.activeElement.click();
+                        } else {
+                            window.togglePlayerPlay();
+                        }
                         break;
-                    case 37: // SETA ESQUERDA
-                        window.seekPlayer(-10);
+                    case 37: // SETA ESQUERDA (Move foco para o botão da esquerda)
+                        navigateTV('LEFT'); 
+                        e.preventDefault();
                         break;
-                    case 39: // SETA DIREITA
-                        window.seekPlayer(10);
+                    case 39: // SETA DIREITA (Move foco para o botão da direita)
+                        navigateTV('RIGHT'); 
+                        e.preventDefault();
+                        break;
+                    case 38: // SETA CIMA
+                        navigateTV('UP');
+                        e.preventDefault();
+                        break;
+                    case 40: // SETA BAIXO
+                        navigateTV('DOWN');
+                        e.preventDefault();
                         break;
                     case 415: // PLAY (Teclas dedicadas de alguns controles)
                     case 19:  // PAUSE
