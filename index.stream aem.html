@@ -6,7 +6,80 @@
     <title>A&M Streaming</title>
     
     <!-- Otimização de Performance: Conexões Antecipadas -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https:======================================
+        // TV SUPREMACY: CONTROLES DE COMANDO REMOTO
+        // ==========================================
+        window.addEventListener('keydown', (e) => {
+            const isPlayerOpen = !document.getElementById('netflix-player').classList.contains('hidden');
+            
+            if (isPlayerOpen) {
+====
+        // ==========================================
+        // TV SUPREMACY: CONTROLES DE COMANDO REMOTO
+        // ==========================================
+        // Algoritmo de Navegação Espacial (Cérebro da TV)
+        function navigateTV(direction) {
+            const current = document.activeElement;
+            const focusables = Array.from(document.querySelectorAll('.focusable:not(.hidden)'));
+            
+            if (!current || !current.classList.contains('focusable')) {
+                if (focusables.length > 0) focusables[0].focus();
+                return;
+            }
+
+            const currentRect = current.getBoundingClientRect();
+            let nextElement = null;
+            let minDistance = Infinity;
+
+            focusables.forEach(el => {
+                if (el === current) return;
+                const elRect = el.getBoundingClientRect();
+
+                let isCandidate = false;
+                const threshold = 10; // Margem para detectar alinhamento
+
+                switch(direction) {
+                    case 'UP': isCandidate = elRect.bottom <= currentRect.top + threshold; break;
+                    case 'DOWN': isCandidate = elRect.top >= currentRect.bottom - threshold; break;
+                    case 'LEFT': isCandidate = elRect.right <= currentRect.left + threshold; break;
+                    case 'RIGHT': isCandidate = elRect.left >= currentRect.right - threshold; break;
+                }
+
+                if (isCandidate) {
+                    // Cálculo da distância Euclidiana entre centros
+                    const dist = Math.sqrt(
+                        Math.pow((elRect.left + elRect.width/2) - (currentRect.left + currentRect.width/2), 2) +
+                        Math.pow((elRect.top + elRect.height/2) - (currentRect.top + currentRect.height/2), 2)
+                    );
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        nextElement = el;
+                    }
+                }
+            });
+
+            if (nextElement) {
+                nextElement.focus();
+                // Scroll suave automático para o item focado
+                nextElement.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            const isPlayerOpen = !document.getElementById('netflix-player').classList.contains('hidden');
+            
+            // Navegação Fora do Player (Menus e Trilhos)
+            if (!isPlayerOpen) {
+                switch(e.keyCode) {
+                    case 37: navigateTV('LEFT'); e.preventDefault(); break;
+                    case 38: navigateTV('UP'); e.preventDefault(); break;
+                    case 39: navigateTV('RIGHT'); e.preventDefault(); break;
+                    case 40: navigateTV('DOWN'); e.preventDefault(); break;
+                    case 13: if(document.activeElement) document.activeElement.click(); break;
+                }
+            }
+
+            if (isPlayerOpen) {fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdn.tailwindcss.com">
     <link rel="preconnect" href="https://unpkg.com">
@@ -52,6 +125,22 @@
     </script>
 
     <style>
+        /* Estilos de Foco para Controle Remoto (Estilo Netflix) */
+        .focusable {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            outline: none !important;
+        }
+        .focusable:focus {
+            transform: scale(1.08);
+            z-index: 50;
+            border-color: #D6B778 !important;
+            box-shadow: 0 0 25px rgba(214, 183, 120, 0.5), 0 0 0 3px rgba(214, 183, 120, 0.2);
+        }
+        /* Efeito de brilho pulsante no foco do card */
+        .focusable:focus img {
+            filter: brightness(1.1);
+        }
+
         /* Performance: Evita bloqueio de renderização com font-display: swap */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap&font-display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Cedarville+Cursive&display=swap&font-display=swap');
@@ -195,8 +284,8 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
 
             <!-- Navegação -->
             <nav class="flex gap-4 md:gap-6 text-xs md:text-sm font-medium text-brand-text whitespace-nowrap">
-                <button onclick="navigate('home')" id="nav-home" class="nav-link active pb-1 hover:text-white transition">INÍCIO</button>
-                <button id="menu-1-label" class="pb-1 hover:text-white transition">SÉRIES</button>
+                <button onclick="navigate('home')" id="nav-home" class="nav-link focusable active pb-1 hover:text-white transition" tabindex="0">INÍCIO</button>
+                <button id="menu-1-label" class="focusable pb-1 hover:text-white transition" tabindex="0">SÉRIES</button>
                 <button id="menu-2-label" class="pb-1 hover:text-white transition">FILMES</button>
                 <button id="menu-3-label" class="pb-1 hover:text-white transition">ORIGINAIS</button>
                 <button class="pb-1 hover:text-white transition">MINHA LISTA</button>
@@ -250,17 +339,17 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                     </p>
                     
                     <div class="flex flex-wrap items-center gap-3 md:gap-5">
-                        <button onclick="abrirPlayerFull()" class="bg-[#2563EB] hover:bg-[#1d4ed8] text-white px-6 md:px-8 py-2.5 md:py-3.5 rounded-full flex items-center gap-2 font-bold transition text-xs md:text-sm tracking-wide shadow-[0_0_20px_rgba(37,99,235,0.4)]">
+                        <button onclick="abrirPlayerFull()" class="focusable bg-[#2563EB] hover:bg-[#1d4ed8] text-white px-6 md:px-8 py-2.5 md:py-3.5 rounded-full flex items-center gap-2 font-bold transition text-xs md:text-sm tracking-wide shadow-[0_0_20px_rgba(37,99,235,0.4)]" tabindex="0">
                             <i class="ph-fill ph-play text-lg"></i> ASSISTIR AGORA
                         </button>
-                        <button class="bg-transparent border border-white/40 hover:border-white text-white px-6 md:px-8 py-2.5 md:py-3.5 rounded-full font-bold transition text-xs md:text-sm tracking-wide hidden sm:block">
+                        <button class="focusable bg-transparent border border-white/40 hover:border-white text-white px-6 md:px-8 py-2.5 md:py-3.5 rounded-full font-bold transition text-xs md:text-sm tracking-wide hidden sm:block" tabindex="0">
                             MAIS INFORMAÇÕES
                         </button>
                         
-                        <button id="btn-add-lista" onclick="toggleMinhaLista()" class="w-10 h-10 md:w-12 md:h-12 rounded-full border border-white/40 flex items-center justify-center hover:border-white hover:bg-white/10 text-white transition group relative" title="Minha Lista">
+                        <button id="btn-add-lista" onclick="toggleMinhaLista()" class="focusable w-10 h-10 md:w-12 md:h-12 rounded-full border border-white/40 flex items-center justify-center hover:border-white hover:bg-white/10 text-white transition group relative" title="Minha Lista" tabindex="0">
                             <i id="icon-add-lista" class="ph ph-plus text-lg md:text-xl"></i>
                         </button>
-                        <button onclick="toggleJoinha()" class="w-10 h-10 md:w-12 md:h-12 rounded-full border border-white/40 flex items-center justify-center hover:border-white hover:bg-white/10 text-white transition group relative" title="Gostei">
+                        <button onclick="toggleJoinha()" class="focusable w-10 h-10 md:w-12 md:h-12 rounded-full border border-white/40 flex items-center justify-center hover:border-white hover:bg-white/10 text-white transition group relative" title="Gostei" tabindex="0">
                             <i id="icon-joinha" class="ph ph-thumbs-up text-lg md:text-xl active:scale-125 transition-transform"></i>
                         </button>
                     </div>
@@ -1808,13 +1897,13 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
         // RENDERIZAR TRILHOS
         window.renderCardRetrato = function(data) {
             const dataStr = btoa(encodeURIComponent(JSON.stringify(data)));
-            // Performance: Lazy loading e decoding assíncrono para os cards fora da dobra
-            return `<div onclick="mudarDestaque('${dataStr}')" class="min-w-[130px] md:min-w-[170px] h-[190px] md:h-[250px] bg-[#1A1C23] rounded-xl overflow-hidden border border-white/5 hover:border-[#D6B778] relative group cursor-pointer snap-start transition-all hover:scale-105 shadow-lg"><img src="${data.capaUrl}" loading="lazy" decoding="async" class="w-full h-full object-cover" alt="${data.titulo}"><div class="absolute top-0 w-full p-2 bg-gradient-to-b from-black/80 to-transparent"><p class="text-[8px] text-[#D6B778] font-bold tracking-widest uppercase">${data.selo}</p></div><div class="absolute bottom-0 w-full p-4 bg-gradient-to-t from-black via-black/90 to-transparent text-center opacity-90 group-hover:opacity-100"><p class="text-xs font-bold uppercase text-white">${data.titulo}</p></div></div>`;
+            // TV: Adicionado class focusable e tabindex para navegação por controle
+            return `<div onclick="mudarDestaque('${dataStr}')" onfocus="mudarDestaque('${dataStr}')" class="focusable min-w-[130px] md:min-w-[170px] h-[190px] md:h-[250px] bg-[#1A1C23] rounded-xl overflow-hidden border border-white/5 relative group cursor-pointer snap-start transition-all shadow-lg" tabindex="0"><img src="${data.capaUrl}" loading="lazy" decoding="async" class="w-full h-full object-cover" alt="${data.titulo}"><div class="absolute top-0 w-full p-2 bg-gradient-to-b from-black/80 to-transparent"><p class="text-[8px] text-[#D6B778] font-bold tracking-widest uppercase">${data.selo}</p></div><div class="absolute bottom-0 w-full p-4 bg-gradient-to-t from-black via-black/90 to-transparent text-center opacity-90 group-hover:opacity-100"><p class="text-xs font-bold uppercase text-white">${data.titulo}</p></div></div>`;
         }
         window.renderCardPaisagem = function(data, colorClass = "text-[#D6B778]") {
             const dataStr = btoa(encodeURIComponent(JSON.stringify(data)));
-            // Performance: Lazy loading e decoding assíncrono para os cards fora da dobra
-            return `<div onclick="mudarDestaque('${dataStr}')" class="min-w-[220px] md:min-w-[280px] h-[120px] md:h-[150px] bg-[#1A1C23] rounded-xl overflow-hidden border border-white/5 hover:border-[#D6B778] relative group cursor-pointer snap-start transition-all hover:scale-105 shadow-lg"><img src="${data.capaUrl}" loading="lazy" decoding="async" class="w-full h-full object-cover" alt="${data.titulo}"><div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex items-end p-4"><p class="text-sm font-bold ${colorClass} tracking-wider uppercase">${data.titulo}</p></div></div>`;
+            // TV: Adicionado class focusable e tabindex para navegação por controle
+            return `<div onclick="mudarDestaque('${dataStr}')" onfocus="mudarDestaque('${dataStr}')" class="focusable min-w-[220px] md:min-w-[280px] h-[120px] md:h-[150px] bg-[#1A1C23] rounded-xl overflow-hidden border border-white/5 relative group cursor-pointer snap-start transition-all shadow-lg" tabindex="0"><img src="${data.capaUrl}" loading="lazy" decoding="async" class="w-full h-full object-cover" alt="${data.titulo}"><div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex items-end p-4"><p class="text-sm font-bold ${colorClass} tracking-wider uppercase">${data.titulo}</p></div></div>`;
         }
 
         window.carregarCatalogoRealtime = function() {
