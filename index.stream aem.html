@@ -1706,6 +1706,9 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
         window.abrirPlayerFull = function() {
             if(!window.currentDestaqueData || !window.currentDestaqueData.videoUrl) return showToast("Vídeo não cadastrado!", true);
             
+            // Previne saída do site no controle da TV ao abrir o player
+            history.pushState({ playerOpen: true }, '');
+
             // 🚀 LIMPEZA DE MEMÓRIA EXTREMA (Evita o App de fechar sozinho)
             const heroVideo = document.getElementById('hero-video');
             const adminPreviewVideo = document.getElementById('admin-preview-hero-video');
@@ -1747,6 +1750,10 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             mainVid.pause(); mainVid.removeAttribute('src'); mainVid.load();
             playerDiv.classList.add('hidden');
             if (document.fullscreenElement) document.exitFullscreen();
+            // Se o player foi fechado manualmente, removemos o estado do histórico se ainda existir
+            if (history.state && history.state.playerOpen) {
+                history.back();
+            }
         }
 
         window.togglePlayerPlay = function() {
@@ -1844,6 +1851,79 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
 
             document.getElementById('admin-lista-conteudo').innerHTML = adm || "<p class='text-sm text-brand-text mt-2'>Nenhum conteúdo publicado.</p>";
         }
+
+        // ==========================================
+        // TV SUPREMACY: CONTROLES DE COMANDO REMOTO
+        // ==========================================
+        window.addEventListener('keydown', (e) => {
+            const isPlayerOpen = !document.getElementById('netflix-player').classList.contains('hidden');
+            
+            if (isPlayerOpen) {
+                // Ao tocar em qualquer tecla do controle, mostra a barra de progresso (estilo Netflix)
+                const playerUI = document.getElementById('player-controls');
+                const playerContainer = document.getElementById('netflix-player');
+                
+                playerUI.style.opacity = '1';
+                playerContainer.classList.remove('hide-cursor');
+                
+                clearTimeout(window.tvControlsTimeout);
+                window.tvControlsTimeout = setTimeout(() => {
+                    if (!document.getElementById('main-full-video').paused) {
+                        playerUI.style.opacity = '0';
+                        playerContainer.classList.add('hide-cursor');
+                    }
+                }, 3500);
+
+                // Mapeamento de Teclas do Controle Remoto
+                switch(e.keyCode) {
+                    case 13: // ENTER / OK
+                        window.togglePlayerPlay();
+                        break;
+                    case 37: // SETA ESQUERDA
+                        window.seekPlayer(-10);
+                        break;
+                    case 39: // SETA DIREITA
+                        window.seekPlayer(10);
+                        break;
+                    case 415: // PLAY (Teclas dedicadas de alguns controles)
+                    case 19:  // PAUSE
+                        window.togglePlayerPlay();
+                        break;
+                    case 461: // BACK (WebOS)
+                    case 10009: // RETURN (Tizen)
+                    case 8:   // BACKSPACE (Comum em navegadores de TV)
+                    case 27:  // ESC
+                        e.preventDefault();
+                        window.fecharPlayerFull();
+                        break;
+                }
+            }
+        });
+
+        // Bloqueio de saída do site via Botão Voltar (History API)
+        window.addEventListener('popstate', (e) => {
+            const player = document.getElementById('netflix-player');
+            const signature = document.getElementById('signature-modal');
+            const auth = document.getElementById('auth-modal');
+
+            // Se qualquer modal ou player estiver aberto, apenas fecha eles em vez de sair do site
+            if (!player.classList.contains('hidden')) {
+                player.classList.add('hidden');
+                const v = document.getElementById('main-full-video');
+                v.pause(); v.removeAttribute('src'); v.load();
+            } else if (!signature.classList.contains('hidden')) {
+                window.fecharModalAssinatura();
+            } else if (!auth.classList.contains('hidden')) {
+                window.closeAuthModal();
+            } else {
+                // Se estiver na home, força a permanência injetando um novo estado
+                history.pushState(null, null, window.location.pathname);
+                showToast("Pressione Início no controle para sair.");
+            }
+        });
+
+        // Inicia um estado inicial para o popstate funcionar desde o primeiro clique
+        history.pushState(null, null, window.location.pathname);
     </script>
 </body>
 </html>
