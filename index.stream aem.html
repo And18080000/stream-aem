@@ -1706,10 +1706,27 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
         window.abrirPlayerFull = function() {
             if(!window.currentDestaqueData || !window.currentDestaqueData.videoUrl) return showToast("Vídeo não cadastrado!", true);
             
+            // 🚀 LIMPEZA DE MEMÓRIA EXTREMA (Evita o App de fechar sozinho)
             const heroVideo = document.getElementById('hero-video');
-            if(heroVideo) { heroVideo.pause(); clearTimeout(videoTimeout); clearTimeout(heroTimeout); }
+            const adminPreviewVideo = document.getElementById('admin-preview-hero-video');
+
+            // Mata o trailer de fundo e força a TV a esvaziar a memória RAM
+            if(heroVideo) { 
+                heroVideo.pause(); 
+                heroVideo.removeAttribute('src'); 
+                heroVideo.load(); 
+                clearTimeout(videoTimeout); 
+                clearTimeout(heroTimeout); 
+            }
+            if(adminPreviewVideo) {
+                adminPreviewVideo.pause();
+                adminPreviewVideo.removeAttribute('src');
+                adminPreviewVideo.load();
+            }
 
             document.getElementById('player-full-title').innerText = window.currentDestaqueData.titulo;
+            
+            // Agora sim, com a memória limpa, carrega o filme longo
             mainVid.src = window.currentDestaqueData.videoUrl;
             playerDiv.classList.remove('hidden');
             
