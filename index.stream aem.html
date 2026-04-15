@@ -101,6 +101,10 @@
     <!-- AWS SDK para Browser -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/aws-sdk/2.1408.0/aws-sdk.min.js"></script>
 
+    <!-- Bibliotecas para Vídeo 360 e VR -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/panolens@0.12.1/build/panolens.min.js"></script>
+
     <!-- Configuração do Tailwind -->
     <script>
         tailwind.config = {
@@ -131,10 +135,15 @@
             outline: none !important;
         }
         .focusable:focus {
-            transform: scale(1.08);
+            transform: scale(1.15); /* Aumento mais expressivo para destaque total */
             z-index: 50;
             border-color: #D6B778 !important;
-            box-shadow: 0 0 25px rgba(214, 183, 120, 0.5), 0 0 0 3px rgba(214, 183, 120, 0.2);
+            /* Efeito Neon Supra-Frequência (Multicamadas de Brilho) */
+            box-shadow: 0 0 15px rgba(214, 183, 120, 0.8), 
+                        0 0 30px rgba(214, 183, 120, 0.4), 
+                        0 0 45px rgba(214, 183, 120, 0.2), 
+                        0 0 0 4px rgba(214, 183, 120, 0.15);
+            filter: brightness(1.1);
         }
         /* Efeito de brilho pulsante no foco do card */
         .focusable:focus img {
@@ -173,6 +182,16 @@
         .scrollbar-hide {
             -ms-overflow-style: none;
             scrollbar-width: none;
+        }
+
+        /* 🖱️ ESTILO DE NAVEGAÇÃO POR ARRASTE (GRAB-TO-SCROLL) */
+        .auto-scroll-rail {
+            cursor: grab;
+            user-select: none; /* Previne seleção de texto ao arrastar */
+            active-cursor: grabbing;
+        }
+        .auto-scroll-rail:active {
+            cursor: grabbing;
         }
 
         /* Scrollbar interna para lista de aulas admin */
@@ -298,9 +317,9 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             <!-- Navegação -->
             <nav class="flex gap-4 md:gap-6 text-xs md:text-sm font-medium text-brand-text whitespace-nowrap">
                 <button onclick="navigate('home')" id="nav-home" class="nav-link focusable active pb-1 hover:text-white transition" tabindex="0">INÍCIO</button>
-                <button id="menu-1-label" class="focusable pb-1 hover:text-white transition" tabindex="0">SÉRIES</button>
-                <button id="menu-2-label" class="pb-1 hover:text-white transition">FILMES</button>
-                <button id="menu-3-label" class="pb-1 hover:text-white transition">ORIGINAIS</button>
+                <button id="menu-1-label" onclick="navigate('menu1')" class="focusable pb-1 hover:text-white transition" tabindex="0">SÉRIES</button>
+                <button id="menu-2-label" onclick="navigate('menu2')" class="focusable pb-1 hover:text-white transition" tabindex="0">FILMES</button>
+                <button id="menu-3-label" onclick="navigate('menu3')" class="focusable pb-1 hover:text-white transition" tabindex="0">ORIGINAIS</button>
                 <button class="pb-1 hover:text-white transition">MINHA LISTA</button>
                 <button id="btn-install-header" onclick="triggerInstall()" class="hidden pb-1 hover:text-brand-gold transition flex items-center gap-1 text-brand-gold font-bold"><i class="ph ph-download-simple"></i> INSTALAR APP</button>
                 
@@ -347,7 +366,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                     <p class="text-white text-sm md:text-lg mb-1 leading-relaxed line-clamp-3 md:line-clamp-none font-light drop-shadow-md">
                         <span id="hero-selo" class="font-bold">A&M ORIGINALS</span> | Selecione um conteúdo abaixo.
                     </p>
-                    <p class="text-brand-text text-xs md:text-sm mb-6 md:mb-8 font-medium">
+                    <p id="hero-subtitulo" class="text-brand-text text-xs md:text-sm mb-6 md:mb-8 font-medium">
                         Classificação: 14+ | Estreia Exclusiva
                     </p>
                     
@@ -410,6 +429,23 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 </button>
             </div>
 
+            <!-- Edição de Ordem das Categorias -->
+            <div class="bg-brand-panel border border-brand-gold/30 rounded-2xl p-4 md:p-6 mb-8 shadow-lg">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
+                    <h2 class="text-brand-gold text-lg font-bold flex items-center gap-2">
+                        <i class="ph ph-list-numbers"></i> Ordem das Categorias (Home)
+                    </h2>
+                    <button onclick="salvarOrdemCategorias()" class="bg-brand-blue hover:bg-brand-blue-hover text-white px-6 py-2 rounded-full font-bold transition text-xs shadow-md">
+                        Salvar Ordem das Categorias
+                    </button>
+                </div>
+                <p class="text-[10px] text-brand-text mb-4 uppercase tracking-wider">Defina a ordem numérica (1, 2, 3...) para decidir quem aparece primeiro na tela inicial.</p>
+                <div id="admin-ordem-categorias-list" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                    <!-- Gerado dinamicamente via JS -->
+                    <p class="text-xs text-brand-text col-span-full italic">Carregando categorias...</p>
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                 <!-- COLUNA ESQUERDA: Formulário -->
                 <div class="lg:col-span-5 bg-[#15171C] rounded-[24px] p-6 md:p-8 shadow-2xl flex flex-col border border-white/5">
@@ -425,6 +461,11 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                                 <label class="block text-white text-sm mb-2 font-medium">Selo</label>
                                 <input type="text" id="admin-selo" placeholder="Ex: A&M ORIGINALS" class="w-full p-3 rounded-xl bg-[#2A2C33] text-white text-sm">
                             </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-white text-sm mb-2 font-medium">Classificação / Subtítulo Hero</label>
+                            <input type="text" id="admin-subtitulo" placeholder="Ex: Classificação: 14+ | Estreia Exclusiva" class="w-full p-3 rounded-xl bg-[#2A2C33] text-white text-sm">
                         </div>
 
                         <div class="grid grid-cols-2 gap-6 items-start">
@@ -450,13 +491,48 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                         </div>
 
                         <div>
+                            <label class="block text-white text-sm mb-2 font-medium">Vincular aos Menus Principais (Múltipla Escolha)</label>
+                            <div class="grid grid-cols-2 gap-2 bg-[#2A2C33] p-4 rounded-xl border border-white/10">
+                                <label class="flex items-center gap-2 text-xs text-white cursor-pointer hover:text-brand-gold transition">
+                                    <input type="checkbox" name="admin-menu-vinc" value="home" class="w-4 h-4 rounded border-gray-300 text-brand-blue focus:ring-brand-blue" checked> INÍCIO
+                                </label>
+                                <label class="flex items-center gap-2 text-xs text-white cursor-pointer hover:text-brand-gold transition">
+                                    <input type="checkbox" name="admin-menu-vinc" value="menu1" class="w-4 h-4 rounded border-gray-300 text-brand-blue focus:ring-brand-blue"> <span id="admin-label-m1">SÉRIES</span>
+                                </label>
+                                <label class="flex items-center gap-2 text-xs text-white cursor-pointer hover:text-brand-gold transition">
+                                    <input type="checkbox" name="admin-menu-vinc" value="menu2" class="w-4 h-4 rounded border-gray-300 text-brand-blue focus:ring-brand-blue"> <span id="admin-label-m2">FILMES</span>
+                                </label>
+                                <label class="flex items-center gap-2 text-xs text-white cursor-pointer hover:text-brand-gold transition">
+                                    <input type="checkbox" name="admin-menu-vinc" value="menu3" class="w-4 h-4 rounded border-gray-300 text-brand-blue focus:ring-brand-blue"> <span id="admin-label-m3">ORIGINAIS</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div>
                             <label class="block text-white text-sm mb-3 font-medium">Vídeo do Conteúdo</label>
                             <div class="flex items-center gap-4">
                                 <div class="w-32 md:w-40 aspect-video bg-[#2A2C33] rounded-xl relative flex items-center justify-center overflow-hidden flex-shrink-0 shadow-md">
+                                    <!-- Mini Player de Prévia no Formulário -->
+                                    <video id="admin-form-video-preview" class="hidden absolute inset-0 w-full h-full object-cover z-0" muted playsinline loop></video>
                                     <i id="preview-video-icon" class="ph-fill ph-play text-white text-3xl z-10"></i>
                                 </div>
                                 <input type="file" id="upload-video" accept="video/*" class="hidden" onchange="previewVideo(event)">
-                                <button type="button" onclick="document.getElementById('upload-video').click()" class="bg-[#D6B778] hover:bg-[#e8c989] text-black px-5 py-2.5 rounded-full font-bold text-xs md:text-sm shadow-sm whitespace-nowrap">Substituir Vídeo</button>
+                                <div class="flex flex-col gap-2">
+                                    <button type="button" onclick="document.getElementById('upload-video').click()" class="bg-[#D6B778] hover:bg-[#e8c989] text-black px-5 py-2.5 rounded-full font-bold text-xs md:text-sm shadow-sm whitespace-nowrap">Substituir Vídeo</button>
+                                    <button type="button" onclick="gerarCapaDoVideo()" class="bg-brand-blue hover:bg-brand-blue-hover text-white px-5 py-2.5 rounded-full font-bold text-[10px] md:text-xs shadow-sm whitespace-nowrap flex items-center justify-center gap-2">
+                                        <i class="ph ph-camera"></i> GERAR CAPA DESTA FRAME
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- Barra de Progresso de Upload Acelerado R2 -->
+                            <div id="upload-progress-container" class="hidden mt-4 bg-black/20 p-3 rounded-xl border border-white/5">
+                                <div class="flex justify-between items-center mb-1.5">
+                                    <span id="upload-status-text" class="text-[9px] text-brand-gold font-black uppercase tracking-widest">Enviando Vídeo para o Cloud...</span>
+                                    <span id="upload-pct-text" class="text-[10px] text-white font-mono font-bold">0%</span>
+                                </div>
+                                <div class="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                    <div id="upload-progress-bar" class="h-full bg-brand-blue w-0 transition-all duration-300 shadow-[0_0_15px_rgba(37,99,235,0.6)]"></div>
+                                </div>
                             </div>
                         </div>
 
@@ -499,6 +575,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                                 <div class="absolute bottom-24 left-16 max-w-4xl z-20">
                                     <h2 id="admin-preview-hero-title" class="text-[4rem] leading-none font-bold mb-6 font-serif text-[#D6B778] tracking-wider uppercase">O MISTÉRIO DE VERÃO</h2>
                                     <p class="text-white text-2xl mb-2 font-light"><span class="font-bold" id="admin-preview-hero-selo">A&M ORIGINALS</span> | O mistério que começa nas férias...</p>
+                                    <p id="admin-preview-hero-subtitulo" class="text-brand-text text-lg font-medium">Classificação: 14+ | Estreia Exclusiva</p>
                                     <div class="flex gap-5 mt-8">
                                         <div onclick="abrirPlayerFull()" class="w-56 h-14 bg-[#2563EB] rounded-full flex items-center justify-center text-white font-bold text-lg cursor-pointer hover:bg-[#1d4ed8] transition shadow-[0_0_20px_rgba(37,99,235,0.4)]"><i class="ph-fill ph-play mr-2 text-2xl"></i> ASSISTIR</div>
                                         <div class="w-56 h-14 border border-white/40 rounded-full flex items-center justify-center text-white font-bold text-lg hover:border-white hover:bg-white/10 transition cursor-pointer">MAIS INFO</div>
@@ -772,6 +849,26 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
     <!-- PLAYER DE VÍDEO FULLSCREEN ESTILO NETFLIX -->
     <div id="netflix-player" class="hidden fixed inset-0 z-[100] bg-black flex flex-col justify-center items-center">
         <video id="main-full-video" class="w-full h-full object-contain absolute inset-0 cursor-pointer" playsinline></video>
+        <div id="video-360-container" class="hidden absolute inset-0 w-full h-full z-10"></div>
+        
+        <!-- Botão Próximo Vídeo (Auto-Play) -->
+        <div id="next-video-overlay" class="hidden absolute bottom-32 right-8 z-[60]">
+            <button onclick="window.playNextVideo()" class="focusable bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/20 p-4 rounded-xl flex items-center gap-4 transition-all group" tabindex="0">
+                <div class="relative w-12 h-12 flex items-center justify-center">
+                    <svg class="w-12 h-12">
+                        <circle cx="24" cy="24" r="20" stroke="rgba(255,255,255,0.2)" stroke-width="4" fill="transparent" />
+                        <circle id="countdown-circle" class="circle-timer" cx="24" cy="24" r="20" stroke="#D6B778" stroke-width="4" fill="transparent" />
+                    </svg>
+                    <span id="next-timer-text" class="absolute text-white font-black text-sm">5</span>
+                </div>
+                <div class="text-left">
+                    <p class="text-[9px] text-brand-gold font-black uppercase tracking-[0.2em] mb-0.5">Próximo em instantes</p>
+                    <p id="next-video-title-label" class="text-white font-bold text-sm truncate max-w-[150px]">Título</p>
+                </div>
+                <i class="ph ph-caret-right-bold text-white text-xl group-hover:translate-x-1 transition-transform ml-2"></i>
+            </button>
+        </div>
+
         <div id="player-controls" class="absolute inset-0 flex flex-col justify-between opacity-0 z-50">
             <div class="w-full p-6 md:p-8 bg-gradient-to-b from-black/90 via-black/40 to-transparent flex items-center gap-4">
                 <button onclick="fecharPlayerFull()" class="text-white hover:text-brand-gold transition p-2">
@@ -813,6 +910,14 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                     </div>
                     <div id="player-time" class="text-sm md:text-base font-medium font-mono hidden md:block">00:00 / 00:00</div>
                     <div class="flex items-center gap-4 md:gap-6">
+                        <button onclick="rotateVideoOrientation()" class="focusable hover:text-brand-gold transition flex flex-col items-center gap-0.5" title="Girar Orientação" tabindex="0">
+                            <i class="ph ph-screen-rotate text-2xl md:text-3xl"></i>
+                            <span class="text-[7px] font-black uppercase">Girar</span>
+                        </button>
+                        <button onclick="toggle360Mode()" class="focusable hover:text-brand-gold transition flex flex-col items-center gap-0.5" title="Modo 360°" tabindex="0">
+                            <i id="control-360-icon" class="ph ph-sphere text-2xl md:text-3xl"></i>
+                            <span class="text-[7px] font-black uppercase">360° VR</span>
+                        </button>
                         <button class="focusable hover:text-gray-300 transition hidden sm:block" tabindex="0"><i class="ph ph-subtitles text-2xl md:text-3xl"></i></button>
                         <button onclick="toggleFullscreenPlayer()" class="focusable hover:text-gray-300 transition" tabindex="0">
                             <i id="control-fs-icon" class="ph ph-corners-out text-2xl md:text-3xl"></i>
@@ -919,6 +1024,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             currentUser = user;
             if (user) {
                 if (typeof window.carregarMenusRealtime === 'function') window.carregarMenusRealtime();
+                if (typeof window.carregarOrdemCategorias === 'function') window.carregarOrdemCategorias();
                 if (typeof window.carregarCatalogoRealtime === 'function') window.carregarCatalogoRealtime();
                 if (typeof window.carregarMinhaListaRealtime === 'function') window.carregarMinhaListaRealtime();
                 if (typeof window.carregarCurtidasRealtime === 'function') window.carregarCurtidasRealtime();
@@ -928,8 +1034,28 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
         });
 
         let isAdminAuthenticated = false;
+        window.currentActiveMenu = 'home'; // Controle de Filtro de Menu
 
         window.navigate = function(viewId) {
+            // Se for um menu de conteúdo (home, menu1, menu2, menu3)
+            if(['home', 'menu1', 'menu2', 'menu3'].includes(viewId)) {
+                window.currentActiveMenu = viewId;
+                document.getElementById('view-home').classList.remove('hidden');
+                document.getElementById('view-admin').classList.add('hidden');
+                document.getElementById('view-crm').classList.add('hidden');
+                
+                // Ativa a classe no botão correto
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                if(viewId === 'home') document.getElementById('nav-home').classList.add('active');
+                else if(viewId === 'menu1') document.getElementById('menu-1-label').classList.add('active');
+                else if(viewId === 'menu2') document.getElementById('menu-2-label').classList.add('active');
+                else if(viewId === 'menu3') document.getElementById('menu-3-label').classList.add('active');
+                
+                window.renderizarTrilhosNaHome();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                return;
+            }
+
             if ((viewId === 'admin' || viewId === 'crm') && !isAdminAuthenticated) {
                 openAuthModal(); return;
             }
@@ -940,7 +1066,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             document.getElementById(`view-${viewId}`).classList.remove('hidden');
             if(document.getElementById(`nav-${viewId}`)) document.getElementById(`nav-${viewId}`).classList.add('active');
             
-            if(viewId !== 'home') {
+            if(!['home', 'menu1', 'menu2', 'menu3'].includes(viewId)) {
                 const heroVideo = document.getElementById('hero-video');
                 if(heroVideo) { heroVideo.pause(); heroVideo.currentTime = 0; }
                 document.getElementById('btn-mute-hero').classList.add('hidden');
@@ -1607,14 +1733,40 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             showToast("Menus atualizados!");
         }
 
+        window.cacheOrdemCategorias = {};
+
+        window.salvarOrdemCategorias = async function() {
+            const inputs = document.querySelectorAll('.input-ordem-cat');
+            const novaOrdem = {};
+            inputs.forEach(input => {
+                novaOrdem[input.dataset.cat] = parseInt(input.value) || 99;
+            });
+            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'configuracoes', 'ordemCategorias'), novaOrdem);
+            window.cacheOrdemCategorias = novaOrdem;
+            showToast("Ordem das categorias salva!");
+            window.renderizarTrilhosNaHome();
+        }
+
+        window.carregarOrdemCategorias = function() {
+            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'configuracoes', 'ordemCategorias'), (snap) => {
+                if(snap.exists()) {
+                    window.cacheOrdemCategorias = snap.data();
+                    window.renderizarTrilhosNaHome();
+                }
+            });
+        }
+
         window.carregarMenusRealtime = function() {
             unsubscribeMenus = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'configuracoes', 'menus'), (snap) => {
                 if(snap.exists()) {
                     const d = snap.data();
                     ['1','2','3'].forEach(i => {
-                        document.getElementById(`menu-${i}-label`).innerText = d[`menu${i}`].toUpperCase();
-                        document.getElementById(`preview-menu-${i}`).innerText = d[`menu${i}`].toUpperCase();
+                        const label = d[`menu${i}`].toUpperCase();
+                        document.getElementById(`menu-${i}-label`).innerText = label;
+                        document.getElementById(`preview-menu-${i}`).innerText = label;
                         document.getElementById(`edit-menu-${i}`).value = d[`menu${i}`];
+                        const adminLabel = document.getElementById(`admin-label-m${i}`);
+                        if(adminLabel) adminLabel.innerText = label;
                     });
                 }
             });
@@ -1631,6 +1783,12 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             const val = e.target.value;
             const el = document.getElementById('admin-preview-hero-selo');
             if (el) el.innerText = val ? val.toUpperCase() : 'A&M ORIGINALS';
+        });
+
+        document.getElementById('admin-subtitulo').addEventListener('input', (e) => {
+            const val = e.target.value;
+            const el = document.getElementById('admin-preview-hero-subtitulo');
+            if (el) el.innerText = val || 'Classificação: 14+ | Estreia Exclusiva';
         });
 
         // ADMIN R2 UPLOAD
@@ -1663,7 +1821,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                     }
                     img.src = e.target.result;
                 }
-                reader.readAsDataURL(f); 
+                r.readAsDataURL(f); 
             }
         };
 
@@ -1671,9 +1829,65 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             const f = e.target.files[0];
             if (f) {
                 window.selectedVideoFile = f;
+                const videoUrl = URL.createObjectURL(f);
+                
+                // Motor de Prévia Instantânea:
+                // 1. Ativa o mini player dentro do quadrado de upload do formulário
+                const formPreview = document.getElementById('admin-form-video-preview');
+                if(formPreview) {
+                    formPreview.src = videoUrl;
+                    formPreview.classList.remove('hidden');
+                    formPreview.play();
+                }
+
+                // 2. Ativa o vídeo no Layout Gigante (Live Preview à direita)
+                const livePreviewVideo = document.getElementById('admin-preview-hero-video');
+                const livePreviewImg = document.getElementById('admin-preview-hero-img');
+                if(livePreviewVideo) {
+                    livePreviewVideo.src = videoUrl;
+                    livePreviewVideo.style.opacity = '0.7';
+                    if(livePreviewImg) livePreviewImg.style.opacity = '0';
+                    livePreviewVideo.play();
+                }
+
                 document.getElementById('preview-video-icon').classList.replace('ph-play', 'ph-check-circle');
                 document.getElementById('preview-video-icon').classList.add('text-green-400');
+                showToast("Vídeo carregado para prévia!");
             }
+        };
+
+        window.gerarCapaDoVideo = function() {
+            const video = document.getElementById('admin-form-video-preview');
+            if (!video || video.readyState < 2) {
+                return showToast("Aguarde o vídeo carregar ou dê play para capturar a frame.", true);
+            }
+
+            // Cria um canvas para capturar a frame exata
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const dataURL = canvas.toDataURL('image/jpeg', 0.8);
+            
+            // Atualiza o Preview da Capa no formulário
+            const previewCapaImg = document.getElementById('preview-capa-img');
+            previewCapaImg.src = dataURL;
+            previewCapaImg.classList.remove('hidden');
+            document.getElementById('preview-capa-text').classList.add('hidden');
+            
+            // Atualiza o Live Preview do Hero
+            const previewLiveImg = document.getElementById('admin-preview-hero-img');
+            if (previewLiveImg) previewLiveImg.src = dataURL;
+
+            // Converte para Blob/File para que o sistema de upload do R2 reconheça
+            fetch(dataURL)
+                .then(res => res.blob())
+                .then(blob => {
+                    window.selectedCoverFile = new File([blob], `capa_extraida_${Date.now()}.jpg`, { type: "image/jpeg" });
+                    showToast("Capa extraída do vídeo com sucesso!");
+                });
         };
 
         window.salvarConteudo = async function(e) {
@@ -1698,23 +1912,56 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 }
 
                 if (window.selectedVideoFile) {
-                    btn.innerText = "ENVIANDO VÍDEO (AGUARDE)...";
+                    // Algoritmo de Aceleração e Monitoramento em Tempo Real
+                    const progressContainer = document.getElementById('upload-progress-container');
+                    const progressBar = document.getElementById('upload-progress-bar');
+                    const progressText = document.getElementById('upload-pct-text');
+                    
+                    progressContainer.classList.remove('hidden');
+                    btn.innerText = "INICIANDO UPLOAD...";
+                    
                     const ext = window.selectedVideoFile.name.split('.').pop();
                     const fileName = `videos/${Date.now()}_vid.${ext}`;
-                    await s3.putObject({ Bucket: "aem", Key: fileName, Body: window.selectedVideoFile, ContentType: window.selectedVideoFile.type }).promise();
+                    
+                    // Transição para s3.upload: Habilita Multipart Upload (Mais rápido para arquivos grandes)
+                    const uploadManaged = s3.upload({
+                        Bucket: "aem",
+                        Key: fileName,
+                        Body: window.selectedVideoFile,
+                        ContentType: window.selectedVideoFile.type
+                    });
+
+                    // Callback de Interceptação de Fluxo (Barra de Progresso)
+                    uploadManaged.on('httpUploadProgress', (evt) => {
+                        const progress = Math.round((evt.loaded / evt.total) * 100);
+                        progressBar.style.width = `${progress}%`;
+                        progressText.innerText = `${progress}%`;
+                        btn.innerText = `ENVIANDO VÍDEO: ${progress}%`;
+                    });
+
+                    await uploadManaged.promise();
                     finalVideoUrl = `https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev/${fileName}`;
+                    progressContainer.classList.add('hidden');
                 }
+
+                const selectedMenus = Array.from(document.querySelectorAll('input[name="admin-menu-vinc"]:checked')).map(cb => cb.value);
+                if (selectedMenus.length === 0) selectedMenus.push('home');
 
                 await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'catalog'), {
                     titulo: document.getElementById('admin-titulo').value,
                     selo: document.getElementById('admin-selo').value || 'A&M ORIGINALS',
+                    subtitulo: document.getElementById('admin-subtitulo').value || 'Classificação: 14+ | Estreia Exclusiva',
                     trilho: document.getElementById('admin-trilho').value || 'Lançamentos Recentes',
+                    menuIds: selectedMenus,
                     capaUrl: finalCapaUrl, videoUrl: finalVideoUrl,
                     ownerId: currentUser.uid, createdAt: new Date().getTime() 
                 });
                 
                 showToast("Conteúdo publicado com sucesso!");
                 e.target.reset();
+                // Limpeza técnica dos estados de upload
+                document.getElementById('upload-progress-container').classList.add('hidden');
+                document.getElementById('upload-progress-bar').style.width = '0%';
                 window.selectedCoverFile = null; window.selectedVideoFile = null;
                 document.getElementById('preview-capa-img').classList.add('hidden');
                 document.getElementById('preview-capa-text').classList.remove('hidden');
@@ -1734,25 +1981,160 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             showToast("Conteúdo excluído do banco.");
         }
 
-        // HOME DESTAQUE
-        let heroTimeout, videoTimeout;
+        // HOME DESTAQUE (ALGORITMO DE CARROSSEL AUTOMÁTICO - ESTILO NETFLIX)
+        let heroTimeout, videoTimeout, autoCycleInterval, railsScrollInterval;
+        window.lastSelectedId = null;
+
+        // ALGORITMO DE SELEÇÃO EM DUAS ETAPAS (CLICK-TO-ZOOM + CLICK-TO-PLAY)
+        // Este algoritmo garante a experiência Netflix: 
+        // 1º Clique: Aumenta a capa (Zoom), aplica Neon e carrega o trailer.
+        // 2º Clique: Inicia o Player Fullscreen.
+        window.handleCardClick = function(dataStr) {
+            const data = JSON.parse(decodeURIComponent(atob(dataStr)));
+            
+            // Se o conteúdo já é o que está em destaque, o segundo clique aciona o Play
+            if (window.lastSelectedId === data.id) {
+                abrirPlayerFull();
+            } else {
+                // Primeiro clique: Apenas destaca, aplica neon e zoom (via mudarDestaque)
+                window.lastSelectedId = data.id;
+                mudarDestaque(dataStr);
+                
+                // Força o foco visual para garantir o efeito Neon/Zoom imediato
+                const cards = document.querySelectorAll('.focusable');
+                cards.forEach(c => {
+                    // Localiza o elemento pelo atributo de clique original para aplicar o foco CSS
+                    if(c.getAttribute('onclick') && c.getAttribute('onclick').includes(dataStr)) {
+                        c.focus();
+                    }
+                });
+
+                // Feedback visual para indicar que o próximo clique iniciará o vídeo
+                showToast("Título selecionado! Clique novamente para assistir.");
+            }
+        };
+
+        window.startRailsAutoScroll = function() {
+            clearInterval(railsScrollInterval);
+            // ALGORITMO DE NAVEGAÇÃO DINÂMICA (TRILHOS):
+            // Move os carrosséis horizontalmente a cada 8 segundos se houver mais de um conteúdo
+            railsScrollInterval = setInterval(() => {
+                // Não faz scroll automático se o usuário estiver segurando/arrastando
+                if (window.isUserDraggingRail) return;
+
+                const rails = document.querySelectorAll('.auto-scroll-rail');
+                rails.forEach(rail => {
+                    if (rail.scrollWidth <= rail.clientWidth) return;
+                    
+                    const maxScroll = rail.scrollWidth - rail.clientWidth;
+                    // Se chegar ao fim do trilho, volta suavemente ao início (Loop Infinito)
+                    if (rail.scrollLeft >= maxScroll - 20) {
+                        rail.scrollTo({ left: 0, behavior: 'smooth' });
+                    } else {
+                        // Move 280px (aproximadamente a largura de um card paisagem + gap)
+                        rail.scrollBy({ left: 280, behavior: 'smooth' });
+                    }
+                });
+            }, 8000);
+        };
+
+        // ALGORITMO DE NAVEGAÇÃO POR ARRASTE MOUSE (GRAB-TO-SCROLL)
+        window.isUserDraggingRail = false;
+        window.initGrabToScroll = function() {
+            const sliders = document.querySelectorAll('.auto-scroll-rail');
+            
+            sliders.forEach(slider => {
+                let isDown = false;
+                let startX;
+                let scrollLeft;
+
+                slider.addEventListener('mousedown', (e) => {
+                    isDown = true;
+                    window.isUserDraggingRail = true;
+                    slider.style.scrollBehavior = 'auto'; // Desativa suavização para resposta imediata ao mouse
+                    startX = e.pageX - slider.offsetLeft;
+                    scrollLeft = slider.scrollLeft;
+                });
+
+                slider.addEventListener('mouseleave', () => {
+                    isDown = false;
+                    window.isUserDraggingRail = false;
+                    slider.style.scrollBehavior = 'smooth';
+                });
+
+                slider.addEventListener('mouseup', () => {
+                    isDown = false;
+                    window.isUserDraggingRail = false;
+                    slider.style.scrollBehavior = 'smooth';
+                });
+
+                slider.addEventListener('mousemove', (e) => {
+                    if (!isDown) return;
+                    e.preventDefault();
+                    const x = e.pageX - slider.offsetLeft;
+                    // Multiplicador 2.5 para um deslize mais ágil e natural
+                    const walk = (x - startX) * 2.5; 
+                    slider.scrollLeft = scrollLeft - walk;
+                });
+            });
+        };
+
+        window.startHeroAutoCycle = function() {
+            clearInterval(autoCycleInterval);
+            // O sistema verifica a cada 15 segundos se deve trocar o destaque para manter a interface viva
+            autoCycleInterval = setInterval(() => {
+                const catalogoFiltrado = window.currentActiveMenu === 'home' 
+                    ? cacheCatalogo 
+                    : cacheCatalogo.filter(item => (item.menuIds && item.menuIds.includes(window.currentActiveMenu)) || item.menuId === window.currentActiveMenu);
+                
+                if (catalogoFiltrado.length <= 1) return;
+
+                // Localiza o próximo conteúdo na categoria atual
+                const currentIndex = catalogoFiltrado.findIndex(v => v.id === window.currentDestaqueData?.id);
+                const nextIndex = (currentIndex + 1) % catalogoFiltrado.length;
+                const proximo = catalogoFiltrado[nextIndex];
+                
+                if (proximo) {
+                    // Transição suave para o próximo item (isAuto: true para não resetar o loop infinitamente)
+                    mudarDestaque(btoa(encodeURIComponent(JSON.stringify(proximo))), true);
+                }
+            }, 15000); 
+        };
         
-        window.mudarDestaque = function(dataStr) {
+        window.mudarDestaque = function(dataStr, isAuto = false) {
+            // Se o usuário interagir manualmente, resetamos o cronômetro para não interromper a navegação
+            if(!isAuto) window.startHeroAutoCycle();
+
             const data = JSON.parse(decodeURIComponent(atob(dataStr)));
             window.currentDestaqueData = data; 
 
+            // ALGORITMO DE SINCRONIZAÇÃO VISUAL (NEON + ZOOM AUTOMÁTICO)
+            // Localiza o card correspondente no trilho para aplicar o foco e o efeito neon
+            // Isso garante que a experiência seja contínua tanto no clique quanto no carrossel automático.
+            const allFocusables = document.querySelectorAll('.focusable');
+            allFocusables.forEach(card => {
+                const clickAttr = card.getAttribute('onclick');
+                if (clickAttr && clickAttr.includes(dataStr)) {
+                    // Aplica o foco sem forçar o scroll agressivo se for mudança automática
+                    card.focus({ preventScroll: isAuto }); 
+                }
+            });
+
             document.getElementById('hero-title').innerText = data.titulo;
             document.getElementById('hero-selo').innerText = data.selo || 'A&M ORIGINALS';
+            document.getElementById('hero-subtitulo').innerText = data.subtitulo || 'Classificação: 14+ | Estreia Exclusiva';
             if (typeof window.verificarStatusBotoes === 'function') window.verificarStatusBotoes();
 
             const adminPreviewTitle = document.getElementById('admin-preview-hero-title');
             const adminPreviewImg = document.getElementById('admin-preview-hero-img');
             const adminPreviewSelo = document.getElementById('admin-preview-hero-selo');
+            const adminPreviewSubtitulo = document.getElementById('admin-preview-hero-subtitulo');
             const adminPreviewVideo = document.getElementById('admin-preview-hero-video');
 
             if (adminPreviewTitle) adminPreviewTitle.innerText = data.titulo.toUpperCase();
             if (adminPreviewImg) adminPreviewImg.src = data.capaUrl;
             if (adminPreviewSelo) adminPreviewSelo.innerText = (data.selo || 'A&M ORIGINALS').toUpperCase();
+            if (adminPreviewSubtitulo) adminPreviewSubtitulo.innerText = data.subtitulo || 'Classificação: 14+ | Estreia Exclusiva';
 
             const heroVideo = document.getElementById('hero-video');
             const heroImg = document.getElementById('hero-img');
@@ -1770,21 +2152,25 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             
             clearTimeout(heroTimeout); clearTimeout(videoTimeout);
             
-            if (!document.getElementById('view-home').classList.contains('hidden')) {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            } else {
-                const previewContainer = document.getElementById('admin-preview-container');
-                if (previewContainer) previewContainer.scrollTo({ top: 0, behavior: 'smooth' });
-            }
+            // Otimização de Navegação: Removido scroll automático para o topo para manter o utilizador no trilho atual.
 
-            if (data.videoUrl && data.videoUrl.trim() !== "") {
+            // OTIMIZAÇÃO DE MEMÓRIA: Só carrega o trailer de fundo se o Player estiver fechado!
+            const isPlayerOpen = !document.getElementById('netflix-player').classList.contains('hidden');
+
+            if (data.videoUrl && data.videoUrl.trim() !== "" && !isPlayerOpen) {
                 heroTimeout = setTimeout(() => {
                     heroVideo.src = data.videoUrl; heroVideo.load(); heroVideo.muted = true;
                     if(adminPreviewVideo) { adminPreviewVideo.src = data.videoUrl; adminPreviewVideo.load(); adminPreviewVideo.muted = true; }
 
-                    const promises = [];
-                    promises.push(heroVideo.play().catch(e => {}));
-                    if(adminPreviewVideo) promises.push(adminPreviewVideo.play().catch(e => {}));
+                    // Algoritmo de Proteção de Reprodução: Previne erro de interrupção por novas requisições de load
+                    const safePlay = (el) => {
+                        if (!el || !el.src) return Promise.resolve();
+                        const p = el.play();
+                        return (p !== undefined) ? p.catch(() => {}) : Promise.resolve();
+                    };
+
+                    const promises = [safePlay(heroVideo)];
+                    if(adminPreviewVideo) promises.push(safePlay(adminPreviewVideo));
 
                     Promise.all(promises).then(() => {
                         heroImg.style.opacity = '0'; heroVideo.style.opacity = '0.7'; btnMute.classList.remove('hidden'); 
@@ -1865,14 +2251,38 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             });
         }
 
-        window.abrirPlayerFull = function() {
+       window.abrirPlayerFull = function() {
             if(!window.currentDestaqueData || !window.currentDestaqueData.videoUrl) return showToast("Vídeo não cadastrado!", true);
             
+            // Reset de orientação ao abrir novo vídeo
+            videoRotationAngle = 0;
+            const videoElement = document.getElementById('main-full-video');
+            const container360 = document.getElementById('video-360-container');
+            if(videoElement) videoElement.style.transform = "rotate(0deg) scale(1)";
+            if(container360) container360.style.transform = "rotate(0deg) scale(1)";
+
+            // Reset de estados de transição e predição de fila
+            nextVideoTriggered = false;
+            window.predictedNextVideo = null;
+            window.isTransitioningToNext = false; // 🟢 LIBERA A TRAVA PARA O NOVO VÍDEO
+            document.getElementById('next-video-overlay').classList.add('hidden');
+
+            
+            // Reset de estados de transição e predição de fila
+            nextVideoTriggered = false;
+            window.predictedNextVideo = null;
+            document.getElementById('next-video-overlay').classList.add('hidden');
+
+            // 🛑 O SEGREDO ESTÁ AQUI: Parar o carrossel da Home!
+            // Isso impede que o site troque o vídeo em segundo plano (Fantasma) enquanto você assiste.
+            clearInterval(autoCycleInterval);
+
             // Inicia o motor adaptativo
             initSmartStreaming(mainVid);
 
             // Previne saída do site no controle da TV ao abrir o player
-            history.pushState({ playerOpen: true }, '');
+            // Correção de Segurança: Removido URL vazio para evitar erro de pushState em ambientes sandboxed (about:srcdoc)
+            history.pushState({ playerOpen: true }, null);
 
             // 🚀 LIMPEZA DE MEMÓRIA EXTREMA (Evita o App de fechar sozinho)
             const heroVideo = document.getElementById('hero-video');
@@ -1898,10 +2308,15 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             mainVid.src = window.currentDestaqueData.videoUrl;
             playerDiv.classList.remove('hidden');
             
-            mainVid.play().catch(e => {
-                mainVid.muted = true;
-                mainVid.play().then(() => showToast("Iniciado sem som. Ative abaixo.", true));
-            });
+            // Motor de Reprodução Resiliente: Trata Autoplay e interrupções de carregamento do player
+            const startPlay = mainVid.play();
+            if (startPlay !== undefined) {
+                startPlay.catch(() => {
+                    mainVid.muted = true;
+                    mainVid.play().catch(() => {});
+                    showToast("Iniciado sem som por restrição do navegador.", true);
+                });
+            }
             document.getElementById('control-play-icon').classList.replace('ph-play', 'ph-pause');
             document.getElementById('center-play-icon').classList.add('hidden');
             
@@ -1911,14 +2326,28 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             controlsTimeout = setTimeout(() => { if(!mainVid.paused) { controlsUI.style.opacity = '0'; playerDiv.classList.add('hide-cursor'); } }, 2000);
         }
 
-        window.fecharPlayerFull = function() {
+       window.fecharPlayerFull = function() {
             mainVid.pause(); mainVid.removeAttribute('src'); mainVid.load();
+            
+            // Destruição segura do motor 360 para liberar RAM
+            if (is360Mode) {
+                window.toggle360Mode();
+            }
+            if (viewer360) {
+                viewer360.dispose();
+                document.getElementById('video-360-container').innerHTML = "";
+            }
+
             playerDiv.classList.add('hidden');
             if (document.fullscreenElement) document.exitFullscreen();
+            
             // Se o player foi fechado manualmente, removemos o estado do histórico se ainda existir
             if (history.state && history.state.playerOpen) {
                 history.back();
             }
+            
+            // 🔄 Religa o carrossel da Home quando o usuário volta para o catálogo
+            window.startHeroAutoCycle();
         }
 
         window.togglePlayerPlay = function() {
@@ -1933,7 +2362,12 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 playerDiv.classList.remove('hide-cursor');
             }
         }
-        window.seekPlayer = function(sec) { mainVid.currentTime += sec; }
+        window.seekPlayer = function(sec) { 
+            // Proteção de Navegação: Verifica se o tempo atual é um número válido antes de somar
+            if (isFinite(mainVid.currentTime)) {
+                mainVid.currentTime += sec; 
+            }
+        }
         window.togglePlayerMute = function() {
             mainVid.muted = !mainVid.muted;
             document.getElementById('control-volume-icon').classList.replace(mainVid.muted ? 'ph-speaker-high' : 'ph-speaker-slash', mainVid.muted ? 'ph-speaker-slash' : 'ph-speaker-high');
@@ -1944,17 +2378,199 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             else { document.exitFullscreen(); fsIcon.classList.replace('ph-corners-in', 'ph-corners-out'); }
         }
 
+        let viewer360 = null;
+        let is360Mode = false;
+
+        window.toggle360Mode = function() {
+            const videoElement = document.getElementById('main-full-video');
+            const container360 = document.getElementById('video-360-container');
+            const icon360 = document.getElementById('control-360-icon');
+
+            if (!is360Mode) {
+                // ATIVAR MODO 360
+                is360Mode = true;
+                videoElement.classList.add('opacity-0');
+                container360.classList.remove('hidden');
+                icon360.classList.add('text-brand-gold', 'animate-pulse');
+                showToast("Modo Imersivo 360° Ativado!");
+
+                // Inicializa Panolens
+                if (viewer360) {
+                    viewer360.dispose();
+                    container360.innerHTML = "";
+                }
+
+                const panorama = new PANOLENS.VideoPanorama(videoElement.src, { 
+                    autoplay: true, 
+                    muted: videoElement.muted,
+                    playsinline: true
+                });
+                
+                viewer360 = new PANOLENS.Viewer({ 
+                    container: container360,
+                    controlBar: false,
+                    autoHideControlBar: true,
+                    enableReticle: false, // Remove mira central para foco no vídeo
+                    cameraFov: 75
+                });
+
+                // Habilita amortecimento para rotação suave (Inércia)
+                const control = viewer360.getControl();
+                control.enableDamping = true;
+                control.dampingFactor = 0.05;
+                control.rotateSpeed = 0.5;
+
+                viewer360.add(panorama);
+
+                // Sincroniza o tempo do vídeo original com o 360
+                panorama.addEventListener('video-ready', () => {
+                    const panoVideo = panorama.getVideoElement();
+                    panoVideo.currentTime = videoElement.currentTime;
+                    // Oculta controles nativos do panolens para usar os da A&M
+                    container360.querySelectorAll('.panolens-canvas-container').forEach(el => el.style.zIndex = "10");
+                });
+
+            } else {
+                // DESATIVAR MODO 360
+                is360Mode = false;
+                videoElement.classList.remove('opacity-0');
+                container360.classList.add('hidden');
+                icon360.classList.remove('text-brand-gold', 'animate-pulse');
+                
+                if (viewer360) {
+                    const panoVideo = viewer360.panorama.getVideoElement();
+                    if(panoVideo) videoElement.currentTime = panoVideo.currentTime;
+                    viewer360.dispose();
+                    container360.innerHTML = "";
+                }
+                showToast("Voltando para visão padrão.");
+            }
+        };
+
         function formatTime(sec) {
             let m = Math.floor(sec / 60); let s = Math.floor(sec % 60);
             return `${m < 10 ? '0'+m : m}:${s < 10 ? '0'+s : s}`;
         }
+
+        // LÓGICA DE AUTO-PLAY E PRÓXIMO VÍDEO (FLUXO DE TRANSIÇÃO ENTRE CATEGORIAS)
+        window.isTransitioningToNext = false; // 🔒 Trava de Segurança Global
+
+        window.playNextVideo = function() {
+            // Se já estiver trocando de vídeo, bloqueia qualquer outro comando
+            if (window.isTransitioningToNext) return;
+            window.isTransitioningToNext = true;
+
+            // 🛑 PAUSA IMEDIATA: Mata o vídeo atual na hora para o relógio parar e não dar "Pulo Duplo"
+            const mainVid = document.getElementById('main-full-video');
+            if(mainVid) mainVid.pause();
+
+            const overlay = document.getElementById('next-video-overlay');
+            overlay.classList.add('hidden');
+            
+            nextVideoTriggered = false;
+            
+            // Pega exatamente o vídeo que o painel estava mostrando
+            let proximo = window.predictedNextVideo;
+
+            // Fallback de segurança
+            if (!proximo) {
+                const playList = (window.masterPlayOrder && window.masterPlayOrder.length > 0) ? window.masterPlayOrder : cacheCatalogo;
+                if(!playList || playList.length === 0) {
+                    window.isTransitioningToNext = false;
+                    return fecharPlayerFull();
+                }
+
+                const currentIndex = playList.findIndex(v => v.id === window.currentDestaqueData.id);
+                if (currentIndex === -1) {
+                    window.isTransitioningToNext = false;
+                    return fecharPlayerFull();
+                }
+
+                const nextIndex = (currentIndex + 1) % playList.length;
+                proximo = playList[nextIndex];
+            }
+
+            if(proximo) {
+                // Aviso de Transição de Categoria
+                const currentCat = window.currentDestaqueData.trilho;
+                if(proximo.trilho !== currentCat) {
+                    showToast(`Próxima Categoria: ${proximo.trilho}`);
+                }
+
+                window.currentDestaqueData = proximo; 
+
+                // Carrega o novo objeto e reinicia a reprodução
+                mudarDestaque(btoa(encodeURIComponent(JSON.stringify(proximo))));
+                setTimeout(() => abrirPlayerFull(), 300);
+            } else {
+                window.isTransitioningToNext = false;
+                fecharPlayerFull();
+            }
+        };
+
+        let nextVideoTriggered = false;
         mainVid.addEventListener('timeupdate', () => {
-            if(!mainVid.duration) return;
+            // 🛑 SE A TRAVA ESTIVER ATIVA, IGNORA O RELÓGIO (Fim do Pulo Duplo)
+            if(!mainVid.duration || window.isTransitioningToNext) return;
+
             const pct = (mainVid.currentTime / mainVid.duration) * 100;
             document.getElementById('progress-bar').style.width = pct + '%';
             document.getElementById('player-time').innerText = `${formatTime(mainVid.currentTime)} / ${formatTime(mainVid.duration)}`;
+
+            // Lógica Netflix: 5 segundos antes de acabar
+            const timeLeft = mainVid.duration - mainVid.currentTime;
+            const overlay = document.getElementById('next-video-overlay');
+            
+            if (timeLeft <= 6 && !nextVideoTriggered) {
+                // ALGORITMO DE SINCRONIA DE TRILHO: Localiza o próximo vídeo baseado na ordem visual da Home
+                const playList = (window.masterPlayOrder && window.masterPlayOrder.length > 0) ? window.masterPlayOrder : cacheCatalogo;
+
+                if (playList && playList.length > 1) {
+                    // Encontra a posição exata do vídeo que está passando agora para prever o sucessor
+                    const currentIndex = playList.findIndex(v => v.id === window.currentDestaqueData.id);
+                    
+                    if (currentIndex !== -1) {
+                        const nextIndex = (currentIndex + 1) % playList.length;
+                        const nextVideo = playList[nextIndex];
+
+                        // LOCK DE SINCRONIA: Congela o objeto que será reproduzido para que o playNextVideo não erre o alvo
+                        window.predictedNextVideo = nextVideo;
+
+                        // ATUALIZAÇÃO DINÂMICA DE LABEL: Garante que o texto corresponda 100% aos dados cadastrados
+                        const label = document.getElementById('next-video-title-label');
+                        
+                        if (nextVideo) {
+                            // Se houver troca de trilho, informa o nome da nova categoria no botão
+                            if(nextVideo.trilho !== window.currentDestaqueData.trilho) {
+                                label.innerText = `${nextVideo.titulo} (${nextVideo.trilho})`;
+                            } else {
+                                label.innerText = nextVideo.titulo;
+                            }
+                            
+                            overlay.classList.remove('hidden');
+                            nextVideoTriggered = true;
+                        }
+                    }
+                }
+            }
+
+            if (nextVideoTriggered && timeLeft > 0 && timeLeft <= 6) {
+                const count = Math.max(0, Math.floor(timeLeft - 1));
+                document.getElementById('next-timer-text').innerText = count;
+                // Atualiza o círculo (126 é o dasharray total)
+                const offset = 126 - ( (5 - count) * (126 / 5) );
+                document.getElementById('countdown-circle').style.strokeDashoffset = offset;
+            }
+
+            if (timeLeft <= 0.5 && nextVideoTriggered) {
+                nextVideoTriggered = false;
+                window.playNextVideo();
+            }
         });
         progressContainer.addEventListener('click', (e) => {
+            // Algoritmo de Proteção de Sincronia: Impede erro de valor não-finito se o vídeo não carregou a duração
+            if (!mainVid.duration || !isFinite(mainVid.duration)) return;
+
             const rect = progressContainer.getBoundingClientRect();
             const pos = (e.clientX - rect.left) / rect.width;
             mainVid.currentTime = pos * mainVid.duration;
@@ -1963,19 +2579,48 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
         // RENDERIZAR TRILHOS
         window.renderCardRetrato = function(data) {
             const dataStr = btoa(encodeURIComponent(JSON.stringify(data)));
-            // TV: Adicionado class focusable e tabindex para navegação por controle
-            return `<div onclick="mudarDestaque('${dataStr}')" onfocus="mudarDestaque('${dataStr}')" class="focusable min-w-[130px] md:min-w-[170px] h-[190px] md:h-[250px] bg-[#1A1C23] rounded-xl overflow-hidden border border-white/5 relative group cursor-pointer snap-start transition-all shadow-lg" tabindex="0"><img src="${data.capaUrl}" loading="lazy" decoding="async" class="w-full h-full object-cover" alt="${data.titulo}"><div class="absolute top-0 w-full p-2 bg-gradient-to-b from-black/80 to-transparent"><p class="text-[8px] text-[#D6B778] font-bold tracking-widest uppercase">${data.selo}</p></div><div class="absolute bottom-0 w-full p-4 bg-gradient-to-t from-black via-black/90 to-transparent text-center opacity-90 group-hover:opacity-100"><p class="text-xs font-bold uppercase text-white">${data.titulo}</p></div></div>`;
+            // Motor de Clique Inteligente: Primeiro clique seleciona/aumenta, segundo clique abre o player
+            return `<div onclick="handleCardClick('${dataStr}')" onfocus="mudarDestaque('${dataStr}')" class="focusable min-w-[130px] md:min-w-[170px] h-[190px] md:h-[250px] bg-[#1A1C23] rounded-xl overflow-hidden border border-white/5 relative group cursor-pointer snap-start transition-all shadow-lg" tabindex="0">
+                <img src="${data.capaUrl}" loading="lazy" decoding="async" class="w-full h-full object-cover" alt="${data.titulo}">
+                <div class="absolute top-0 w-full p-2 bg-gradient-to-b from-black/80 to-transparent">
+                    <p class="text-[8px] text-[#D6B778] font-bold tracking-widest uppercase">${data.selo}</p>
+                </div>
+                <!-- Botão de Play Rápido (Exibido no Hover/Foco para clique direto) -->
+                <div onclick="event.stopPropagation(); mudarDestaque('${dataStr}'); abrirPlayerFull();" class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity z-20">
+                    <div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/40 scale-75 group-hover:scale-100 transition-transform shadow-xl">
+                        <i class="ph-fill ph-play text-white text-2xl ml-1"></i>
+                    </div>
+                </div>
+                <div class="absolute bottom-0 w-full p-4 bg-gradient-to-t from-black via-black/90 to-transparent text-center opacity-90 group-hover:opacity-100">
+                    <p class="text-xs font-bold uppercase text-white">${data.titulo}</p>
+                </div>
+            </div>`;
         }
         window.renderCardPaisagem = function(data, colorClass = "text-[#D6B778]") {
             const dataStr = btoa(encodeURIComponent(JSON.stringify(data)));
-            // TV: Adicionado class focusable e tabindex para navegação por controle
-            return `<div onclick="mudarDestaque('${dataStr}')" onfocus="mudarDestaque('${dataStr}')" class="focusable min-w-[220px] md:min-w-[280px] h-[120px] md:h-[150px] bg-[#1A1C23] rounded-xl overflow-hidden border border-white/5 relative group cursor-pointer snap-start transition-all shadow-lg" tabindex="0"><img src="${data.capaUrl}" loading="lazy" decoding="async" class="w-full h-full object-cover" alt="${data.titulo}"><div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex items-end p-4"><p class="text-sm font-bold ${colorClass} tracking-wider uppercase">${data.titulo}</p></div></div>`;
+            // Motor de Clique Inteligente: Primeiro clique seleciona/aumenta, segundo clique abre o player
+            return `<div onclick="handleCardClick('${dataStr}')" onfocus="mudarDestaque('${dataStr}')" class="focusable min-w-[220px] md:min-w-[280px] h-[120px] md:h-[150px] bg-[#1A1C23] rounded-xl overflow-hidden border border-white/5 relative group cursor-pointer snap-start transition-all shadow-lg" tabindex="0">
+                <img src="${data.capaUrl}" loading="lazy" decoding="async" class="w-full h-full object-cover" alt="${data.titulo}">
+                <!-- Botão de Play Rápido (Exibido no Hover/Foco para clique direto) -->
+                <div onclick="event.stopPropagation(); mudarDestaque('${dataStr}'); abrirPlayerFull();" class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity z-20">
+                    <div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/40 scale-75 group-hover:scale-100 transition-transform shadow-xl">
+                        <i class="ph-fill ph-play text-white text-2xl ml-1"></i>
+                    </div>
+                </div>
+                <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex items-end p-4">
+                    <p class="text-sm font-bold ${colorClass} tracking-wider uppercase">${data.titulo}</p>
+                </div>
+            </div>`;
         }
 
         window.carregarCatalogoRealtime = function() {
             unsubscribeCatalog = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'catalog'), (snap) => {
-                cacheCatalogo = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => b.createdAt - a.createdAt);
-                if(cacheCatalogo.length > 0 && !window.currentDestaqueData) mudarDestaque(btoa(encodeURIComponent(JSON.stringify(cacheCatalogo[0]))));
+                cacheCatalogo = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => a.createdAt - b.createdAt);
+                if(cacheCatalogo.length > 0 && !window.currentDestaqueData) {
+                    mudarDestaque(btoa(encodeURIComponent(JSON.stringify(cacheCatalogo[0]))));
+                    window.startHeroAutoCycle(); // Ativa a rotação automática assim que o catálogo carregar
+                    window.startRailsAutoScroll(); // Ativa o scroll automático dos trilhos
+                }
                 if (typeof window.renderizarTrilhosNaHome === 'function') window.renderizarTrilhosNaHome();
             });
         }
@@ -1983,35 +2628,88 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
         window.renderizarTrilhosNaHome = function() {
             let lista = ""; let adm = "";
             const categories = {};
+            const itemsByCategory = {}; // Agrupador de objetos reais para ordem de reprodução
             const categoriasExistem = new Set(["Lançamentos Recentes", "Séries de Sucesso", "Filmes Exclusivos"]);
 
-            cacheCatalogo.forEach((item, index) => {
+            // Filtra o catálogo com base nos menus vinculados (Suporte a múltiplos menus)
+            const catalogoFiltrado = window.currentActiveMenu === 'home' 
+                ? cacheCatalogo 
+                : cacheCatalogo.filter(item => (item.menuIds && item.menuIds.includes(window.currentActiveMenu)) || item.menuId === window.currentActiveMenu);
+
+            window.masterPlayOrder = []; // Reset da ordem de reprodução inteligente
+
+            catalogoFiltrado.forEach((item, index) => {
                 const cat = item.trilho || "Outros";
-                if (!categories[cat]) categories[cat] = "";
+                if (!categories[cat]) {
+                    categories[cat] = "";
+                    itemsByCategory[cat] = [];
+                }
+                itemsByCategory[cat].push(item);
                 categoriasExistem.add(cat);
 
                 if (minhaListaIds.includes(item.id)) lista += renderCardPaisagem(item, "text-[#2563EB]");
 
                 if (cat.toLowerCase().includes('recente') || cat.toLowerCase().includes('retrato')) categories[cat] += renderCardRetrato(item);
                 else categories[cat] += renderCardPaisagem(item, "text-[#D6B778]");
+            });
 
-                adm += `<div class="flex justify-between items-center bg-[#2A2C33] p-2.5 rounded-lg border border-white/5 mb-2 hover:border-[#D6B778] transition cursor-pointer"><div class="flex items-center gap-4"><span class="text-white font-bold w-4 text-center">${index + 1}</span><img src="${item.capaUrl}" class="w-14 h-9 object-cover rounded shadow"><p class="text-xs text-white font-medium truncate max-w-[200px]">${item.titulo}</p></div><button onclick="excluirConteudo('${item.id}')" class="text-brand-text hover:text-red-500 transition px-2"><i class="ph ph-trash text-lg"></i></button></div>`;
+            // O Admin sempre mostra a lista completa para gestão
+            cacheCatalogo.forEach((item, index) => {
+                let badgeHTML = '';
+                if (item.menuIds) {
+                    badgeHTML = item.menuIds.map(m => `<span class="text-[7px] bg-brand-gold/20 text-brand-gold px-1 py-0.5 rounded ml-1 uppercase">${m}</span>`).join('');
+                } else if (item.menuId) {
+                    badgeHTML = `<span class="text-[7px] bg-brand-gold/20 text-brand-gold px-1 py-0.5 rounded ml-1 uppercase">${item.menuId}</span>`;
+                }
+                adm += `<div class="flex justify-between items-center bg-[#2A2C33] p-2.5 rounded-lg border border-white/5 mb-2 hover:border-[#D6B778] transition cursor-pointer"><div class="flex items-center gap-4"><span class="text-white font-bold w-4 text-center">${index + 1}</span><img src="${item.capaUrl}" class="w-14 h-9 object-cover rounded shadow"><p class="text-xs text-white font-medium truncate max-w-[150px]">${item.titulo}</p><div class="flex flex-wrap gap-1">${badgeHTML}</div></div><button onclick="excluirConteudo('${item.id}')" class="text-brand-text hover:text-red-500 transition px-2"><i class="ph ph-trash text-lg"></i></button></div>`;
             });
 
             const datalist = document.getElementById('existing-categories');
             if(datalist) datalist.innerHTML = Array.from(categoriasExistem).map(c => `<option value="${c}">`).join('');
 
+            // Atualiza a UI de Gestão de Ordem no Admin
+            const adminOrdemContainer = document.getElementById('admin-ordem-categorias-list');
+            if (adminOrdemContainer) {
+                adminOrdemContainer.innerHTML = Array.from(categoriasExistem).map(cat => {
+                    const ordemAtual = window.cacheOrdemCategorias[cat] || 99;
+                    return `
+                        <div class="bg-[#2A2C33] p-2 rounded-lg border border-white/5 flex flex-col gap-1">
+                            <span class="text-[9px] text-brand-text truncate font-bold uppercase">${cat}</span>
+                            <input type="number" data-cat="${cat}" value="${ordemAtual}" class="input-ordem-cat w-full bg-black/20 text-brand-gold text-xs p-1 rounded border border-white/10 text-center font-bold">
+                        </div>
+                    `;
+                }).join('');
+            }
+
             document.getElementById('section-minha-lista').classList.toggle('hidden', !lista);
             if(lista) document.getElementById('container-minha-lista').innerHTML = lista;
             
             let homeRailsHTML = ""; let previewRailsHTML = "";
-            Object.keys(categories).forEach(catName => {
-                homeRailsHTML += `<div><h3 class="text-lg md:text-xl font-medium mb-3 md:mb-5 text-white uppercase tracking-wide">${catName}</h3><div class="flex gap-3 md:gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory min-h-[120px] md:min-h-[150px]">${categories[catName]}</div></div>`;
+            
+            // ORDENAÇÃO CRÍTICA: Transforma o objeto de categorias em array e ordena pelo cache de ordem
+            const sortedCategoryNames = Object.keys(categories).sort((a, b) => {
+                const ordemA = window.cacheOrdemCategorias[a] || 99;
+                const ordemB = window.cacheOrdemCategorias[b] || 99;
+                return ordemA - ordemB;
+            });
+
+            sortedCategoryNames.forEach(catName => {
+                // Constrói a Master Play Order seguindo a ordem visual das categorias definida no Admin
+                if (itemsByCategory[catName]) {
+                    window.masterPlayOrder.push(...itemsByCategory[catName]);
+                }
+
+                // Injetamos a classe 'auto-scroll-rail' para o motor de animação Netflix-Style
+                homeRailsHTML += `<div><h3 class="text-lg md:text-xl font-medium mb-3 md:mb-5 text-white uppercase tracking-wide">${catName}</h3><div class="auto-scroll-rail flex gap-3 md:gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory min-h-[120px] md:min-h-[150px] scroll-smooth">${categories[catName]}</div></div>`;
                 previewRailsHTML += `<div><h3 class="text-3xl font-bold mb-8 text-white uppercase tracking-[0.2em] border-l-4 border-brand-gold pl-6">${catName}</h3><div class="flex gap-8 overflow-x-auto pb-10 scrollbar-hide snap-x snap-mandatory">${categories[catName]}</div></div>`;
             });
 
             const homeContainer = document.getElementById('dynamic-rails-container');
-            if(homeContainer) homeContainer.innerHTML = homeRailsHTML || `<div class="w-full flex items-center justify-center text-brand-text text-sm h-[190px]">Nenhum conteúdo adicionado.</div>`;
+            if(homeContainer) {
+                homeContainer.innerHTML = homeRailsHTML || `<div class="w-full flex items-center justify-center text-brand-text text-sm h-[190px]">Nenhum conteúdo adicionado.</div>`;
+                // Re-inicializa o motor de arraste sempre que os trilhos forem reconstruídos
+                window.initGrabToScroll();
+            }
 
             const previewContainer = document.getElementById('admin-preview-rails');
             if(previewContainer) previewContainer.innerHTML = previewRailsHTML || `<div class="text-brand-text">Vazio</div>`;
@@ -2026,6 +2724,23 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             const isPlayerOpen = !document.getElementById('netflix-player').classList.contains('hidden');
             
             if (isPlayerOpen) {
+                // MOTOR DE ROTAÇÃO 360 VIA TECLADO/CONTROLE
+                if (is360Mode && viewer360) {
+                    const rotSpeed = 0.05;
+                    const cameraControl = viewer360.getControl();
+                    
+                    switch(e.keyCode) {
+                        case 37: // SETA ESQUERDA: Gira para esquerda
+                            cameraControl.rotateLeft(rotSpeed); e.preventDefault(); return;
+                        case 39: // SETA DIREITA: Gira para direita
+                            cameraControl.rotateLeft(-rotSpeed); e.preventDefault(); return;
+                        case 38: // SETA CIMA: Olha para cima
+                            cameraControl.rotateUp(rotSpeed); e.preventDefault(); return;
+                        case 40: // SETA BAIXO: Olha para baixo
+                            cameraControl.rotateUp(-rotSpeed); e.preventDefault(); return;
+                    }
+                }
+
                 // Ao tocar em qualquer tecla do controle, mostra a barra de progresso (estilo Netflix)
                 const playerUI = document.getElementById('player-controls');
                 const playerContainer = document.getElementById('netflix-player');
@@ -2098,13 +2813,15 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 window.closeAuthModal();
             } else {
                 // Se estiver na home, força a permanência injetando um novo estado
-                history.pushState(null, null, window.location.pathname);
+                // Correção de Segurança: Removido window.location.pathname para evitar SecurityError em about:srcdoc
+                history.pushState(null, null);
                 showToast("Pressione Início no controle para sair.");
             }
         });
 
         // Inicia um estado inicial para o popstate funcionar desde o primeiro clique
-        history.pushState(null, null, window.location.pathname);
+        // Correção de Segurança: Removido window.location.pathname para evitar SecurityError em about:srcdoc
+        history.pushState(null, null);
     </script>
 </body>
 </html>
