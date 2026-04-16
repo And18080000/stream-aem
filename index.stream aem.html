@@ -11,12 +11,104 @@
         // TV SUPREMACY: CONTROLES DE COMANDO REMOTO
         // ==========================================
         ======================================
+        ======================================
         window.addEventListener('keydown', (e) => {
             const isPlayerOpen = !document.getElementById('netflix-player').classList.contains('hidden');
             
             if (isPlayerOpen) {
 ====
-        // ==========================================
+        /**
+         * ================================================================
+         * MOTOR DE EXPERIÊNCIA UNIFICADA (PC + MOBILE + TV)
+         * ================================================================
+         * Este módulo garante que o comportamento seja idêntico em qualquer dispositivo,
+         * eliminando delays de toque e habilitando navegação por D-Pad em TVs.
+         */
+
+        // 1. FIX MOBILE: Toque instantâneo sem delay de 300ms
+        document.addEventListener('touchstart', (e) => {
+            const el = e.target.closest('.focusable');
+            if (el) {
+                // Remove o foco de outros elementos e aplica neste para disparar o efeito Neon/Zoom
+                if (document.activeElement && document.activeElement !== el) document.activeElement.blur();
+                el.focus();
+                // O turboPrewarm prepara o vídeo enquanto o usuário inicia o toque
+                const data = el.getAttribute('onmouseenter');
+                if (data && data.includes('turboPrewarm')) {
+                    const urlMatch = data.match(/'([^']+)'/);
+                    if (urlMatch) window.turboPrewarm(urlMatch[1]);
+                }
+            }
+        }, { passive: true });
+
+        // 2. NAVEGAÇÃO ESPACIAL (CÉREBRO DA TV)
+        window.navigateTV = function(direction) {
+            const current = document.activeElement;
+            const focusables = Array.from(document.querySelectorAll('.focusable:not(.hidden)'));
+            
+            if (!current || !current.classList.contains('focusable')) {
+                if (focusables.length > 0) focusables[0].focus();
+                return;
+            }
+
+            const currentRect = current.getBoundingClientRect();
+            let nextElement = null;
+            let minDistance = Infinity;
+
+            focusables.forEach(el => {
+                if (el === current) return;
+                const elRect = el.getBoundingClientRect();
+                let isCandidate = false;
+                const threshold = 15;
+
+                switch(direction) {
+                    case 'UP': isCandidate = elRect.bottom <= currentRect.top + threshold; break;
+                    case 'DOWN': isCandidate = elRect.top >= currentRect.bottom - threshold; break;
+                    case 'LEFT': isCandidate = elRect.right <= currentRect.left + threshold; break;
+                    case 'RIGHT': isCandidate = elRect.left >= currentRect.right - threshold; break;
+                }
+
+                if (isCandidate) {
+                    const dist = Math.sqrt(
+                        Math.pow((elRect.left + elRect.width/2) - (currentRect.left + currentRect.width/2), 2) +
+                        Math.pow((elRect.top + elRect.height/2) - (currentRect.top + currentRect.height/2), 2)
+                    );
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        nextElement = el;
+                    }
+                }
+            });
+
+            if (nextElement) {
+                nextElement.focus();
+                nextElement.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+            }
+        };
+
+        // 3. LISTENER UNIFICADO DE COMANDOS (PC / TV)
+        window.addEventListener('keydown', (e) => {
+            const isPlayerOpen = !document.getElementById('netflix-player').classList.contains('hidden');
+            const isEnterKey = [13, 29443, 117, 65376].includes(e.keyCode);
+
+            // Interface do Catálogo
+            if (!isPlayerOpen) {
+                switch(e.keyCode) {
+                    case 37: navigateTV('LEFT'); e.preventDefault(); break;
+                    case 38: navigateTV('UP'); e.preventDefault(); break;
+                    case 39: navigateTV('RIGHT'); e.preventDefault(); break;
+                    case 40: navigateTV('DOWN'); e.preventDefault(); break;
+                    case 13: 
+                        if(document.activeElement && document.activeElement.classList.contains('focusable')) {
+                            document.activeElement.click(); 
+                            e.preventDefault();
+                        }
+                        break;
+                }
+            }
+            
+            // Interface do Player
+            if (isPlayerOpen) { ==========================================
         // TV & MOBILE SUPREMACY: SISTEMA DE TOQUE E NAVEGAÇÃO
         // ==========================================
         
