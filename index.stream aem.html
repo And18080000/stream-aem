@@ -886,7 +886,23 @@
             animation: fadeIn 0.5s ease;
         }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-    </style>
+  /* Tela de início elegante para liberar o áudio */
+        #start-overlay {
+            position: fixed; /* Usar fixed para garantir que fique sempre no topo */
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000; /* Z-index gigante para cobrir o intro-container (9999) */
+            cursor: pointer;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 13px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            background-color: #000;
+            transition: opacity 0.3s ease;
+        }
+    </style>
 
 <link rel="manifest" href="data:application/json;charset=utf-8,%7B%22name%22%3A%22A%26M%20streaming%22%2C%22short_name%22%3A%22A%26M%20streaming%22%2C%22display%22%3A%22standalone%22%2C%22start_url%22%3A%22.%22%2C%22background_color%22%3A%22%230B0D12%22%2C%22theme_color%22%3A%22%23D6B778%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Fpub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev%2F3_f9cu8v%2520(1).png%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fpng%22%7D%5D%7D">
 <meta name="theme-color" content="#0B0D12">
@@ -911,6 +927,10 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
 </script>
 </head>
 <body class="antialiased flex flex-col min-h-screen" id="app-body">
+
+    <div id="start-overlay">Clique na tela para iniciar</div>
+
+    <video id="hidden-intro-video" src="https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev/0416.mp4" playsinline style="position: fixed; left: -9999px; top: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; z-index: -9999;"></video>
 
     <!-- ESTRUTURA DA INTRO CINEMÁTICA -->
     <div id="intro-container">
@@ -1642,7 +1662,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             }
         };
 
-        window.startIntro = function() {
+       window.startIntro = function() {
             if (introIniciada) return;
             introIniciada = true;
 
@@ -1650,12 +1670,23 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             const logo = document.getElementById('am-logo');
             const spectrum = document.getElementById('spectrum-container');
             const flash = document.getElementById('red-flash');
+            
+            // Puxa o nosso vídeo escondido do HTML
+            const hiddenVideo = document.getElementById('hidden-intro-video'); 
 
             container.style.display = 'flex';
             window.generateSpectrum();
 
+            // Dá play no áudio original
             introAudio.currentTime = 0; 
             introAudio.play().catch(() => console.log("Áudio aguardando interação."));
+
+            // Dá play no vídeo novo escondido JUNTO com a intro, garantindo o volume
+            if(hiddenVideo) {
+                hiddenVideo.currentTime = 0;
+                hiddenVideo.volume = 1; // Garante que não está mudo
+                hiddenVideo.play().catch(() => console.log("Vídeo bloqueado pelo navegador aguardando clique."));
+            }
 
             logo.classList.add('animate-logo');
             spectrum.classList.add('animate-spectrum');
@@ -1669,7 +1700,6 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                     document.body.style.overflow = '';
 
                     // REVELAÇÃO DO SITE (PÓS-INTRO CINEMATOGRÁFICA)
-                    // Remove a ocultação e aplica transição de entrada para os elementos principais
                     const elements = ['main-header', 'main-content', 'main-footer'];
                     elements.forEach(id => {
                         const el = document.getElementById(id);
@@ -1678,15 +1708,26 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                             el.classList.add('opacity-100');
                         }
                     });
+                    
+                    // Opcional: Pausar o vídeo escondido depois que a intro acabar para economizar internet do usuário
+                    if(hiddenVideo) {
+                        hiddenVideo.pause();
+                    }
                 }, 500);
             }, 6500);
         };
 
-        // Inicia a intro automaticamente ao carregar
+       // Trava o scroll da página e exibe o botão para o usuário iniciar
         document.body.style.overflow = 'hidden';
-        setTimeout(() => {
-            window.startIntro();
-        }, 100);
+        
+        // Aguarda o clique na tela preta para liberar o áudio e iniciar a vinheta
+        document.getElementById('start-overlay').addEventListener('click', function() {
+            this.style.opacity = '0'; // Esconde o texto suavemente
+            setTimeout(() => {
+                this.style.display = 'none'; // Remove a tela preta do caminho
+                window.startIntro(); // Dispara a vinheta com o áudio 100% liberado!
+            }, 300); 
+        });
 
         const s3 = new window.AWS.S3({
             endpoint: 'https://679ab4032c53de6dee298b613e90e0db.r2.cloudflarestorage.com',
