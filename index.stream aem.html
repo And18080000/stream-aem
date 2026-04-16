@@ -421,6 +421,15 @@
                         0 0 0 4px rgba(214, 183, 120, 0.15);
             filter: brightness(1.1);
         }
+
+        /* REMOÇÃO DE NEON NOS CONTROLES DO PLAYER: Mantém apenas a funcionalidade sem o brilho externo */
+        #player-controls .focusable:focus {
+            box-shadow: none !important;
+            border-color: transparent !important;
+            filter: none !important;
+            transform: scale(1.1); /* Zoom reduzido para os ícones do player para não obstruir a visão */
+        }
+
         /* Efeito de brilho pulsante no foco do card */
         .focusable:focus img {
             filter: brightness(1.1);
@@ -1215,6 +1224,13 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                     </div>
                     <div id="player-time" class="text-sm md:text-base font-medium font-mono hidden md:block">00:00 / 00:00</div>
                     <div class="flex items-center gap-4 md:gap-6">
+                        <!-- MOTOR DE CONECTIVIDADE: PiP (Mini-player) e Cast (Espelhamento) -->
+                        <button onclick="togglePiP()" onpointerdown="event.stopPropagation(); togglePiP()" class="focusable hover:text-gray-300 active:scale-90 transition-transform duration-75" title="Descolar vídeo (PiP)" tabindex="0">
+                            <i class="ph ph-projector-screen text-2xl md:text-3xl"></i>
+                        </button>
+                        <button onclick="toggleRemotePlayback()" onpointerdown="event.stopPropagation(); toggleRemotePlayback()" class="focusable hover:text-gray-300 active:scale-90 transition-transform duration-75" title="Espelhar na TV" tabindex="0">
+                            <i class="ph ph-broadcast text-2xl md:text-3xl"></i>
+                        </button>
                         <button class="focusable hover:text-gray-300 active:scale-90 transition-transform duration-75 hidden sm:block" tabindex="0"><i class="ph ph-subtitles text-2xl md:text-3xl"></i></button>
                         <button onclick="toggleFullscreenPlayer()" onpointerdown="event.stopPropagation(); toggleFullscreenPlayer()" class="focusable hover:text-gray-300 active:scale-90 transition-transform duration-75" tabindex="0">
                             <i id="control-fs-icon" class="ph ph-corners-out text-2xl md:text-3xl"></i>
@@ -2799,6 +2815,41 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             let m = Math.floor(sec / 60); let s = Math.floor(sec % 60);
             return `${m < 10 ? '0'+m : m}:${s < 10 ? '0'+s : s}`;
         }
+
+        /**
+         * MOTOR DE CONECTIVIDADE SUPREMACY
+         * Gerencia as APIs de Picture-in-Picture e Remote Playback (Cast/AirPlay).
+         */
+        window.togglePiP = async function() {
+            try {
+                if (!document.pictureInPictureEnabled) {
+                    return showToast("Seu navegador não suporta PiP.", true);
+                }
+                if (mainVid !== document.pictureInPictureElement) {
+                    await mainVid.requestPictureInPicture();
+                    showToast("Vídeo descolado! Pode navegar em outros apps.");
+                } else {
+                    await document.exitPictureInPicture();
+                }
+            } catch (error) {
+                console.error("A&M PiP Error:", error);
+                showToast("Erro ao descolar vídeo.", true);
+            }
+        };
+
+        window.toggleRemotePlayback = function() {
+            // Verifica suporte para Remote Playback API (Cast/DLNA moderno) ou Webkit AirPlay (Safari/iOS)
+            if (mainVid.remote && typeof mainVid.remote.prompt === 'function') {
+                mainVid.remote.prompt().catch(e => {
+                    if (e.name !== 'NotAllowedError') showToast("Falha ao abrir espelhamento.", true);
+                });
+            } else if (mainVid.webkitShowPlaybackTargetPicker) {
+                // Suporte legado Apple AirPlay
+                mainVid.webkitShowPlaybackTargetPicker();
+            } else {
+                showToast("Seu dispositivo não suporta espelhamento nativo via browser.", true);
+            }
+        };
 
         // LÓGICA DE AUTO-PLAY E PRÓXIMO VÍDEO (FLUXO DE TRANSIÇÃO ENTRE CATEGORIAS)
         window.isTransitioningToNext = false; // 🔒 Trava de Segurança Global
