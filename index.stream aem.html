@@ -974,9 +974,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 <button class="pb-1 hover:text-white transition">MINHA LISTA</button>
                 <button id="btn-install-header" onclick="triggerInstall()" class="hidden pb-1 hover:text-brand-gold transition flex items-center gap-1 text-brand-gold font-bold"><i class="ph ph-download-simple"></i> INSTALAR APP</button>
                 
-                <!-- Links Restritos -->
-                <button onclick="navigate('admin')" id="nav-admin" class="hidden pb-1 hover:text-white transition text-brand-gold">ADMINISTRAÇÃO</button>
-                <button onclick="navigate('crm')" id="nav-crm" class="hidden pb-1 hover:text-white transition text-brand-gold">CRM & CONTRATOS</button>
+                
             </nav>
         </div>
 
@@ -1080,18 +1078,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 </button>
             </div>
 
-            <!-- Ajustes Globais de Exibição -->
-            <div class="bg-brand-panel border border-brand-gold/30 rounded-2xl p-4 md:p-6 mb-8 flex flex-col md:flex-row gap-6 items-center shadow-lg">
-                <div class="flex-grow">
-                    <h2 class="text-brand-gold text-lg font-bold mb-2 flex items-center gap-2">
-                        <i class="ph ph-monitor-play"></i> Ajustes de Exibição
-                    </h2>
-                    <p class="text-xs text-brand-text uppercase tracking-widest font-bold">Defina a orientação global do player para todos os conteúdos (Horizontal/Vertical).</p>
-                </div>
-                <button onclick="rotateVideoOrientation()" class="bg-brand-blue hover:bg-brand-blue-hover text-white px-8 py-3 rounded-full font-bold transition shadow-md flex items-center gap-2 whitespace-nowrap focusable" tabindex="0">
-                    <i class="ph ph-screen-rotate text-xl"></i> GIRAR ORIENTAÇÃO PADRÃO
-                </button>
-            </div>
+            
 
             <!-- Edição de Ordem das Categorias -->
             <div class="bg-brand-panel border border-brand-gold/30 rounded-2xl p-4 md:p-6 mb-8 shadow-lg">
@@ -1130,10 +1117,19 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                                 <label class="block text-white text-sm mb-2 font-medium">Classificação / Subtítulo Hero</label>
                                 <input type="text" id="admin-subtitulo" placeholder="Ex: Classificação: 14+ | Estreia Exclusiva" class="w-full p-3 rounded-xl bg-[#2A2C33] text-white text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-white text-sm mb-2 font-medium">Orientação Vídeo</label>
+                                <select id="admin-orientacao" class="w-full p-3 rounded-xl bg-[#2A2C33] text-white text-sm">
+                                    <option value="0">Horizontal (0°)</option>
+                                    <option value="90">Vertical (90°)</option>
+                                    <option value="180">Invertido (180°)</option>
+                                    <option value="270">Vertical (270°)</option>
+                                </select>
                             </div>
                             <div>
                                 <label class="block text-white text-sm mb-2 font-medium">Descrição Detalhada</label>
@@ -2802,6 +2798,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                     titulo: document.getElementById('admin-titulo').value,
                     selo: document.getElementById('admin-selo').value || 'A&M ORIGINALS',
                     subtitulo: document.getElementById('admin-subtitulo').value || 'Classificação: 14+ | Estreia Exclusiva',
+                    orientacao: parseInt(document.getElementById('admin-orientacao').value) || 0,
                     descricao: document.getElementById('admin-descricao').value || '',
                     trilho: document.getElementById('admin-trilho').value || 'Lançamentos Recentes',
                     menuIds: selectedMenus,
@@ -3134,6 +3131,10 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
 
        window.abrirPlayerFull = function() {
             if(!window.currentDestaqueData || !window.currentDestaqueData.videoUrl) return showToast("Vídeo não cadastrado!", true);
+            
+            // Aplica Orientação Específica do Vídeo antes de abrir
+            window.aplicarOrientacaoVideo(window.currentDestaqueData.orientacao || 0);
+
             nextVideoTriggered = false;
             window.predictedNextVideo = null;
             window.isTransitioningToNext = false; // 🟢 LIBERA A TRAVA PARA O NOVO VÍDEO
@@ -3304,22 +3305,17 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             else { document.exitFullscreen(); fsIcon.classList.replace('ph-corners-in', 'ph-corners-out'); }
         }
 
-        let videoRotationAngle = 0;
-
-        window.rotateVideoOrientation = function() {
+        window.aplicarOrientacaoVideo = function(angulo) {
             const video = document.getElementById('main-full-video');
-            
-            videoRotationAngle = (videoRotationAngle + 90) % 360;
-            
-            // Algoritmo de Compensação de Escala
-            const isVertical = videoRotationAngle === 90 || videoRotationAngle === 270;
+            if(!video) return;
+
+            const ang = parseInt(angulo) || 0;
+            const isVertical = ang === 90 || ang === 270;
+            // Cálculo de escala para preencher a tela em modo vertical sem distorção
             const scale = isVertical ? (window.innerHeight / window.innerWidth).toFixed(2) : 1;
             
-            const transformValue = `rotate(${videoRotationAngle}deg) scale(${scale})`;
-            
-            if(video) video.style.transform = transformValue;
-
-            showToast(`Orientação: ${videoRotationAngle}°`);
+            video.style.transform = `rotate(${ang}deg) scale(${scale})`;
+            console.log(`A&M Player: Orientação individual aplicada (${ang}°)`);
         };
 
         function formatTime(sec) {
