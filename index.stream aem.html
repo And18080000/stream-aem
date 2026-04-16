@@ -8,7 +8,282 @@
     <!-- Otimização de Performance: Conexões Antecipadas -->
     <link rel="preconnect" href="https:======================================
         ======================================
+        ======================================
         // TV SUPREMACY: CONTROLES DE COMANDO REMOTO
+        // ==========================================
+        window.addEventListener('keydown', (e) => {
+            const isPlayerOpen = !document.getElementById('netflix-player').classList.contains('hidden');
+            
+            ======================================
+        // TV & MOBILE SUPREMACY: SISTEMA DE TOQUE E NAVEGAÇÃO
+        // ==========================================
+        
+        /** 
+         * MOTOR DE EXECUÇÃO ULTRA-RÁPIDA (MOBILE FIX)
+         * Garante que o toque em celulares execute a ação imediatamente sem delay de 300ms
+         */
+        document.addEventListener('touchend', function(e) {
+            const focusableEl = e.target.closest('.focusable');
+            if (focusableEl) {
+                if (window.isUserDraggingRail) return;
+                focusableEl.focus();
+                focusableEl.click();
+                if (e.cancelable) e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Algoritmo de Navegação Espacial (Cérebro da TV)
+        function navigateTV(direction) {
+            const current = document.activeElement;
+            const focusables = Array.from(document.querySelectorAll('.focusable:not(.hidden)'));
+            
+            if (!current || !current.classList.contains('focusable')) {
+                if (focusables.length > 0) focusables[0].focus();
+                return;
+            }
+
+            const currentRect = current.getBoundingClientRect();
+            let nextElement = null;
+            let minDistance = Infinity;
+
+            focusables.forEach(el => {
+                if (el === current) return;
+                const elRect = el.getBoundingClientRect();
+                let isCandidate = false;
+                const threshold = 15;
+
+                switch(direction) {
+                    case 'UP': isCandidate = elRect.bottom <= currentRect.top + threshold; break;
+                    case 'DOWN': isCandidate = elRect.top >= currentRect.bottom - threshold; break;
+                    case 'LEFT': isCandidate = elRect.right <= currentRect.left + threshold; break;
+                    case 'RIGHT': isCandidate = elRect.left >= currentRect.right - threshold; break;
+                }
+
+                if (isCandidate) {
+                    const dist = Math.sqrt(
+                        Math.pow((elRect.left + elRect.width/2) - (currentRect.left + currentRect.width/2), 2) +
+                        Math.pow((elRect.top + elRect.height/2) - (currentRect.top + currentRect.height/2), 2)
+                    );
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        nextElement = el;
+                    }
+                }
+            });
+
+            if (nextElement) {
+                nextElement.focus();
+                nextElement.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            const isPlayerOpen = !document.getElementById('netflix-player').classList.contains('hidden');
+            const isEnterKey = [13, 29443, 117, 65376].includes(e.keyCode);
+
+            if (!isPlayerOpen) {
+                switch(e.keyCode) {
+                    case 37: navigateTV('LEFT'); e.preventDefault(); break;
+                    case 38: navigateTV('UP'); e.preventDefault(); break;
+                    case 39: navigateTV('RIGHT'); e.preventDefault(); break;
+                    case 40: navigateTV('DOWN'); e.preventDefault(); break;
+                    case 13: 
+                        if(isEnterKey && document.activeElement && document.activeElement.classList.contains('focusable')) {
+                            document.activeElement.click(); 
+                            e.preventDefault();
+                        }
+                        break;
+                }
+            }
+            
+            if (isPlayerOpen) { ==========================================
+        // TV & MOBILE SUPREMACY: SISTEMA DE TOQUE E NAVEGAÇÃO
+        // ==========================================
+        
+        /** 
+         * MOTOR DE EXECUÇÃO ULTRA-RÁPIDA (MOBILE FIX)
+         * Garante que o toque em celulares execute a ação imediatamente sem delay de 300ms
+         * e sem falhas de clique em navegadores de TV que emulam mouse.
+         */
+        document.addEventListener('touchend', function(e) {
+            const focusableEl = e.target.closest('.focusable');
+            if (focusableEl) {
+                // Previne scroll acidental de disparar o clique
+                if (window.isUserDraggingRail) return;
+                
+                focusableEl.focus();
+                focusableEl.click();
+                
+                // Impede o clique fantasma e o comportamento padrão que gera delay
+                if (e.cancelable) e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Algoritmo de Navegação Espacial (Cérebro da TV)
+        function navigateTV(direction) {
+            const current = document.activeElement;
+            const focusables = Array.from(document.querySelectorAll('.focusable:not(.hidden)'));
+            
+            if (!current || !current.classList.contains('focusable')) {
+                if (focusables.length > 0) focusables[0].focus();
+                return;
+            }
+
+            const currentRect = current.getBoundingClientRect();
+            let nextElement = null;
+            let minDistance = Infinity;
+
+            focusables.forEach(el => {
+                if (el === current) return;
+                const elRect = el.getBoundingClientRect();
+
+                let isCandidate = false;
+                const threshold = 15; // Margem para detectar alinhamento de trilhos
+
+                switch(direction) {
+                    case 'UP': isCandidate = elRect.bottom <= currentRect.top + threshold; break;
+                    case 'DOWN': isCandidate = elRect.top >= currentRect.bottom - threshold; break;
+                    case 'LEFT': isCandidate = elRect.right <= currentRect.left + threshold; break;
+                    case 'RIGHT': isCandidate = elRect.left >= currentRect.right - threshold; break;
+                }
+
+                if (isCandidate) {
+                    const dist = Math.sqrt(
+                        Math.pow((elRect.left + elRect.width/2) - (currentRect.left + currentRect.width/2), 2) +
+                        Math.pow((elRect.top + elRect.height/2) - (currentRect.top + currentRect.height/2), 2)
+                    );
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        nextElement = el;
+                    }
+                }
+            });
+
+            if (nextElement) {
+                nextElement.focus();
+                nextElement.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            const isPlayerOpen = !document.getElementById('netflix-player').classList.contains('hidden');
+            
+            // Mapeamento Universal de ENTER para Smart TVs (Samsung Tizen, LG WebOS, Android TV)
+            const isEnterKey = [13, 29443, 117, 65376].includes(e.keyCode);
+
+            // NAVEGAÇÃO NO CATÁLOGO (FORA DO PLAYER)
+            if (!isPlayerOpen) {
+                switch(e.keyCode) {
+                    case 37: navigateTV('LEFT'); e.preventDefault(); break;
+                    case 38: navigateTV('UP'); e.preventDefault(); break;
+                    case 39: navigateTV('RIGHT'); e.preventDefault(); break;
+                    case 40: navigateTV('DOWN'); e.preventDefault(); break;
+                    case 13: 
+                        if(isEnterKey && document.activeElement && document.activeElement.classList.contains('focusable')) {
+                            document.activeElement.click(); 
+                            e.preventDefault();
+                        }
+                        break;
+                }
+            }
+            
+            if (isPlayerOpen) { TV SUPREMACY: CONTROLES DE COMANDO REMOTO
+        // ==========================================
+        window.addEventListener('keydown', (e) => {
+            const isPlayerOpen = !document.getElementById('netflix-player').classList.contains('hidden');
+            
+            if (isPlayerOpen) {
+====
+            if (isPlayerOpen) {
+====
+        /**
+         * ================================================================
+         * MOTOR DE EXPERIÊNCIA UNIFICADA (PC + MOBILE + TV)
+         * ================================================================
+         * Limpeza e Unificação: Garante navegação espacial, toque sem delay e 
+         * suporte total a comandos de controle remoto (Samsung, LG, Android).
+         */
+
+        // 1. TOQUE INSTANTÂNEO (MOBILE FIX)
+        document.addEventListener('touchstart', (e) => {
+            const el = e.target.closest('.focusable');
+            if (el) {
+                if (document.activeElement && document.activeElement !== el) document.activeElement.blur();
+                el.focus();
+                const mouseEnterAttr = el.getAttribute('onmouseenter');
+                if (mouseEnterAttr && mouseEnterAttr.includes('turboPrewarm')) {
+                    const urlMatch = mouseEnterAttr.match(/'([^']+)'/);
+                    if (urlMatch) window.turboPrewarm(urlMatch[1]);
+                }
+            }
+        }, { passive: true });
+
+        // 2. NAVEGAÇÃO ESPACIAL (CÉREBRO DA TV)
+        window.navigateTV = function(direction) {
+            const current = document.activeElement;
+            const focusables = Array.from(document.querySelectorAll('.focusable:not(.hidden)'));
+            
+            if (!current || !current.classList.contains('focusable')) {
+                if (focusables.length > 0) focusables[0].focus();
+                return;
+            }
+
+            const currentRect = current.getBoundingClientRect();
+            let nextElement = null;
+            let minDistance = Infinity;
+
+            focusables.forEach(el => {
+                if (el === current) return;
+                const elRect = el.getBoundingClientRect();
+                let isCandidate = false;
+                const threshold = 15;
+
+                switch(direction) {
+                    case 'UP': isCandidate = elRect.bottom <= currentRect.top + threshold; break;
+                    case 'DOWN': isCandidate = elRect.top >= currentRect.bottom - threshold; break;
+                    case 'LEFT': isCandidate = elRect.right <= currentRect.left + threshold; break;
+                    case 'RIGHT': isCandidate = elRect.left >= currentRect.right - threshold; break;
+                }
+
+                if (isCandidate) {
+                    const dist = Math.sqrt(
+                        Math.pow((elRect.left + elRect.width/2) - (currentRect.left + currentRect.width/2), 2) +
+                        Math.pow((elRect.top + elRect.height/2) - (currentRect.top + currentRect.height/2), 2)
+                    );
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        nextElement = el;
+                    }
+                }
+            });
+
+            if (nextElement) {
+                nextElement.focus();
+                nextElement.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+            }
+        };
+
+        // 3. LISTENER UNIFICADO (COMANDOS REMOTOS)
+        window.addEventListener('keydown', (e) => {
+            const isPlayerOpen = !document.getElementById('netflix-player').classList.contains('hidden');
+            const isEnterKey = [13, 29443, 117, 65376].includes(e.keyCode);
+
+            if (!isPlayerOpen) {
+                switch(e.keyCode) {
+                    case 37: navigateTV('LEFT'); e.preventDefault(); break;
+                    case 38: navigateTV('UP'); e.preventDefault(); break;
+                    case 39: navigateTV('RIGHT'); e.preventDefault(); break;
+                    case 40: navigateTV('DOWN'); e.preventDefault(); break;
+                    case 13: 
+                        if(isEnterKey && document.activeElement && document.activeElement.classList.contains('focusable')) {
+                            document.activeElement.click(); 
+                            e.preventDefault();
+                        }
+                        break;
+                }
+            }
+
+            if (isPlayerOpen) { TV SUPREMACY: CONTROLES DE COMANDO REMOTO
         // ==========================================
         ======================================
         ======================================
@@ -409,6 +684,9 @@
         .focusable {
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             outline: none !important;
+            will-change: transform; /* Avisa ao navegador para usar a GPU */
+            backface-visibility: hidden; /* Evita trepidação em transformações */
+            transform: translateZ(0); /* Força aceleração de hardware */
         }
         .focusable:focus {
             transform: scale(1.15); /* Aumento mais expressivo para destaque total */
@@ -472,8 +750,9 @@
         /* 🖱️ ESTILO DE NAVEGAÇÃO POR ARRASTE (GRAB-TO-SCROLL) */
         .auto-scroll-rail {
             cursor: grab;
-            user-select: none; /* Previne seleção de texto ao arrastar */
+            user-select: none; 
             active-cursor: grabbing;
+            contain: content; /* Otimização massiva: isola o render dos trilhos para não afetar o resto da página */
         }
         .auto-scroll-rail:active {
             cursor: grabbing;
@@ -1330,32 +1609,40 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
          * MOTOR TURBO A&M SUPREMACY (CONEXÃO INSTANTÂNEA)
          * Otimiza a latência de rede para garantir que imagens e vídeos carreguem em menos de 2s.
          */
+        /**
+         * MOTOR TURBO A&M SUPREMACY (CONEXÃO INSTANTÂNEA)
+         * Otimiza o carregamento de imagens e vídeos usando pré-conexão e prioridade máxima de rede.
+         */
         window.turboPrewarm = function(url) {
             if(!url || !url.startsWith('http')) return;
             const linkId = 'prefetch-' + btoa(url).substring(0, 16);
             if (document.getElementById(linkId)) return;
 
-            // 1. Hint de Conexão (Warmup TCP/TLS)
+            // 1. Connection Hint & Prefetch (Correção do erro 'as' value)
             const link = document.createElement('link');
             link.id = linkId;
-            link.rel = 'preload'; // Mudado de prefetch para preload para prioridade máxima
+            link.rel = 'prefetch'; // Prefetch é melhor suportado para vídeos que serão tocados em seguida
             link.href = url;
-            link.as = 'video';
-            link.fetchpriority = "high";
+            link.as = 'fetch'; // 'fetch' resolve o aviso de 'unsupported as value' para mídia
+            link.setAttribute('fetchpriority', 'high');
             document.head.appendChild(link);
             
-            // 2. BUFFER SILENCIOSO: Inicia o download paralelo em segundo plano
-            if (window.fetch) {
-                fetch(url, { mode: 'no-cors', priority: 'low' }).catch(() => {});
-            }
+            // 2. BUFFER PARALELO AGRESSIVO
+            // Iniciamos um carregamento via cache de rede para que o Player o encontre pronto
+            const videoLoader = new Audio(); // Usar Audio() ou Video() em background é mais rápido que fetch simples
+            videoLoader.src = url;
+            videoLoader.preload = "auto";
+            videoLoader.muted = true;
 
-            // 3. WARMUP DO PLAYER: Prepara o decodificador de hardware
+            // 3. WARMUP DO PLAYER PRINCIPAL
+            // Se o player estiver fechado, já injetamos a URL no SRC para o DNS resolver agora
             const mainVid = document.getElementById('main-full-video');
-            if(mainVid && mainVid.src !== url && document.getElementById('netflix-player').classList.contains('hidden')) {
-                const tempLoader = document.createElement('video'); // Correção: Usa createElement para instanciar o buffer
-                tempLoader.src = url;
-                tempLoader.preload = "auto";
-                tempLoader.muted = true;
+            if(mainVid && document.getElementById('netflix-player').classList.contains('hidden')) {
+                // Pre-conecta o host do R2
+                const conn = document.createElement('link');
+                conn.rel = 'preconnect';
+                conn.href = 'https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev';
+                document.head.appendChild(conn);
             }
         };
         
@@ -3118,11 +3405,10 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
         // RENDERIZAR TRILHOS
         window.renderCardRetrato = function(data) {
             const dataStr = btoa(encodeURIComponent(JSON.stringify(data)));
-            // Motor de Clique Inteligente: Primeiro clique seleciona/aumenta, segundo clique abre o player
-            // turboPrewarm e fetchpriority="high" para carregamento instantâneo (< 1s)
-            // decoding="sync" força o navegador a preparar a imagem antes de exibir para evitar "piscar"
+            // Otimização: Imagens fora da primeira dobra usam lazy loading para economizar dados e CPU
+            const loadStrategy = cacheCatalogo.indexOf(data) < 6 ? 'eager' : 'lazy';
             return `<div onclick="handleCardClick('${dataStr}')" onfocus="mudarDestaque('${dataStr}')" onmouseenter="turboPrewarm('${data.videoUrl}')" class="focusable min-w-[130px] md:min-w-[170px] h-[190px] md:h-[250px] bg-[#1A1C23] rounded-xl overflow-hidden border border-white/5 relative group cursor-pointer snap-start transition-all shadow-lg" tabindex="0">
-                <img src="${data.capaUrl}" loading="eager" fetchpriority="high" decoding="sync" class="w-full h-full object-cover" alt="${data.titulo}" onload="this.style.opacity=1" style="opacity:0; transition: opacity 0.3s ease;">
+                <img src="${data.capaUrl}" loading="${loadStrategy}" fetchpriority="${loadStrategy === 'eager' ? 'high' : 'low'}" decoding="async" class="w-full h-full object-cover" alt="${data.titulo}" onload="this.style.opacity=1" style="opacity:0; transition: opacity 0.3s ease;">
                 <div class="absolute top-0 w-full p-2 bg-gradient-to-b from-black/80 to-transparent">
                     <p class="text-[8px] text-[#D6B778] font-bold tracking-widest uppercase">${data.selo}</p>
                 </div>
@@ -3139,10 +3425,10 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
         }
         window.renderCardPaisagem = function(data, colorClass = "text-[#D6B778]") {
             const dataStr = btoa(encodeURIComponent(JSON.stringify(data)));
-            // Motor de Clique Inteligente: Primeiro clique seleciona/aumenta, segundo clique abre o player
-            // loading="eager" força o navegador a priorizar a renderização da capa
+            // Otimização: Carregamento seletivo de imagens
+            const loadStrategy = cacheCatalogo.indexOf(data) < 4 ? 'eager' : 'lazy';
             return `<div onclick="handleCardClick('${dataStr}')" onfocus="mudarDestaque('${dataStr}')" onmouseenter="turboPrewarm('${data.videoUrl}')" class="focusable min-w-[220px] md:min-w-[280px] h-[120px] md:h-[150px] bg-[#1A1C23] rounded-xl overflow-hidden border border-white/5 relative group cursor-pointer snap-start transition-all shadow-lg" tabindex="0">
-                <img src="${data.capaUrl}" loading="eager" fetchpriority="high" decoding="sync" class="w-full h-full object-cover" alt="${data.titulo}" onload="this.style.opacity=1" style="opacity:0; transition: opacity 0.3s ease;">
+                <img src="${data.capaUrl}" loading="${loadStrategy}" fetchpriority="${loadStrategy === 'eager' ? 'high' : 'low'}" decoding="async" class="w-full h-full object-cover" alt="${data.titulo}" onload="this.style.opacity=1" style="opacity:0; transition: opacity 0.3s ease;">
                 <!-- Botão de Play Rápido (Exibido no Hover/Foco para clique direto) -->
                 <div onclick="event.stopPropagation(); mudarDestaque('${dataStr}'); abrirPlayerFull();" class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity z-20">
                     <div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/40 scale-75 group-hover:scale-100 transition-transform shadow-xl">
@@ -3160,8 +3446,14 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 cacheCatalogo = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => a.createdAt - b.createdAt);
                 if(cacheCatalogo.length > 0 && !window.currentDestaqueData) {
                     mudarDestaque(btoa(encodeURIComponent(JSON.stringify(cacheCatalogo[0]))));
-                    window.startHeroAutoCycle(); // Ativa a rotação automática assim que o catálogo carregar
-                    window.startRailsAutoScroll(); // Ativa o scroll automático dos trilhos
+                    
+                    // Execução em Idle: Só inicia ciclos pesados quando o navegador estiver livre
+                    const startTasks = () => {
+                        window.startHeroAutoCycle();
+                        window.startRailsAutoScroll();
+                    };
+                    if (window.requestIdleCallback) window.requestIdleCallback(startTasks);
+                    else setTimeout(startTasks, 1000);
                 }
                 if (typeof window.renderizarTrilhosNaHome === 'function') window.renderizarTrilhosNaHome();
             });
