@@ -748,7 +748,10 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                 <!-- COLUNA ESQUERDA: Formulário -->
                 <div class="lg:col-span-5 bg-[#15171C] rounded-[24px] p-6 md:p-8 shadow-2xl flex flex-col border border-white/5">
-                    <h2 class="text-[#D6B778] text-2xl font-bold mb-6 font-sans">Configurações de Conteúdo</h2>
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-[#D6B778] text-2xl font-bold font-sans">Cadastrar Conteúdo</h2>
+                        <button type="button" onclick="limparFormularioAdmin()" class="text-[10px] text-brand-text hover:text-white border border-white/10 px-3 py-1 rounded-full transition uppercase font-bold">Limpar / Novo</button>
+                    </div>
                     
                     <form id="form-conteudo" onsubmit="salvarConteudo(event)" class="flex flex-col gap-6 h-full">
                         <div class="grid grid-cols-2 gap-4">
@@ -762,9 +765,15 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                             </div>
                         </div>
 
-                        <div>
-                            <label class="block text-white text-sm mb-2 font-medium">Classificação / Subtítulo Hero</label>
-                            <input type="text" id="admin-subtitulo" placeholder="Ex: Classificação: 14+ | Estreia Exclusiva" class="w-full p-3 rounded-xl bg-[#2A2C33] text-white text-sm">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-white text-sm mb-2 font-medium">Classificação / Subtítulo Hero</label>
+                                <input type="text" id="admin-subtitulo" placeholder="Ex: Classificação: 14+ | Estreia Exclusiva" class="w-full p-3 rounded-xl bg-[#2A2C33] text-white text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-white text-sm mb-2 font-medium">Descrição Detalhada</label>
+                                <textarea id="admin-descricao" placeholder="Breve resumo do conteúdo..." class="w-full p-3 rounded-xl bg-[#2A2C33] text-white text-sm h-[46px] resize-none"></textarea>
+                            </div>
                         </div>
 
                         <div class="grid grid-cols-2 gap-6 items-start">
@@ -775,7 +784,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                                         <img id="preview-capa-img" src="" class="hidden absolute inset-0 w-full h-full object-cover">
                                         <i id="preview-capa-text" class="ph ph-image text-2xl text-brand-text absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></i>
                                     </div>
-                                    <input type="file" id="upload-capa" accept="image/*" required class="hidden" onchange="previewImage(event)">
+                                    <input type="file" id="upload-capa" accept="image/*" class="hidden" onchange="previewImage(event)">
                                     <button type="button" onclick="document.getElementById('upload-capa').click()" class="bg-[#D6B778] hover:bg-[#e8c989] text-black px-4 py-2 rounded-full font-bold text-xs md:text-sm whitespace-nowrap shadow-sm">Alterar Capa</button>
                                 </div>
                             </div>
@@ -841,7 +850,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                         </div>
                         
                         <button type="submit" id="btn-salvar-conteudo" class="w-full bg-[#D6B778] hover:bg-[#e8c989] text-black py-3.5 rounded-xl font-bold transition text-base tracking-wide mt-2 shadow-[0_4px_15px_rgba(214,183,120,0.2)]">
-                            SALVAR ALTERAÇÕES
+                            SALVAR
                         </button>
                     </form>
                 </div>
@@ -2193,7 +2202,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 if(formPreview) {
                     formPreview.src = videoUrl;
                     formPreview.classList.remove('hidden');
-                    formPreview.play();
+                    formPreview.play().catch(e => { if(e.name !== 'AbortError') console.warn("Preview Play Interrompido"); });
                 }
 
                 // 2. Ativa o vídeo no Layout Gigante (Live Preview à direita)
@@ -2203,7 +2212,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                     livePreviewVideo.src = videoUrl;
                     livePreviewVideo.style.opacity = '0.7';
                     if(livePreviewImg) livePreviewImg.style.opacity = '0';
-                    livePreviewVideo.play();
+                    livePreviewVideo.play().catch(e => { if(e.name !== 'AbortError') console.warn("Live Preview Interrompido"); });
                 }
 
                 document.getElementById('preview-video-icon').classList.replace('ph-play', 'ph-check-circle');
@@ -2250,86 +2259,122 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             e.preventDefault();
             if (!currentUser) return showToast("Autenticando...", true);
             
+            // Validação Manual de Capa (Essencial para inputs hidden sem 'required')
             const coverImgEl = document.getElementById('preview-capa-img');
-            if (coverImgEl.classList.contains('hidden')) return showToast("Faça upload de uma capa.", true);
+            if (coverImgEl.classList.contains('hidden')) return showToast("Por favor, selecione uma capa.", true);
 
             const btn = document.getElementById('btn-salvar-conteudo');
-            btn.innerText = "ENVIANDO PARA R2..."; btn.disabled = true;
+            const progressContainer = document.getElementById('upload-progress-container');
+            const progressBar = document.getElementById('upload-progress-bar');
+            const progressText = document.getElementById('upload-pct-text');
+            const statusText = document.getElementById('upload-status-text');
+
+            btn.innerText = "PREPARANDO..."; btn.disabled = true;
 
             let finalCapaUrl = coverImgEl.src;
             let finalVideoUrl = "";
 
             try {
+                // 1. Upload da Capa (Se for novo arquivo)
                 if (window.selectedCoverFile) {
+                    statusText.innerText = "SUBINDO CAPA...";
+                    progressContainer.classList.remove('hidden');
+                    
                     const ext = window.selectedCoverFile.name.split('.').pop();
                     const fileName = `capas/${Date.now()}_img.${ext}`;
-                    await s3.putObject({ Bucket: "aem", Key: fileName, Body: window.selectedCoverFile, ContentType: window.selectedCoverFile.type }).promise();
+                    
+                    await s3.putObject({ 
+                        Bucket: "aem", 
+                        Key: fileName, 
+                        Body: window.selectedCoverFile, 
+                        ContentType: window.selectedCoverFile.type 
+                    }).promise();
+                    
                     finalCapaUrl = `https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev/${fileName}`;
+                    progressBar.style.width = '20%';
+                    progressText.innerText = '20%';
                 }
 
+                // 2. Upload do Vídeo (TURBO R2 - PARALELISMO ATIVADO)
                 if (window.selectedVideoFile) {
-                    // Algoritmo de Aceleração e Monitoramento em Tempo Real
-                    const progressContainer = document.getElementById('upload-progress-container');
-                    const progressBar = document.getElementById('upload-progress-bar');
-                    const progressText = document.getElementById('upload-pct-text');
-                    
+                    statusText.innerText = "UPLOAD TURBO R2 ATIVO...";
                     progressContainer.classList.remove('hidden');
-                    btn.innerText = "INICIANDO UPLOAD...";
                     
                     const ext = window.selectedVideoFile.name.split('.').pop();
                     const fileName = `videos/${Date.now()}_vid.${ext}`;
                     
-                    // Transição para s3.upload: Habilita Multipart Upload (Mais rápido para arquivos grandes)
                     const uploadManaged = s3.upload({
                         Bucket: "aem",
                         Key: fileName,
                         Body: window.selectedVideoFile,
                         ContentType: window.selectedVideoFile.type
+                    }, {
+                        partSize: 5 * 1024 * 1024, // Partes de 5MB
+                        queueSize: 12 // 12 canais de upload simultâneos para velocidade máxima
                     });
 
-                    // Callback de Interceptação de Fluxo (Barra de Progresso)
                     uploadManaged.on('httpUploadProgress', (evt) => {
                         const progress = Math.round((evt.loaded / evt.total) * 100);
-                        progressBar.style.width = `${progress}%`;
+                        // Ajusta a barra entre 20% e 100% para o vídeo
+                        const displayProgress = 20 + (progress * 0.8);
+                        progressBar.style.width = `${displayProgress}%`;
                         progressText.innerText = `${progress}%`;
                         btn.innerText = `ENVIANDO VÍDEO: ${progress}%`;
                     });
 
                     await uploadManaged.promise();
                     finalVideoUrl = `https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev/${fileName}`;
-                    progressContainer.classList.add('hidden');
                 }
 
                 const selectedMenus = Array.from(document.querySelectorAll('input[name="admin-menu-vinc"]:checked')).map(cb => cb.value);
                 if (selectedMenus.length === 0) selectedMenus.push('home');
 
+                statusText.innerText = "Finalizando Registro...";
+                progressBar.style.width = '100%';
+                progressText.innerText = '100%';
+
                 await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'catalog'), {
                     titulo: document.getElementById('admin-titulo').value,
                     selo: document.getElementById('admin-selo').value || 'A&M ORIGINALS',
                     subtitulo: document.getElementById('admin-subtitulo').value || 'Classificação: 14+ | Estreia Exclusiva',
+                    descricao: document.getElementById('admin-descricao').value || '',
                     trilho: document.getElementById('admin-trilho').value || 'Lançamentos Recentes',
                     menuIds: selectedMenus,
                     capaUrl: finalCapaUrl, videoUrl: finalVideoUrl,
                     ownerId: currentUser.uid, createdAt: new Date().getTime() 
                 });
                 
-                showToast("Conteúdo publicado com sucesso!");
-                e.target.reset();
-                // Limpeza técnica dos estados de upload
-                document.getElementById('upload-progress-container').classList.add('hidden');
-                document.getElementById('upload-progress-bar').style.width = '0%';
-                window.selectedCoverFile = null; window.selectedVideoFile = null;
-                document.getElementById('preview-capa-img').classList.add('hidden');
-                document.getElementById('preview-capa-text').classList.remove('hidden');
-                document.getElementById('preview-video-icon').classList.replace('ph-check-circle','ph-play');
-                document.getElementById('preview-video-icon').classList.remove('text-green-400');
+                showToast("Novo conteúdo cadastrado!");
+                limparFormularioAdmin();
 
             } catch (err) {
                 console.error(err);
                 showToast("Erro no Upload. Verifique as configurações.", true);
             } finally {
-                btn.innerText = "SALVAR ALTERAÇÕES"; btn.disabled = false;
+                btn.innerText = "SALVAR"; btn.disabled = false;
             }
+        }
+
+        window.limparFormularioAdmin = function() {
+            document.getElementById('form-conteudo').reset();
+            window.selectedCoverFile = null;
+            window.selectedVideoFile = null;
+            
+            // Limpa Previews
+            document.getElementById('preview-capa-img').classList.add('hidden');
+            document.getElementById('preview-capa-text').classList.remove('hidden');
+            
+            const formVideo = document.getElementById('admin-form-video-preview');
+            formVideo.src = "";
+            formVideo.classList.add('hidden');
+            
+            document.getElementById('preview-video-icon').classList.replace('ph-check-circle', 'ph-play');
+            document.getElementById('preview-video-icon').classList.remove('text-green-400');
+            
+            document.getElementById('upload-progress-container').classList.add('hidden');
+            document.getElementById('upload-progress-bar').style.width = '0%';
+            
+            showToast("Formulário pronto para novo cadastro.");
         }
 
         window.excluirConteudo = async function(id) {
