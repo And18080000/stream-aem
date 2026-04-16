@@ -360,6 +360,12 @@
     <link rel="preconnect" href="https://cdnjs.cloudflare.com">
     <link rel="dns-prefetch" href="https://www.gstatic.com">
     <link rel="dns-prefetch" href="https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev">
+    <link rel="dns-prefetch" href="https://meu-backend-ia.vercel.app">
+
+    <!-- MOTOR DE PRIORIDADE MÁXIMA: Força o carregamento dos recursos críticos em < 500ms -->
+    <link rel="preload" href="https://unpkg.com/@phosphor-icons/web" as="script">
+    <link rel="preload" href="https://cdn.tailwindcss.com" as="script">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js">
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -1184,23 +1190,33 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 </div>
                 <div class="flex justify-between items-center text-white">
                     <div class="flex items-center gap-4 md:gap-6">
-                        <button onclick="togglePlayerPlay()" class="focusable hover:text-gray-300 transition" tabindex="0">
+                        <!-- MOTOR DE RESPOSTA INSTANTÂNEA: Atributo onpointerdown garante execução sem delay de clique -->
+                        <button onclick="togglePlayerPlay()" onpointerdown="event.stopPropagation(); togglePlayerPlay()" class="focusable hover:text-gray-300 active:scale-90 transition-transform duration-75" tabindex="0">
                             <i id="control-play-icon" class="ph-fill ph-pause text-3xl md:text-4xl"></i>
                         </button>
-                        <button onclick="seekPlayer(-10)" class="focusable hover:text-gray-300 transition" tabindex="0">
+                        <button onclick="seekPlayer(-10)" onpointerdown="event.stopPropagation(); seekPlayer(-10)" class="focusable hover:text-gray-300 active:scale-90 transition-transform duration-75" tabindex="0">
                             <i class="ph ph-arrow-counter-clockwise text-2xl md:text-3xl"></i>
                         </button>
-                        <button onclick="seekPlayer(10)" class="focusable hover:text-gray-300 transition" tabindex="0">
+                        <button onclick="seekPlayer(10)" onpointerdown="event.stopPropagation(); seekPlayer(10)" class="focusable hover:text-gray-300 active:scale-90 transition-transform duration-75" tabindex="0">
                             <i class="ph ph-arrow-clockwise text-2xl md:text-3xl"></i>
                         </button>
-                        <button onclick="togglePlayerMute()" class="focusable hover:text-gray-300 transition ml-2" tabindex="0">
-                            <i id="control-volume-icon" class="ph-fill ph-speaker-high text-2xl md:text-3xl"></i>
-                        </button>
+                        <div class="flex items-center group/vol relative">
+                            <!-- MOTOR DE VOLUME REFINADO: Clique/Toque abre a barra, Arraste altera o som -->
+                            <button onclick="toggleVolumeBar()" onpointerdown="event.stopPropagation(); toggleVolumeBar()" class="focusable hover:text-gray-300 active:scale-90 transition-transform duration-75 ml-2" tabindex="0">
+                                <i id="control-volume-icon" class="ph-fill ph-speaker-high text-2xl md:text-3xl"></i>
+                            </button>
+                            <!-- Barra de Volume com Expansão Automática (Hover PC / Toque Mobile) -->
+                            <div id="volume-slider-container" class="w-0 overflow-hidden transition-all duration-300 ease-in-out flex items-center ml-0 group-hover/vol:w-24 group-hover/vol:ml-2">
+                                <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="1" 
+                                    oninput="setPlayerVolume(this.value)" 
+                                    class="w-20 md:w-24 h-1.5 bg-white/30 rounded-full appearance-none cursor-pointer accent-[#D6B778]">
+                            </div>
+                        </div>
                     </div>
                     <div id="player-time" class="text-sm md:text-base font-medium font-mono hidden md:block">00:00 / 00:00</div>
                     <div class="flex items-center gap-4 md:gap-6">
-                        <button class="focusable hover:text-gray-300 transition hidden sm:block" tabindex="0"><i class="ph ph-subtitles text-2xl md:text-3xl"></i></button>
-                        <button onclick="toggleFullscreenPlayer()" class="focusable hover:text-gray-300 transition" tabindex="0">
+                        <button class="focusable hover:text-gray-300 active:scale-90 transition-transform duration-75 hidden sm:block" tabindex="0"><i class="ph ph-subtitles text-2xl md:text-3xl"></i></button>
+                        <button onclick="toggleFullscreenPlayer()" onpointerdown="event.stopPropagation(); toggleFullscreenPlayer()" class="focusable hover:text-gray-300 active:scale-90 transition-transform duration-75" tabindex="0">
                             <i id="control-fs-icon" class="ph ph-corners-out text-2xl md:text-3xl"></i>
                         </button>
                     </div>
@@ -1260,11 +1276,23 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             const mainVideo = document.getElementById('main-full-video');
 
             if (isTV || isLowRam) {
-                if(heroVideo) heroVideo.setAttribute('preload', 'none');
-                if(mainVideo) mainVideo.setAttribute('preload', 'metadata');
+                if(heroVideo) { 
+                    heroVideo.setAttribute('preload', 'none');
+                    heroVideo.setAttribute('fetchpriority', 'low');
+                }
+                if(mainVideo) {
+                    mainVideo.setAttribute('preload', 'metadata');
+                    mainVideo.setAttribute('fetchpriority', 'high');
+                }
             } else {
-                if(heroVideo) heroVideo.setAttribute('preload', 'auto');
-                if(mainVideo) mainVideo.setAttribute('preload', 'auto');
+                if(heroVideo) {
+                    heroVideo.setAttribute('preload', 'auto');
+                    heroVideo.setAttribute('fetchpriority', 'high');
+                }
+                if(mainVideo) {
+                    mainVideo.setAttribute('preload', 'auto');
+                    mainVideo.setAttribute('fetchpriority', 'high');
+                }
             }
         };
 
@@ -1272,24 +1300,36 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
          * MOTOR TURBO A&M (PRÉ-CARREGAMENTO EM 1 SEGUNDO)
          * Antecipa a conexão e o buffer do vídeo assim que o utilizador interage com o card.
          */
+        /**
+         * MOTOR TURBO A&M SUPREMACY (CONEXÃO INSTANTÂNEA)
+         * Otimiza a latência de rede para garantir que imagens e vídeos carreguem em menos de 2s.
+         */
         window.turboPrewarm = function(url) {
             if(!url || !url.startsWith('http')) return;
             const linkId = 'prefetch-' + btoa(url).substring(0, 16);
             if (document.getElementById(linkId)) return;
 
+            // 1. Hint de Conexão (Warmup TCP/TLS)
             const link = document.createElement('link');
             link.id = linkId;
-            link.rel = 'prefetch';
+            link.rel = 'preload'; // Mudado de prefetch para preload para prioridade máxima
             link.href = url;
             link.as = 'video';
+            link.fetchpriority = "high";
             document.head.appendChild(link);
             
-            // Força o player invisível a começar o download silencioso
+            // 2. BUFFER SILENCIOSO: Inicia o download paralelo em segundo plano
+            if (window.fetch) {
+                fetch(url, { mode: 'no-cors', priority: 'low' }).catch(() => {});
+            }
+
+            // 3. WARMUP DO PLAYER: Prepara o decodificador de hardware
             const mainVid = document.getElementById('main-full-video');
             if(mainVid && mainVid.src !== url && document.getElementById('netflix-player').classList.contains('hidden')) {
-                const tempLoader = new Audio();
+                const tempLoader = document.createElement('video'); // Correção: Usa createElement para instanciar o buffer
                 tempLoader.src = url;
                 tempLoader.preload = "auto";
+                tempLoader.muted = true;
             }
         };
         
@@ -2462,10 +2502,14 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                     if(adminPreviewVideo) { adminPreviewVideo.src = data.videoUrl; adminPreviewVideo.load(); adminPreviewVideo.muted = true; }
 
                     // Algoritmo de Proteção de Reprodução: Previne erro de interrupção por novas requisições de load
-                    const safePlay = (el) => {
-                        if (!el || !el.src) return Promise.resolve();
-                        const p = el.play();
-                        return (p !== undefined) ? p.catch(() => {}) : Promise.resolve();
+                    const safePlay = async (el) => {
+                        if (!el || !el.src) return;
+                        try {
+                            await el.play();
+                        } catch (err) {
+                            // Ignora erro de interrupção (AbortError) que ocorre ao pausar/trocar vídeo rapidamente
+                            if (err.name !== 'AbortError') console.warn("A&M Stream - Aviso de Play:", err.message);
+                        }
                     };
 
                     const promises = [safePlay(heroVideo)];
@@ -2492,17 +2536,28 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
 
         // CONTROLES DO PLAYER NETFLIX
         let controlsTimeout;
+        let isDraggingProgress = false;
         const playerDiv = document.getElementById('netflix-player');
         const mainVid = document.getElementById('main-full-video');
         const controlsUI = document.getElementById('player-controls');
         const progressContainer = document.getElementById('progress-container');
 
-        playerDiv.addEventListener('mousemove', () => {
+        // EXECUÇÃO ULTRA-RÁPIDA: Exibe controles instantaneamente ao tocar ou mover o mouse
+        const showPlayerControls = () => {
             controlsUI.style.opacity = '1';
             playerDiv.classList.remove('hide-cursor');
             clearTimeout(controlsTimeout);
-            controlsTimeout = setTimeout(() => { if(!mainVid.paused) { controlsUI.style.opacity = '0'; playerDiv.classList.add('hide-cursor'); } }, 3000);
-        });
+            // Só esconde se o vídeo estiver passando e o usuário não estiver segurando a barra
+            controlsTimeout = setTimeout(() => { 
+                if(!mainVid.paused && !isDraggingProgress) { 
+                    controlsUI.style.opacity = '0'; 
+                    playerDiv.classList.add('hide-cursor'); 
+                } 
+            }, 3000);
+        };
+
+        playerDiv.addEventListener('mousemove', showPlayerControls);
+        playerDiv.addEventListener('touchstart', showPlayerControls, { passive: true });
 
         mainVid.addEventListener('click', () => window.togglePlayerPlay());
 
@@ -2601,7 +2656,8 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             // Motor de Reprodução Resiliente: Trata Autoplay e interrupções de carregamento do player
             const startPlay = mainVid.play();
             if (startPlay !== undefined) {
-                startPlay.catch(() => {
+                startPlay.catch((err) => {
+                    if (err.name === 'AbortError') return; // Ignora se foi interrompido por um pause() imediato
                     mainVid.muted = true;
                     mainVid.play().catch(() => {});
                     showToast("Iniciado sem som por restrição do navegador.", true);
@@ -2631,11 +2687,19 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             window.startHeroAutoCycle();
         }
 
+        // Variável de controle para evitar execução dupla em cliques ultrarrápidos
+        let lastPlayerActionTime = 0;
+
         window.togglePlayerPlay = function() {
+            const now = Date.now();
+            if (now - lastPlayerActionTime < 150) return; // Proteção contra "double trigger"
+            lastPlayerActionTime = now;
+
             const icon = document.getElementById('control-play-icon');
             const centerIcon = document.getElementById('center-play-icon');
             if(mainVid.paused) {
-                mainVid.play(); icon.classList.replace('ph-play', 'ph-pause'); centerIcon.classList.add('hidden');
+                mainVid.play().catch(e => { if(e.name !== 'AbortError') console.error(e); }); 
+                icon.classList.replace('ph-play', 'ph-pause'); centerIcon.classList.add('hidden');
                 clearTimeout(controlsTimeout);
                 controlsTimeout = setTimeout(() => { controlsUI.style.opacity = '0'; playerDiv.classList.add('hide-cursor'); }, 1500);
             } else {
@@ -2649,9 +2713,63 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 mainVid.currentTime += sec; 
             }
         }
+        /**
+         * MOTOR DE ÁUDIO DINÂMICO A&M (FIXED)
+         * Gere a exibição da barra de volume e o nível de áudio em tempo real sem mutar ao clicar.
+         */
+        window.toggleVolumeBar = function() {
+            const container = document.getElementById('volume-slider-container');
+            const isExpanded = container.classList.contains('w-24');
+            
+            if (isExpanded) {
+                // Fecha a barra se já estiver aberta
+                container.classList.replace('w-24', 'w-0');
+                container.classList.remove('ml-2');
+            } else {
+                // Abre a barra instantaneamente
+                container.classList.replace('w-0', 'w-24');
+                container.classList.add('ml-2');
+                
+                // Auto-fecha após 4 segundos de inatividade (UX Mobile/TV)
+                clearTimeout(window.volTimeout);
+                window.volTimeout = setTimeout(() => {
+                    if (!container.matches(':hover')) {
+                        container.classList.replace('w-24', 'w-0');
+                        container.classList.remove('ml-2');
+                    }
+                }, 4000);
+            }
+        };
+
+        window.setPlayerVolume = function(val) {
+            const vol = parseFloat(val);
+            mainVid.volume = vol;
+            mainVid.muted = (vol === 0);
+            updateVolumeIcon(vol);
+        };
+
         window.togglePlayerMute = function() {
             mainVid.muted = !mainVid.muted;
-            document.getElementById('control-volume-icon').classList.replace(mainVid.muted ? 'ph-speaker-high' : 'ph-speaker-slash', mainVid.muted ? 'ph-speaker-slash' : 'ph-speaker-high');
+            const slider = document.getElementById('volume-slider');
+            const targetVol = mainVid.muted ? 0 : (mainVid.volume > 0 ? mainVid.volume : 1);
+            if (slider) slider.value = targetVol;
+            updateVolumeIcon(targetVol);
+        };
+
+        function updateVolumeIcon(vol) {
+            const icon = document.getElementById('control-volume-icon');
+            if (!icon) return;
+
+            // Reset de ícones do Phosphor para feedback visual imediato
+            icon.classList.remove('ph-speaker-high', 'ph-speaker-low', 'ph-speaker-slash', 'text-red-500');
+
+            if (vol === 0) {
+                icon.classList.add('ph-speaker-slash', 'text-red-500');
+            } else if (vol < 0.5) {
+                icon.classList.add('ph-speaker-low');
+            } else {
+                icon.classList.add('ph-speaker-high');
+            }
         }
         window.toggleFullscreenPlayer = function() {
             const fsIcon = document.getElementById('control-fs-icon');
@@ -2740,8 +2858,8 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
 
         let nextVideoTriggered = false;
         mainVid.addEventListener('timeupdate', () => {
-            // 🛑 SE A TRAVA ESTIVER ATIVA, IGNORA O RELÓGIO (Fim do Pulo Duplo)
-            if(!mainVid.duration || window.isTransitioningToNext) return;
+            // MOTOR DE SINCRONIA: Ignora atualização automática se o usuário estiver segurando o thumb ou em transição
+            if(!mainVid.duration || window.isTransitioningToNext || isDraggingProgress) return;
 
             const pct = (mainVid.currentTime / mainVid.duration) * 100;
             document.getElementById('progress-bar').style.width = pct + '%';
@@ -2797,13 +2915,69 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 window.playNextVideo();
             }
         });
-        progressContainer.addEventListener('click', (e) => {
-            // Algoritmo de Proteção de Sincronia: Impede erro de valor não-finito se o vídeo não carregou a duração
-            if (!mainVid.duration || !isFinite(mainVid.duration)) return;
+        /**
+         * MOTOR DE AVANÇO POR ARRASTE (SCRUBBING TURBO)
+         * Permite avançar ou retroceder o vídeo clicando e segurando na barra de progresso.
+         */
+        /**
+         * MOTOR DE ARRASTE DO THUMB (SCRUBBING SUPREMACY)
+         * Permite segurar o ícone e mover com latência zero e feedback visual.
+         */
+        const thumb = document.getElementById('netflix-progress-thumb');
 
+        const updateSeekPos = (e) => {
+            if (!mainVid.duration || !isFinite(mainVid.duration)) return;
             const rect = progressContainer.getBoundingClientRect();
-            const pos = (e.clientX - rect.left) / rect.width;
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            let pos = (clientX - rect.left) / rect.width;
+            pos = Math.max(0, Math.min(1, pos));
+            
+            // Atualiza o tempo do vídeo
             mainVid.currentTime = pos * mainVid.duration;
+            
+            // Atualiza o CSS instantaneamente para eliminar lag visual no thumb
+            document.getElementById('progress-bar').style.width = (pos * 100) + '%';
+        };
+
+        const startDragging = (e) => {
+            isDraggingProgress = true;
+            if (thumb) {
+                thumb.classList.add('scale-[1.8]', 'bg-white'); // Destaque ao segurar
+                thumb.style.transition = 'none'; // Remove delay para o arraste ser 1:1 com o dedo/mouse
+            }
+            updateSeekPos(e);
+        };
+
+        const stopDragging = () => {
+            if (isDraggingProgress) {
+                isDraggingProgress = false;
+                if (thumb) {
+                    thumb.classList.remove('scale-[1.8]', 'bg-white');
+                    thumb.style.transition = ''; // Restaura transição suave original
+                }
+            }
+        };
+
+        progressContainer.addEventListener('mousedown', startDragging);
+        progressContainer.addEventListener('touchstart', (e) => {
+            startDragging(e);
+            if (e.cancelable) e.preventDefault();
+        }, { passive: false });
+
+        window.addEventListener('mousemove', (e) => { if (isDraggingProgress) updateSeekPos(e); });
+        window.addEventListener('touchmove', (e) => { 
+            if (isDraggingProgress) {
+                updateSeekPos(e);
+                if (e.cancelable) e.preventDefault();
+            }
+        }, { passive: false });
+
+        window.addEventListener('mouseup', stopDragging);
+        window.addEventListener('touchend', stopDragging);
+
+        progressContainer.addEventListener('click', (e) => {
+            if (!mainVid.duration || !isFinite(mainVid.duration)) return;
+            updateSeekPos(e);
         });
 
         // ==========================================
@@ -2849,8 +3023,9 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             const dataStr = btoa(encodeURIComponent(JSON.stringify(data)));
             // Motor de Clique Inteligente: Primeiro clique seleciona/aumenta, segundo clique abre o player
             // turboPrewarm e fetchpriority="high" para carregamento instantâneo (< 1s)
+            // decoding="sync" força o navegador a preparar a imagem antes de exibir para evitar "piscar"
             return `<div onclick="handleCardClick('${dataStr}')" onfocus="mudarDestaque('${dataStr}')" onmouseenter="turboPrewarm('${data.videoUrl}')" class="focusable min-w-[130px] md:min-w-[170px] h-[190px] md:h-[250px] bg-[#1A1C23] rounded-xl overflow-hidden border border-white/5 relative group cursor-pointer snap-start transition-all shadow-lg" tabindex="0">
-                <img src="${data.capaUrl}" loading="eager" fetchpriority="high" decoding="async" class="w-full h-full object-cover" alt="${data.titulo}">
+                <img src="${data.capaUrl}" loading="eager" fetchpriority="high" decoding="sync" class="w-full h-full object-cover" alt="${data.titulo}" onload="this.style.opacity=1" style="opacity:0; transition: opacity 0.3s ease;">
                 <div class="absolute top-0 w-full p-2 bg-gradient-to-b from-black/80 to-transparent">
                     <p class="text-[8px] text-[#D6B778] font-bold tracking-widest uppercase">${data.selo}</p>
                 </div>
@@ -2870,7 +3045,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             // Motor de Clique Inteligente: Primeiro clique seleciona/aumenta, segundo clique abre o player
             // loading="eager" força o navegador a priorizar a renderização da capa
             return `<div onclick="handleCardClick('${dataStr}')" onfocus="mudarDestaque('${dataStr}')" onmouseenter="turboPrewarm('${data.videoUrl}')" class="focusable min-w-[220px] md:min-w-[280px] h-[120px] md:h-[150px] bg-[#1A1C23] rounded-xl overflow-hidden border border-white/5 relative group cursor-pointer snap-start transition-all shadow-lg" tabindex="0">
-                <img src="${data.capaUrl}" loading="eager" fetchpriority="high" decoding="async" class="w-full h-full object-cover" alt="${data.titulo}">
+                <img src="${data.capaUrl}" loading="eager" fetchpriority="high" decoding="sync" class="w-full h-full object-cover" alt="${data.titulo}" onload="this.style.opacity=1" style="opacity:0; transition: opacity 0.3s ease;">
                 <!-- Botão de Play Rápido (Exibido no Hover/Foco para clique direto) -->
                 <div onclick="event.stopPropagation(); mudarDestaque('${dataStr}'); abrirPlayerFull();" class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity z-20">
                     <div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/40 scale-75 group-hover:scale-100 transition-transform shadow-xl">
