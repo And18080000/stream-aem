@@ -8,45 +8,97 @@
     <!-- Otimização de Performance: Conexões Antecipadas -->
     <link rel="preconnect" href="https:======================================
         ======================================
+        // TV SUPREMACY: CONTROLES DE COMANDO REMOTO
+        // ==========================================
         ======================================
-        // CÉREBRO: OTIMIZAÇÃO DE VÍDEO POR DISPOSITIVO
-        // ==========================================
-        window.otimizarVideosParaDispositivo = function() {
-            // 1. O robô pergunta "Quem é você?"
-====
-// ==========================================
-        // MOTOR TURBO A&M (CARREGAMENTO EM 1 SEGUNDO)
-        // ==========================================
-        /**
-         * Algoritmo de Antecipação de Fluxo:
-         * Força o navegador a iniciar o download dos primeiros bytes do vídeo 
-         * assim que o utilizador passa o mouse ou foca no card.
-         */
-        window.turboPrewarm = function(url) {
-            if(!url || !url.startsWith('http')) return;
-            const linkId = 'prefetch-' + btoa(url).substring(0, 16);
-            if (document.getElementById(linkId)) return;
-
-            const link = document.createElement('link');
-            link.id = linkId;
-            link.rel = 'prefetch';
-            link.href = url;
-            link.as = 'video';
-            document.head.appendChild(link);
-        };
-
-        // ==========================================
-        // CÉREBRO: OTIMIZAÇÃO DE VÍDEO POR DISPOSITIVO
-        // ==========================================
-        window.otimizarVideosParaDispositivo = function() {
-            // 1. O robô pergunta "Quem é você?" TV SUPREMACY: CONTROLES DE COMANDO REMOTO
-        // ==========================================
         window.addEventListener('keydown', (e) => {
             const isPlayerOpen = !document.getElementById('netflix-player').classList.contains('hidden');
             
             if (isPlayerOpen) {
 ====
         // ==========================================
+        // TV & MOBILE SUPREMACY: SISTEMA DE TOQUE E NAVEGAÇÃO
+        // ==========================================
+        
+        /** 
+         * MOTOR DE EXECUÇÃO ULTRA-RÁPIDA (MOBILE FIX)
+         * Garante que o toque em celulares execute a ação imediatamente sem delay de 300ms
+         */
+        document.addEventListener('touchend', function(e) {
+            const focusableEl = e.target.closest('.focusable');
+            if (focusableEl) {
+                if (window.isUserDraggingRail) return;
+                focusableEl.focus();
+                focusableEl.click();
+                if (e.cancelable) e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Algoritmo de Navegação Espacial (Cérebro da TV)
+        function navigateTV(direction) {
+            const current = document.activeElement;
+            const focusables = Array.from(document.querySelectorAll('.focusable:not(.hidden)'));
+            
+            if (!current || !current.classList.contains('focusable')) {
+                if (focusables.length > 0) focusables[0].focus();
+                return;
+            }
+
+            const currentRect = current.getBoundingClientRect();
+            let nextElement = null;
+            let minDistance = Infinity;
+
+            focusables.forEach(el => {
+                if (el === current) return;
+                const elRect = el.getBoundingClientRect();
+                let isCandidate = false;
+                const threshold = 15;
+
+                switch(direction) {
+                    case 'UP': isCandidate = elRect.bottom <= currentRect.top + threshold; break;
+                    case 'DOWN': isCandidate = elRect.top >= currentRect.bottom - threshold; break;
+                    case 'LEFT': isCandidate = elRect.right <= currentRect.left + threshold; break;
+                    case 'RIGHT': isCandidate = elRect.left >= currentRect.right - threshold; break;
+                }
+
+                if (isCandidate) {
+                    const dist = Math.sqrt(
+                        Math.pow((elRect.left + elRect.width/2) - (currentRect.left + currentRect.width/2), 2) +
+                        Math.pow((elRect.top + elRect.height/2) - (currentRect.top + currentRect.height/2), 2)
+                    );
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        nextElement = el;
+                    }
+                }
+            });
+
+            if (nextElement) {
+                nextElement.focus();
+                nextElement.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            const isPlayerOpen = !document.getElementById('netflix-player').classList.contains('hidden');
+            const isEnterKey = [13, 29443, 117, 65376].includes(e.keyCode);
+
+            if (!isPlayerOpen) {
+                switch(e.keyCode) {
+                    case 37: navigateTV('LEFT'); e.preventDefault(); break;
+                    case 38: navigateTV('UP'); e.preventDefault(); break;
+                    case 39: navigateTV('RIGHT'); e.preventDefault(); break;
+                    case 40: navigateTV('DOWN'); e.preventDefault(); break;
+                    case 13: 
+                        if(isEnterKey && document.activeElement && document.activeElement.classList.contains('focusable')) {
+                            document.activeElement.click(); 
+                            e.preventDefault();
+                        }
+                        break;
+                }
+            }
+            
+            if (isPlayerOpen) { ==========================================
         // TV & MOBILE SUPREMACY: SISTEMA DE TOQUE E NAVEGAÇÃO
         // ==========================================
         
@@ -1116,21 +1168,39 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             const mainVideo = document.getElementById('main-full-video');
 
             if (isTV || isLowRam) {
-                // SE FOR TV OU CELULAR FRACO:
-                // Preload "none" no fundo (não baixa nada) e "metadata" no player (baixa só a capa)
                 if(heroVideo) heroVideo.setAttribute('preload', 'none');
                 if(mainVideo) mainVideo.setAttribute('preload', 'metadata');
-                console.log("A&M Stream: Otimizado para TV / Aparelho Fraco");
             } else {
-                // SE FOR PC OU CELULAR BOM:
-                // Preload "auto" (baixa logo para ficar rápido e liso)
                 if(heroVideo) heroVideo.setAttribute('preload', 'auto');
                 if(mainVideo) mainVideo.setAttribute('preload', 'auto');
-                console.log("A&M Stream: Performance Máxima (PC/Mobile)");
+            }
+        };
+
+        /**
+         * MOTOR TURBO A&M (PRÉ-CARREGAMENTO EM 1 SEGUNDO)
+         * Antecipa a conexão e o buffer do vídeo assim que o utilizador interage com o card.
+         */
+        window.turboPrewarm = function(url) {
+            if(!url || !url.startsWith('http')) return;
+            const linkId = 'prefetch-' + btoa(url).substring(0, 16);
+            if (document.getElementById(linkId)) return;
+
+            const link = document.createElement('link');
+            link.id = linkId;
+            link.rel = 'prefetch';
+            link.href = url;
+            link.as = 'video';
+            document.head.appendChild(link);
+            
+            // Força o player invisível a começar o download silencioso
+            const mainVid = document.getElementById('main-full-video');
+            if(mainVid && mainVid.src !== url && document.getElementById('netflix-player').classList.contains('hidden')) {
+                const tempLoader = new Audio();
+                tempLoader.src = url;
+                tempLoader.preload = "auto";
             }
         };
         
-        // 4. Manda o robô rodar assim que a página abrir
         window.otimizarVideosParaDispositivo();
 
         let unsubscribeCatalog = null;
@@ -2245,14 +2315,6 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             const data = JSON.parse(decodeURIComponent(atob(dataStr)));
             window.currentDestaqueData = data; 
 
-            // TURBO LOAD: Inicia o pre-buffering do vídeo no player principal antes mesmo de abrir
-            const mainVid = document.getElementById('main-full-video');
-            if(data.videoUrl && mainVid.src !== data.videoUrl) {
-                mainVid.src = data.videoUrl;
-                mainVid.preload = "auto";
-                mainVid.load();
-            } 
-
             // ALGORITMO DE SINCRONIZAÇÃO VISUAL (NEON + ZOOM AUTOMÁTICO)
             // Localiza o card correspondente no trilho para aplicar o foco e o efeito neon
             // Isso garante que a experiência seja contínua tanto no clique quanto no carrossel automático.
@@ -2694,7 +2756,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
         window.renderCardRetrato = function(data) {
             const dataStr = btoa(encodeURIComponent(JSON.stringify(data)));
             // Motor de Clique Inteligente: Primeiro clique seleciona/aumenta, segundo clique abre o player
-            // turboPrewarm acionado no MouseEnter e Focus para carregar vídeo em < 1s
+            // turboPrewarm e fetchpriority="high" para carregamento instantâneo (< 1s)
             return `<div onclick="handleCardClick('${dataStr}')" onfocus="mudarDestaque('${dataStr}')" onmouseenter="turboPrewarm('${data.videoUrl}')" class="focusable min-w-[130px] md:min-w-[170px] h-[190px] md:h-[250px] bg-[#1A1C23] rounded-xl overflow-hidden border border-white/5 relative group cursor-pointer snap-start transition-all shadow-lg" tabindex="0">
                 <img src="${data.capaUrl}" loading="eager" fetchpriority="high" decoding="async" class="w-full h-full object-cover" alt="${data.titulo}">
                 <div class="absolute top-0 w-full p-2 bg-gradient-to-b from-black/80 to-transparent">
@@ -2714,7 +2776,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
         window.renderCardPaisagem = function(data, colorClass = "text-[#D6B778]") {
             const dataStr = btoa(encodeURIComponent(JSON.stringify(data)));
             // Motor de Clique Inteligente: Primeiro clique seleciona/aumenta, segundo clique abre o player
-            // fetchpriority="high" garante que as capas apareçam instantaneamente
+            // loading="eager" força o navegador a priorizar a renderização da capa
             return `<div onclick="handleCardClick('${dataStr}')" onfocus="mudarDestaque('${dataStr}')" onmouseenter="turboPrewarm('${data.videoUrl}')" class="focusable min-w-[220px] md:min-w-[280px] h-[120px] md:h-[150px] bg-[#1A1C23] rounded-xl overflow-hidden border border-white/5 relative group cursor-pointer snap-start transition-all shadow-lg" tabindex="0">
                 <img src="${data.capaUrl}" loading="eager" fetchpriority="high" decoding="async" class="w-full h-full object-cover" alt="${data.titulo}">
                 <!-- Botão de Play Rápido (Exibido no Hover/Foco para clique direto) -->
