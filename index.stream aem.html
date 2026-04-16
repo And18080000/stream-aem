@@ -8,7 +8,38 @@
     <!-- Otimização de Performance: Conexões Antecipadas -->
     <link rel="preconnect" href="https:======================================
         ======================================
-        // TV SUPREMACY: CONTROLES DE COMANDO REMOTO
+        ======================================
+        // CÉREBRO: OTIMIZAÇÃO DE VÍDEO POR DISPOSITIVO
+        // ==========================================
+        window.otimizarVideosParaDispositivo = function() {
+            // 1. O robô pergunta "Quem é você?"
+====
+// ==========================================
+        // MOTOR TURBO A&M (CARREGAMENTO EM 1 SEGUNDO)
+        // ==========================================
+        /**
+         * Algoritmo de Antecipação de Fluxo:
+         * Força o navegador a iniciar o download dos primeiros bytes do vídeo 
+         * assim que o utilizador passa o mouse ou foca no card.
+         */
+        window.turboPrewarm = function(url) {
+            if(!url || !url.startsWith('http')) return;
+            const linkId = 'prefetch-' + btoa(url).substring(0, 16);
+            if (document.getElementById(linkId)) return;
+
+            const link = document.createElement('link');
+            link.id = linkId;
+            link.rel = 'prefetch';
+            link.href = url;
+            link.as = 'video';
+            document.head.appendChild(link);
+        };
+
+        // ==========================================
+        // CÉREBRO: OTIMIZAÇÃO DE VÍDEO POR DISPOSITIVO
+        // ==========================================
+        window.otimizarVideosParaDispositivo = function() {
+            // 1. O robô pergunta "Quem é você?" TV SUPREMACY: CONTROLES DE COMANDO REMOTO
         // ==========================================
         window.addEventListener('keydown', (e) => {
             const isPlayerOpen = !document.getElementById('netflix-player').classList.contains('hidden');
@@ -2214,6 +2245,14 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             const data = JSON.parse(decodeURIComponent(atob(dataStr)));
             window.currentDestaqueData = data; 
 
+            // TURBO LOAD: Inicia o pre-buffering do vídeo no player principal antes mesmo de abrir
+            const mainVid = document.getElementById('main-full-video');
+            if(data.videoUrl && mainVid.src !== data.videoUrl) {
+                mainVid.src = data.videoUrl;
+                mainVid.preload = "auto";
+                mainVid.load();
+            } 
+
             // ALGORITMO DE SINCRONIZAÇÃO VISUAL (NEON + ZOOM AUTOMÁTICO)
             // Localiza o card correspondente no trilho para aplicar o foco e o efeito neon
             // Isso garante que a experiência seja contínua tanto no clique quanto no carrossel automático.
@@ -2655,8 +2694,9 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
         window.renderCardRetrato = function(data) {
             const dataStr = btoa(encodeURIComponent(JSON.stringify(data)));
             // Motor de Clique Inteligente: Primeiro clique seleciona/aumenta, segundo clique abre o player
-            return `<div onclick="handleCardClick('${dataStr}')" onfocus="mudarDestaque('${dataStr}')" class="focusable min-w-[130px] md:min-w-[170px] h-[190px] md:h-[250px] bg-[#1A1C23] rounded-xl overflow-hidden border border-white/5 relative group cursor-pointer snap-start transition-all shadow-lg" tabindex="0">
-                <img src="${data.capaUrl}" loading="lazy" decoding="async" class="w-full h-full object-cover" alt="${data.titulo}">
+            // turboPrewarm acionado no MouseEnter e Focus para carregar vídeo em < 1s
+            return `<div onclick="handleCardClick('${dataStr}')" onfocus="mudarDestaque('${dataStr}')" onmouseenter="turboPrewarm('${data.videoUrl}')" class="focusable min-w-[130px] md:min-w-[170px] h-[190px] md:h-[250px] bg-[#1A1C23] rounded-xl overflow-hidden border border-white/5 relative group cursor-pointer snap-start transition-all shadow-lg" tabindex="0">
+                <img src="${data.capaUrl}" loading="eager" fetchpriority="high" decoding="async" class="w-full h-full object-cover" alt="${data.titulo}">
                 <div class="absolute top-0 w-full p-2 bg-gradient-to-b from-black/80 to-transparent">
                     <p class="text-[8px] text-[#D6B778] font-bold tracking-widest uppercase">${data.selo}</p>
                 </div>
@@ -2674,8 +2714,9 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
         window.renderCardPaisagem = function(data, colorClass = "text-[#D6B778]") {
             const dataStr = btoa(encodeURIComponent(JSON.stringify(data)));
             // Motor de Clique Inteligente: Primeiro clique seleciona/aumenta, segundo clique abre o player
-            return `<div onclick="handleCardClick('${dataStr}')" onfocus="mudarDestaque('${dataStr}')" class="focusable min-w-[220px] md:min-w-[280px] h-[120px] md:h-[150px] bg-[#1A1C23] rounded-xl overflow-hidden border border-white/5 relative group cursor-pointer snap-start transition-all shadow-lg" tabindex="0">
-                <img src="${data.capaUrl}" loading="lazy" decoding="async" class="w-full h-full object-cover" alt="${data.titulo}">
+            // fetchpriority="high" garante que as capas apareçam instantaneamente
+            return `<div onclick="handleCardClick('${dataStr}')" onfocus="mudarDestaque('${dataStr}')" onmouseenter="turboPrewarm('${data.videoUrl}')" class="focusable min-w-[220px] md:min-w-[280px] h-[120px] md:h-[150px] bg-[#1A1C23] rounded-xl overflow-hidden border border-white/5 relative group cursor-pointer snap-start transition-all shadow-lg" tabindex="0">
+                <img src="${data.capaUrl}" loading="eager" fetchpriority="high" decoding="async" class="w-full h-full object-cover" alt="${data.titulo}">
                 <!-- Botão de Play Rápido (Exibido no Hover/Foco para clique direto) -->
                 <div onclick="event.stopPropagation(); mudarDestaque('${dataStr}'); abrirPlayerFull();" class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity z-20">
                     <div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/40 scale-75 group-hover:scale-100 transition-transform shadow-xl">
