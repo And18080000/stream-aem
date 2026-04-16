@@ -200,10 +200,6 @@
     <!-- AWS SDK para Browser -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/aws-sdk/2.1408.0/aws-sdk.min.js"></script>
 
-    <!-- Bibliotecas para Vídeo 360 e VR -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/panolens@0.12.1/build/panolens.min.js"></script>
-
     <!-- Configuração do Tailwind -->
     <script>
         tailwind.config = {
@@ -338,7 +334,8 @@
             transition: all 0.3s ease;
         }
         .quality-low { color: #ffbc00; border-color: #ffbc00; }
-        .netflix-progress-bar:hover #netflix-progress-thumb { transform: scale(1.5); }
+        /* Correção de Alinhamento: Mantém o ponto no centro da barra mesmo durante o hover/escala */
+        .netflix-progress-bar:hover #netflix-progress-thumb { transform: translate(50%, -50%) scale(1.5); }
 
         /* Estilo Papel de Contrato e Marca d'Água */
         .contract-paper-effect {
@@ -525,6 +522,19 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 </div>
                 <button onclick="salvarMenus()" class="bg-[#D6B778] text-black px-6 py-2.5 rounded-full font-bold transition hover:bg-[#e8c989] shadow-md whitespace-nowrap">
                     Salvar Menus
+                </button>
+            </div>
+
+            <!-- Ajustes Globais de Exibição -->
+            <div class="bg-brand-panel border border-brand-gold/30 rounded-2xl p-4 md:p-6 mb-8 flex flex-col md:flex-row gap-6 items-center shadow-lg">
+                <div class="flex-grow">
+                    <h2 class="text-brand-gold text-lg font-bold mb-2 flex items-center gap-2">
+                        <i class="ph ph-monitor-play"></i> Ajustes de Exibição
+                    </h2>
+                    <p class="text-xs text-brand-text uppercase tracking-widest font-bold">Defina a orientação global do player para todos os conteúdos (Horizontal/Vertical).</p>
+                </div>
+                <button onclick="rotateVideoOrientation()" class="bg-brand-blue hover:bg-brand-blue-hover text-white px-8 py-3 rounded-full font-bold transition shadow-md flex items-center gap-2 whitespace-nowrap focusable" tabindex="0">
+                    <i class="ph ph-screen-rotate text-xl"></i> GIRAR ORIENTAÇÃO PADRÃO
                 </button>
             </div>
 
@@ -948,7 +958,6 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
     <!-- PLAYER DE VÍDEO FULLSCREEN ESTILO NETFLIX -->
     <div id="netflix-player" class="hidden fixed inset-0 z-[100] bg-black flex flex-col justify-center items-center">
         <video id="main-full-video" class="w-full h-full object-contain absolute inset-0 cursor-pointer" playsinline></video>
-        <div id="video-360-container" class="hidden absolute inset-0 w-full h-full z-10"></div>
         
         <!-- Botão Próximo Vídeo (Auto-Play) -->
         <div id="next-video-overlay" class="hidden absolute bottom-32 right-8 z-[60]">
@@ -989,7 +998,13 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             <div class="w-full p-6 md:p-8 bg-gradient-to-t from-black/90 via-black/60 to-transparent flex flex-col gap-4">
                 <div class="w-full h-1.5 bg-white/30 cursor-pointer relative rounded-full group netflix-progress-bar" id="progress-container">
                     <div id="progress-bar" class="h-full bg-red-600 rounded-full w-0 relative">
-                        <div id="netflix-progress-thumb" class="absolute right-0 top-1/2 transform -translate-y-1/2 w-4 h-4 bg-red-600 rounded-full shadow transition-transform"></div>
+                    <div id="netflix-progress-thumb" class="absolute right-0 top-1/2 transform translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-red-600 rounded-full shadow transition-transform"></div>
+                </div>
+                    
+                    <!-- FRAME PREVIEW (NETFLIX STYLE) -->
+                    <div id="frame-preview" class="hidden absolute bottom-6 left-0 -translate-x-1/2 w-32 md:w-56 aspect-video bg-black border-2 border-white/20 rounded-lg overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.8)] z-50 pointer-events-none transition-opacity duration-200">
+                        <video id="preview-frame-video" class="w-full h-full object-cover" muted playsinline></video>
+                        <div id="preview-time-text" class="absolute bottom-1 left-1/2 -translate-x-1/2 bg-black/80 px-2 py-0.5 rounded text-[10px] md:text-xs text-white font-mono font-bold border border-white/10">00:00</div>
                     </div>
                 </div>
                 <div class="flex justify-between items-center text-white">
@@ -1009,18 +1024,6 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                     </div>
                     <div id="player-time" class="text-sm md:text-base font-medium font-mono hidden md:block">00:00 / 00:00</div>
                     <div class="flex items-center gap-4 md:gap-6">
-                        <button onclick="rotateVideoOrientation()" class="focusable hover:text-brand-gold transition flex flex-col items-center gap-0.5" title="Girar Orientação" tabindex="0">
-                            <i class="ph ph-screen-rotate text-2xl md:text-3xl"></i>
-                            <span class="text-[7px] font-black uppercase">Girar</span>
-                        </button>
-                        <button onclick="rotateVideoOrientation()" class="focusable hover:text-brand-gold transition flex flex-col items-center gap-0.5" title="Girar Orientação" tabindex="0">
-                            <i class="ph ph-screen-rotate text-2xl md:text-3xl"></i>
-                            <span class="text-[7px] font-black uppercase">Girar</span>
-                        </button>
-                        <button onclick="toggle360Mode()" class="focusable hover:text-brand-gold transition flex flex-col items-center gap-0.5" title="Modo 360°" tabindex="0">
-                            <i id="control-360-icon" class="ph ph-sphere text-2xl md:text-3xl"></i>
-                            <span class="text-[7px] font-black uppercase">360° VR</span>
-                        </button>
                         <button class="focusable hover:text-gray-300 transition hidden sm:block" tabindex="0"><i class="ph ph-subtitles text-2xl md:text-3xl"></i></button>
                         <button onclick="toggleFullscreenPlayer()" class="focusable hover:text-gray-300 transition" tabindex="0">
                             <i id="control-fs-icon" class="ph ph-corners-out text-2xl md:text-3xl"></i>
@@ -2356,15 +2359,6 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
 
        window.abrirPlayerFull = function() {
             if(!window.currentDestaqueData || !window.currentDestaqueData.videoUrl) return showToast("Vídeo não cadastrado!", true);
-            
-            // Reset de orientação ao abrir novo vídeo
-            videoRotationAngle = 0;
-            const videoElement = document.getElementById('main-full-video');
-            const container360 = document.getElementById('video-360-container');
-            if(videoElement) videoElement.style.transform = "rotate(0deg) scale(1)";
-            if(container360) container360.style.transform = "rotate(0deg) scale(1)";
-
-            // Reset de estados de transição e predição de fila
             nextVideoTriggered = false;
             window.predictedNextVideo = null;
             window.isTransitioningToNext = false; // 🟢 LIBERA A TRAVA PARA O NOVO VÍDEO
@@ -2432,15 +2426,6 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
        window.fecharPlayerFull = function() {
             mainVid.pause(); mainVid.removeAttribute('src'); mainVid.load();
             
-            // Destruição segura do motor 360 para liberar RAM
-            if (is360Mode) {
-                window.toggle360Mode();
-            }
-            if (viewer360) {
-                viewer360.dispose();
-                document.getElementById('video-360-container').innerHTML = "";
-            }
-
             playerDiv.classList.add('hidden');
             if (document.fullscreenElement) document.exitFullscreen();
             
@@ -2481,99 +2466,22 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             else { document.exitFullscreen(); fsIcon.classList.replace('ph-corners-in', 'ph-corners-out'); }
         }
 
-        let viewer360 = null;
-        let is360Mode = false;
         let videoRotationAngle = 0;
 
         window.rotateVideoOrientation = function() {
             const video = document.getElementById('main-full-video');
-            const container360 = document.getElementById('video-360-container');
             
             videoRotationAngle = (videoRotationAngle + 90) % 360;
             
-            // Algoritmo de Compensação de Escala: 
-            // Quando giramos 90 ou 270 graus, o vídeo vertical precisa ser escalonado para caber na tela horizontal
+            // Algoritmo de Compensação de Escala
             const isVertical = videoRotationAngle === 90 || videoRotationAngle === 270;
             const scale = isVertical ? (window.innerHeight / window.innerWidth).toFixed(2) : 1;
             
             const transformValue = `rotate(${videoRotationAngle}deg) scale(${scale})`;
             
             if(video) video.style.transform = transformValue;
-            if(container360) container360.style.transform = transformValue;
-            
-            // Garante que o canvas 360 também receba a transformação se estiver ativo
-            if(viewer360 && container360) {
-                const canvas = container360.querySelector('canvas');
-                if(canvas) canvas.style.transform = transformValue;
-            }
 
             showToast(`Orientação: ${videoRotationAngle}°`);
-        };
-
-        window.toggle360Mode = function() {
-            const videoElement = document.getElementById('main-full-video');
-            const container360 = document.getElementById('video-360-container');
-            const icon360 = document.getElementById('control-360-icon');
-
-            if (!is360Mode) {
-                // ATIVAR MODO 360
-                is360Mode = true;
-                videoElement.classList.add('opacity-0');
-                container360.classList.remove('hidden');
-                icon360.classList.add('text-brand-gold', 'animate-pulse');
-                showToast("Modo Imersivo 360° Ativado!");
-
-                // Inicializa Panolens
-                if (viewer360) {
-                    viewer360.dispose();
-                    container360.innerHTML = "";
-                }
-
-                const panorama = new PANOLENS.VideoPanorama(videoElement.src, { 
-                    autoplay: true, 
-                    muted: videoElement.muted,
-                    playsinline: true
-                });
-                
-                viewer360 = new PANOLENS.Viewer({ 
-                    container: container360,
-                    controlBar: false,
-                    autoHideControlBar: true,
-                    enableReticle: false, // Remove mira central para foco no vídeo
-                    cameraFov: 75
-                });
-
-                // Habilita amortecimento para rotação suave (Inércia)
-                const control = viewer360.getControl();
-                control.enableDamping = true;
-                control.dampingFactor = 0.05;
-                control.rotateSpeed = 0.5;
-
-                viewer360.add(panorama);
-
-                // Sincroniza o tempo do vídeo original com o 360
-                panorama.addEventListener('video-ready', () => {
-                    const panoVideo = panorama.getVideoElement();
-                    panoVideo.currentTime = videoElement.currentTime;
-                    // Oculta controles nativos do panolens para usar os da A&M
-                    container360.querySelectorAll('.panolens-canvas-container').forEach(el => el.style.zIndex = "10");
-                });
-
-            } else {
-                // DESATIVAR MODO 360
-                is360Mode = false;
-                videoElement.classList.remove('opacity-0');
-                container360.classList.add('hidden');
-                icon360.classList.remove('text-brand-gold', 'animate-pulse');
-                
-                if (viewer360) {
-                    const panoVideo = viewer360.panorama.getVideoElement();
-                    if(panoVideo) videoElement.currentTime = panoVideo.currentTime;
-                    viewer360.dispose();
-                    container360.innerHTML = "";
-                }
-                showToast("Voltando para visão padrão.");
-            }
         };
 
         function formatTime(sec) {
@@ -2703,6 +2611,44 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             const rect = progressContainer.getBoundingClientRect();
             const pos = (e.clientX - rect.left) / rect.width;
             mainVid.currentTime = pos * mainVid.duration;
+        });
+
+        // ==========================================
+        // MOTOR DE VISUALIZAÇÃO DE FRAMES (THUMBNAIL SEEKER)
+        // ==========================================
+        const framePreview = document.getElementById('frame-preview');
+        const previewVid = document.getElementById('preview-frame-video');
+        const previewTimeText = document.getElementById('preview-time-text');
+
+        progressContainer.addEventListener('mousemove', (e) => {
+            if (!mainVid.duration || !isFinite(mainVid.duration)) return;
+
+            const rect = progressContainer.getBoundingClientRect();
+            let pos = (e.clientX - rect.left) / rect.width;
+            pos = Math.max(0, Math.min(1, pos)); // Clamp entre 0 e 1
+
+            const seekTime = pos * mainVid.duration;
+
+            // Posiciona o popup de frame exatamente acima do mouse
+            framePreview.style.left = `${pos * 100}%`;
+            framePreview.classList.remove('hidden');
+            framePreview.style.opacity = '1';
+
+            // Sincroniza o vídeo de preview com o tempo solicitado
+            if (previewVid.src !== mainVid.src) {
+                previewVid.src = mainVid.src;
+                previewVid.load();
+            }
+            
+            previewVid.currentTime = seekTime;
+            previewTimeText.innerText = formatTime(seekTime);
+        });
+
+        progressContainer.addEventListener('mouseleave', () => {
+            framePreview.style.opacity = '0';
+            setTimeout(() => {
+                if(framePreview.style.opacity === '0') framePreview.classList.add('hidden');
+            }, 200);
         });
 
         // RENDERIZAR TRILHOS
@@ -2853,23 +2799,6 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             const isPlayerOpen = !document.getElementById('netflix-player').classList.contains('hidden');
             
             if (isPlayerOpen) {
-                // MOTOR DE ROTAÇÃO 360 VIA TECLADO/CONTROLE
-                if (is360Mode && viewer360) {
-                    const rotSpeed = 0.05;
-                    const cameraControl = viewer360.getControl();
-                    
-                    switch(e.keyCode) {
-                        case 37: // SETA ESQUERDA: Gira para esquerda
-                            cameraControl.rotateLeft(rotSpeed); e.preventDefault(); return;
-                        case 39: // SETA DIREITA: Gira para direita
-                            cameraControl.rotateLeft(-rotSpeed); e.preventDefault(); return;
-                        case 38: // SETA CIMA: Olha para cima
-                            cameraControl.rotateUp(rotSpeed); e.preventDefault(); return;
-                        case 40: // SETA BAIXO: Olha para baixo
-                            cameraControl.rotateUp(-rotSpeed); e.preventDefault(); return;
-                    }
-                }
-
                 // Ao tocar em qualquer tecla do controle, mostra a barra de progresso (estilo Netflix)
                 const playerUI = document.getElementById('player-controls');
                 const playerContainer = document.getElementById('netflix-player');
