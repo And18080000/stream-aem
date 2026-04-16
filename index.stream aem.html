@@ -1181,7 +1181,8 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 </div>
             </div>
             <div class="flex-grow flex items-center justify-center pointer-events-none">
-                <div id="center-play-icon" class="hidden w-24 h-24 bg-black/50 rounded-full flex items-center justify-center">
+                <!-- MOTOR DE COMANDO CENTRAL: O ícone central agora responde ao clique para pausar/dar play com feedback tátil -->
+                <div id="center-play-icon" onclick="event.stopPropagation(); togglePlayerPlay()" class="hidden w-24 h-24 bg-black/50 rounded-full flex items-center justify-center cursor-pointer pointer-events-auto active:scale-95 transition-transform">
                     <i class="ph-fill ph-play text-white text-5xl"></i>
                 </div>
             </div>
