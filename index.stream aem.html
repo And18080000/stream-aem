@@ -14,6 +14,8 @@
     <!-- Tailwind CSS & Icons -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- AWS SDK para Browser -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/aws-sdk/2.1408.0/aws-sdk.min.js"></script>
 
     <!-- Configuração do Tailwind -->
     <script>
@@ -152,10 +154,9 @@
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             window.deferredPrompt = e;
-            const btnHeader = document.getElementById('btn-install-header');
-            if(btnHeader) btnHeader.classList.remove('hidden');
         });
 
+        // O botão agora fica visível por padrão no HTML
         window.triggerInstall = () => { document.getElementById('install-modal').classList.remove('hidden'); };
         window.closeInstallModal = () => { document.getElementById('install-modal').classList.add('hidden'); };
 
@@ -196,9 +197,21 @@
 
         window.installAsAPK = () => {
             runProcessingAnimation(() => {
-                const apkUrl = window.brandingConfig?.apkUrl || "https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev/A&M_Streaming_v1.0.apk";
-                if(typeof window.showToast === 'function') window.showToast("Download do APK iniciado...");
-                window.location.href = apkUrl;
+                // Prioriza a URL do painel admin, caso contrário usa o link direto fornecido (app-debug.apk)
+                const apkUrl = (window.brandingConfig?.apkUrl && window.brandingConfig.apkUrl.trim() !== "") 
+                    ? window.brandingConfig.apkUrl 
+                    : "https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev/aem%20streaming.apk";
+
+                if(typeof window.showToast === 'function') window.showToast("Iniciando download direto do instalador...");
+                
+                // Cria um elemento de ancoragem temporário para disparar o download imediato
+                const link = document.createElement('a');
+                link.href = apkUrl;
+                link.setAttribute('download', 'A&M_Streaming.apk');
+                link.target = "_self"; // Garante que a operação ocorra na mesma janela para evitar popups
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
             });
         };
 
@@ -211,6 +224,14 @@
             window.deferredPrompt = null;
         });
     </script>
+
+<link rel="manifest" href="data:application/json;charset=utf-8,%7B%22name%22%3A%22index.stream%20aem.html%22%2C%22short_name%22%3A%22index.stream%20aem.html%22%2C%22display%22%3A%22standalone%22%2C%22start_url%22%3A%22.%22%2C%22background_color%22%3A%22%230f111a%22%2C%22theme_color%22%3A%22%233b82f6%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Fapi.dicebear.com%2F7.x%2Fbottts%2Fsvg%3Fseed%3Dindex.stream%2520aem.html%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%2C%7B%22src%22%3A%22https%3A%2F%2Fapi.dicebear.com%2F7.x%2Fbottts%2Fsvg%3Fseed%3Dindex.stream%2520aem.html%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
+<meta name="theme-color" content="#3b82f6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<script>
+const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase()); const isStandalone = () => ('standalone' in window.navigator) && window.navigator.standalone; if (isIos() && !isStandalone()) { const ib = document.createElement('div'); ib.innerHTML = 'Para instalar como App: toque em <b>Compartilhar</b> e depois <b>Adicionar ao Ecrã Principal</b><button style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:#a1a1aa;font-size:16px;" onclick="this.parentElement.remove()">✕</button>'; ib.style.cssText = 'position:fixed;bottom:0;left:0;width:100%;background:#1c1e2b;color:#fff;padding:15px 30px 15px 15px;font-family:sans-serif;font-size:12px;text-align:center;z-index:99999;border-top:1px solid #2b2d3a;box-shadow:0 -5px 15px rgba(0,0,0,0.2);'; setTimeout(() => document.body.appendChild(ib), 2000); }
+</script>
 </head>
 <body class="antialiased flex flex-col min-h-screen" id="app-body">
 
@@ -248,8 +269,8 @@
                 <button onclick="navigate('menu2')" id="menu-2-label" class="focusable pb-1 hover:text-white transition" tabindex="0">FILMES</button>
                 <button onclick="navigate('menu3')" id="menu-3-label" class="focusable pb-1 hover:text-white transition" tabindex="0">ORIGINAIS</button>
                 <button onclick="navigate('minhaLista')" id="nav-minhaLista" class="nav-link focusable pb-1 hover:text-white transition" tabindex="0">MINHA LISTA</button>
-                <button id="btn-install-header" onclick="triggerInstall()" class="hidden focusable pb-1 hover:text-brand-gold transition flex items-center gap-1 text-brand-gold font-bold" tabindex="0">
-                    <i class="ph ph-download-simple"></i> INSTALAR APP
+                <button id="btn-install-header" onclick="triggerInstall()" class="focusable pb-1 hover:text-brand-gold transition flex items-center gap-1 text-brand-gold font-bold" tabindex="0">
+                    <i class="ph ph-download-simple"></i> BAIXAR APP
                 </button>
             </nav>
         </div>
@@ -452,21 +473,74 @@
         <div class="text-[10px] md:text-xs">&copy; 2024 Streaming App. Todos os direitos reservados.</div>
     </footer>
 
-    <!-- MODAL CADASTRO USUÁRIO (LIGAÇÃO DIRETA COM CRM) -->
+    <!-- MODAL DE LOGIN/REGISTRO -->
+    <div id="login-modal" class="hidden fixed inset-0 z-[150] flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
+        <div class="bg-brand-panel border border-brand-gold/20 rounded-[32px] w-full max-w-sm p-8 shadow-2xl flex flex-col items-center">
+            <img id="login-logo-img" src="" class="h-12 object-contain mb-6 hidden">
+            <h2 id="login-title" class="text-white text-xl font-bold mb-2">Entrar na Conta</h2>
+            <p class="text-brand-text text-[10px] text-center mb-6 uppercase tracking-widest">Acesse para assistir ao conteúdo completo</p>
+            
+            <div id="login-form-container" class="w-full space-y-4">
+                <input type="email" id="login-email" placeholder="E-mail" class="w-full px-4 py-3 rounded-xl bg-[#2A2C33] border border-white/5 text-white outline-none focus:border-brand-gold transition text-sm">
+                <input type="password" id="login-pass" placeholder="Senha" class="w-full px-4 py-3 rounded-xl bg-[#2A2C33] border border-white/5 text-white outline-none focus:border-brand-gold transition text-sm">
+                
+                <button onclick="handleEmailAuth()" id="btn-login-action" class="w-full bg-brand-gold text-black py-3 rounded-xl font-bold hover:scale-105 transition shadow-lg text-sm">ENTRAR</button>
+                
+                <div class="flex items-center gap-2 py-2">
+                    <div class="flex-grow h-px bg-white/10"></div>
+                    <span class="text-[9px] text-brand-text font-bold">OU</span>
+                    <div class="flex-grow h-px bg-white/10"></div>
+                </div>
+                
+                <button onclick="handleGoogleLogin()" class="w-full bg-white text-black py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-gray-200 transition text-sm">
+                    <i class="ph-fill ph-google-logo text-lg"></i> ENTRAR COM GOOGLE
+                </button>
+                
+                <p class="text-[10px] text-center text-brand-text mt-4">
+                    Não tem conta? <button onclick="toggleAuthMode()" id="btn-toggle-auth" class="text-brand-gold font-bold hover:underline">Cadastre-se</button>
+                </p>
+            </div>
+            
+            <button onclick="closeLoginModal()" class="mt-6 text-[10px] text-brand-text hover:text-white uppercase font-bold tracking-widest">Fechar</button>
+        </div>
+    </div>
+
+    <!-- MODAL PERFIL USUÁRIO (LIGAÇÃO DIRETA COM CRM) -->
     <div id="registration-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
         <div class="bg-brand-panel border border-brand-gold/30 rounded-3xl w-full max-w-md p-8 shadow-2xl relative">
-            <h2 class="text-brand-gold text-lg font-bold mb-3 uppercase tracking-wide text-center">Área do Usuário</h2>
-            <p class="text-brand-text text-[10px] text-center mb-6 uppercase tracking-widest font-bold">Cadastre-se para uma experiência personalizada</p>
+            <h2 class="text-brand-gold text-lg font-bold mb-1 uppercase tracking-wide text-center">Configurações de Perfil</h2>
+            <p id="profile-welcome-msg" class="text-white text-xs text-center mb-5 opacity-70">Olá! Bem-vindo ao seu espaço A&M.</p>
+            
+            <!-- Foto de Perfil / Logo Empresa -->
+            <div class="flex flex-col items-center mb-6">
+                <div class="relative group">
+                    <div class="w-20 h-20 rounded-full bg-[#2A2C33] border-2 border-brand-gold/30 overflow-hidden flex items-center justify-center shadow-lg">
+                        <img id="profile-img-preview" src="" class="hidden w-full h-full object-cover">
+                        <i id="profile-img-icon" class="ph ph-user text-3xl text-brand-text"></i>
+                    </div>
+                    <button type="button" onclick="document.getElementById('upload-profile-img').click()" class="absolute bottom-0 right-0 bg-brand-gold text-black w-7 h-7 rounded-full flex items-center justify-center shadow-md hover:scale-110 transition active:scale-95">
+                        <i class="ph ph-camera text-sm"></i>
+                    </button>
+                    <input type="file" id="upload-profile-img" accept="image/*" class="hidden" onchange="previewProfilePhoto(event)">
+                </div>
+                <p class="text-[8px] text-brand-text uppercase mt-2 font-bold tracking-widest">Foto ou Logo da Empresa</p>
+            </div>
+
+            <div id="user-info-badge" class="bg-white/5 p-3 rounded-xl mb-6 flex flex-col items-center">
+                <p class="text-[9px] text-brand-text uppercase font-black">Conectado como:</p>
+                <p id="profile-email-display" class="text-white text-sm font-bold">email@exemplo.com</p>
+            </div>
             <form onsubmit="handleRegistration(event)" class="flex flex-col gap-4">
                 <div>
                     <label class="block text-white text-[10px] font-bold uppercase mb-1 ml-1 opacity-50">Nome Completo</label>
-                    <input type="text" id="reg-nome" placeholder="Ex: João da Silva" required class="w-full px-4 py-3 rounded-xl bg-[#2A2C33] border-2 border-transparent text-white outline-none focus:border-brand-gold transition text-sm">
+                    <input type="text" id="reg-nome" placeholder="Seu nome" required class="w-full px-4 py-3 rounded-xl bg-[#2A2C33] border-2 border-transparent text-white outline-none focus:border-brand-gold transition text-sm">
                 </div>
                 <div>
                     <label class="block text-white text-[10px] font-bold uppercase mb-1 ml-1 opacity-50">Telefone / WhatsApp</label>
                     <input type="tel" id="reg-telefone" placeholder="(00) 00000-0000" required class="w-full px-4 py-3 rounded-xl bg-[#2A2C33] border-2 border-transparent text-white outline-none focus:border-brand-gold transition text-sm">
                 </div>
-                <button type="submit" id="btn-submit-reg" class="focusable w-full bg-brand-gold text-black py-4 rounded-xl font-black mt-2 hover:bg-brand-gold-hover transition shadow-lg text-sm" tabindex="0">CONFIRMAR CADASTRO</button>
+                <button type="submit" id="btn-submit-reg" class="focusable w-full bg-brand-gold text-black py-4 rounded-xl font-black mt-2 hover:bg-brand-gold-hover transition shadow-lg text-sm" tabindex="0">SALVAR DADOS</button>
+                <button type="button" onclick="handleLogout()" class="focusable w-full bg-red-600/10 text-red-500 py-3 rounded-xl font-bold mt-2 hover:bg-red-600/20 transition text-[10px] uppercase tracking-widest" tabindex="0">Sair da Conta</button>
                 <button type="button" onclick="closeRegistrationModal()" class="focusable w-full bg-transparent text-brand-text py-2 rounded-full font-bold text-[10px] uppercase hover:text-white transition tracking-widest" tabindex="0">FECHAR</button>
             </form>
         </div>
@@ -479,10 +553,14 @@
             
             <div class="text-center mb-8">
                 <div class="w-16 h-16 bg-brand-gold/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="ph ph-megaphone-slash text-3xl text-brand-gold"></i>
+                    <i class="ph ph-film-slate text-3xl text-brand-gold"></i>
                 </div>
-                <h2 class="text-white text-2xl font-black uppercase tracking-tighter">Assistir sem interrupções</h2>
-                <p class="text-brand-text text-sm mt-2">Envie os seus dados para análise da produtora. Assim que aprovado pelo administrador, os anúncios serão desativados para o seu dispositivo.</p>
+                <h2 class="text-white text-2xl font-black uppercase tracking-tighter">Experiência de Cinema</h2>
+                <div class="text-brand-text text-xs mt-3 leading-relaxed space-y-3">
+                    <p>Olá! Nós da <b>A&M Produções</b> agradecemos muito por você estar aqui. Nosso objetivo é que você assista a todas as nossas obras como em um verdadeiro cinema.</p>
+                    <p>Mais do que isso: <b>queremos colocar a sua produção dentro da nossa plataforma também!</b></p>
+                    <p>Para que possamos liberar o seu acesso totalmente sem propagandas, precisamos fechar um serviço de parceria. Deixe as suas informações abaixo e a nossa equipe entrará em contato. Assim que fecharmos o serviço, o seu sinal premium será liberado imediatamente.</p>
+                </div>
             </div>
 
             <form onsubmit="handleAdsRemoval(event)" class="space-y-4">
@@ -522,11 +600,11 @@
             <p class="text-brand-text text-xs text-center mb-8 uppercase tracking-widest leading-relaxed">Escolha a melhor versão para o seu dispositivo</p>
             
             <div class="flex flex-col gap-3 w-full">
-                <button onclick="installAsPWA()" class="focusable w-full bg-white/5 hover:bg-white/10 border border-white/10 p-4 rounded-2xl flex items-center gap-4 transition-all" tabindex="0">
-                    <i class="ph ph-browsers text-2xl text-blue-400"></i>
+                <button onclick="installAsPWA()" class="focusable w-full bg-brand-blue/10 hover:bg-brand-blue/20 border border-brand-blue/30 p-4 rounded-2xl flex items-center gap-4 transition-all" tabindex="0">
+                    <i class="ph ph-browsers text-2xl text-brand-blue"></i>
                     <div class="text-left">
-                        <p class="text-white text-sm font-bold">Versão Web App (PWA)</p>
-                        <p class="text-[10px] text-brand-text">Instalação leve e instantânea</p>
+                        <p class="text-white text-sm font-bold">Instalar App (Navegador)</p>
+                        <p class="text-[10px] text-brand-text">Versão Web Progressiva (PWA)</p>
                     </div>
                 </button>
                 <button onclick="installAsAPK()" class="focusable w-full bg-white/5 hover:bg-white/10 border border-white/10 p-4 rounded-2xl flex items-center gap-4 transition-all" tabindex="0">
@@ -674,7 +752,7 @@
     <!-- SCRIPTS CORE E FIREBASE -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, setDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -690,29 +768,117 @@
         const db = getFirestore(app);
         const appId = firebaseConfig.appId;
 
+        // AWS R2
+        const s3 = new window.AWS.S3({
+            endpoint: 'https://679ab4032c53de6dee298b613e90e0db.r2.cloudflarestorage.com',
+            accessKeyId: '69e552e54ff90a1e889b60d52b7554b6',
+            secretAccessKey: 'c3628552b794067bd258cb7c2777b6614ebe28f57ae3d763b7d55cc02fda99b1',
+            signatureVersion: 'v4',
+            region: 'auto',
+            s3ForcePathStyle: true
+        });
+
         let currentUser = null;
+        let selectedProfilePhoto = null;
+        let currentProfilePhotoUrl = "";
         let cacheCatalogo = []; 
         let minhaListaIds = []; 
         let minhaListaDocs = [];
         let curtidasIds = []; 
         let curtidasDocs = [];
         window.currentDestaqueData = null;
+        window.authMode = 'login';
 
         // AUTH & INITS
-        const initAuth = async () => { try { await signInAnonymously(auth); } catch (e) {} };
-        initAuth();
-        
         onAuthStateChanged(auth, (user) => {
             currentUser = user;
             if (user) {
+                // Se o utilizador logou de verdade (não anônimo), preenchemos os campos do perfil
+                if (!user.isAnonymous) {
+                    document.getElementById('profile-email-display').innerText = user.email;
+                    // Tenta buscar dados do Firestore para preencher nome e telefone
+                    getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_registrations', user.uid)).then(snap => {
+                        if(snap.exists()){
+                            const d = snap.data();
+                            document.getElementById('reg-nome').value = d.nome || "";
+                            document.getElementById('reg-telefone').value = d.telefone || "";
+                            
+                            // Carrega Foto e Mensagem de Boas-Vindas
+                            if(d.nome) document.getElementById('profile-welcome-msg').innerText = `Bem-vindo de volta, ${d.nome.split(' ')[0]}!`;
+                            if(d.photoUrl) {
+                                currentProfilePhotoUrl = d.photoUrl;
+                                const img = document.getElementById('profile-img-preview');
+                                img.src = d.photoUrl; img.classList.remove('hidden');
+                                document.getElementById('profile-img-icon').classList.add('hidden');
+                            }
+                        }
+                    });
+                } else {
+                    document.getElementById('profile-email-display').innerText = "Utilizador Temporário";
+                }
+
                 window.carregarBrandingRealtime();
                 window.carregarMenusRealtime();
                 window.carregarOrdemCategorias();
                 window.carregarCatalogoRealtime();
                 window.carregarMinhaListaRealtime();
                 window.carregarCurtidasRealtime();
+            } else {
+                // Se não há user nenhum (nem anônimo), loga anônimo por padrão para leitura de dados
+                signInAnonymously(auth);
             }
         });
+
+        // SISTEMA DE LOGIN / REGISTRO
+        window.openLoginModal = () => {
+            const logo = window.brandingConfig?.logoUrl;
+            if(logo) {
+                const img = document.getElementById('login-logo-img');
+                img.src = logo; img.classList.remove('hidden');
+            }
+            document.getElementById('login-modal').classList.remove('hidden');
+        };
+        window.closeLoginModal = () => document.getElementById('login-modal').classList.add('hidden');
+        
+        window.toggleAuthMode = () => {
+            window.authMode = window.authMode === 'login' ? 'register' : 'login';
+            document.getElementById('login-title').innerText = window.authMode === 'login' ? 'Entrar na Conta' : 'Criar Nova Conta';
+            document.getElementById('btn-login-action').innerText = window.authMode === 'login' ? 'ENTRAR' : 'CADASTRAR E ENTRAR';
+            document.getElementById('btn-toggle-auth').innerText = window.authMode === 'login' ? 'Cadastre-se' : 'Já tenho conta';
+        };
+
+        window.handleGoogleLogin = async () => {
+            const provider = new GoogleAuthProvider();
+            try {
+                await signInWithPopup(auth, provider);
+                window.showToast("Logado com Google!");
+                closeLoginModal();
+            } catch (e) { window.showToast("Falha no login Google.", true); }
+        };
+
+        window.handleEmailAuth = async () => {
+            const email = document.getElementById('login-email').value;
+            const pass = document.getElementById('login-pass').value;
+            if(!email || !pass) return window.showToast("Preencha os campos.", true);
+            
+            try {
+                if(window.authMode === 'login') {
+                    await signInWithEmailAndPassword(auth, email, pass);
+                    window.showToast("Bem-vindo de volta!");
+                } else {
+                    await createUserWithEmailAndPassword(auth, email, pass);
+                    window.showToast("Conta criada com sucesso!");
+                }
+                closeLoginModal();
+            } catch (e) { window.showToast("Erro na autenticação: " + e.message, true); }
+        };
+
+        window.handleLogout = async () => {
+            await signOut(auth);
+            window.showToast("Sessão encerrada.");
+            closeRegistrationModal();
+            location.reload();
+        };
 
         // ==========================================
         // NAVEGAÇÃO SPA E MENUS
@@ -747,39 +913,75 @@
         window.openRegistrationModal = () => { document.getElementById('registration-modal').classList.remove('hidden'); }
         window.closeRegistrationModal = () => { document.getElementById('registration-modal').classList.add('hidden'); }
         
+        window.previewProfilePhoto = function(e) {
+            const f = e.target.files[0];
+            if(f) {
+                selectedProfilePhoto = f;
+                const r = new FileReader();
+                r.onload = (ev) => {
+                    const img = document.getElementById('profile-img-preview');
+                    img.src = ev.target.result;
+                    img.classList.remove('hidden');
+                    document.getElementById('profile-img-icon').classList.add('hidden');
+                };
+                r.readAsDataURL(f);
+            }
+        };
+
         window.handleRegistration = async (e) => {
             e.preventDefault();
+            if(!currentUser || currentUser.isAnonymous) return window.showToast("Faça login primeiro.", true);
+
             const btn = document.getElementById('btn-submit-reg');
             const nome = document.getElementById('reg-nome').value;
             const telefoneInput = document.getElementById('reg-telefone').value;
-            const telefoneID = telefoneInput.replace(/\D/g, ''); 
 
-            if (telefoneID.length < 10) return window.showToast("Informe um telefone válido.", true);
-
-            btn.disabled = true; btn.innerText = "PROCESSANDO...";
+            btn.disabled = true; btn.innerText = "SALVANDO...";
 
             try {
-                // Salva diretamente na coleção 'leads' conectada ao CRM do Administrador
+                let finalPhotoUrl = currentProfilePhotoUrl;
+                
+                if (selectedProfilePhoto) {
+                    const ext = selectedProfilePhoto.name.split('.').pop();
+                    const fileName = `profiles/${currentUser.uid}_${Date.now()}.${ext}`;
+                    await s3.putObject({ 
+                        Bucket: "aem", 
+                        Key: fileName, 
+                        Body: selectedProfilePhoto, 
+                        ContentType: selectedProfilePhoto.type 
+                    }).promise();
+                    finalPhotoUrl = `https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev/${fileName}`;
+                }
+
+                const payload = {
+                    nome: nome, 
+                    telefone: telefoneInput, 
+                    email: currentUser.email,
+                    photoUrl: finalPhotoUrl,
+                    updatedAt: new Date().getTime()
+                };
+
+                // Salva os dados vinculados ao UID do utilizador real
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_registrations', currentUser.uid), payload);
+
+                // Envia para o CRM (Leads) usando o telefone como ID para manter compatibilidade
+                const telefoneID = telefoneInput.replace(/\D/g, ''); 
                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'leads', telefoneID), {
-                    nome: nome,
-                    telefone: telefoneInput,
-                    empresa: "Pessoa Física (Via Site)",
-                    documento: "Pendente",
-                    endereco: "Pendente",
+                    ...payload,
+                    empresa: "Utilizador Autenticado",
                     createdAt: new Date().getTime()
                 });
 
-                // Também mantém o backup em user_registrations
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_registrations', telefoneID), {
-                    nome: nome, telefone: telefoneInput, createdAt: new Date().getTime()
-                });
-
-                window.showToast("Cadastro realizado com sucesso!");
+                window.showToast("Perfil atualizado!");
+                document.getElementById('profile-welcome-msg').innerText = `Bem-vindo de volta, ${nome.split(' ')[0]}!`;
+                selectedProfilePhoto = null;
+                currentProfilePhotoUrl = finalPhotoUrl;
                 closeRegistrationModal();
             } catch (err) {
-                window.showToast("Erro ao salvar cadastro.", true);
+                console.error(err);
+                window.showToast("Erro ao salvar dados.", true);
             } finally {
-                btn.disabled = false; btn.innerText = "CONFIRMAR CADASTRO";
+                btn.disabled = false; btn.innerText = "SALVAR DADOS";
             }
         };
 
@@ -1300,6 +1502,13 @@
         mainVid.addEventListener('click', () => window.togglePlayerPlay());
 
         window.abrirPlayerFull = function(isTrailer = false) {
+            // INTERCEÇÃO DE LOGIN: Se não for trailer e o user for anônimo, exige login
+            if (!isTrailer && (!currentUser || currentUser.isAnonymous)) {
+                window.showToast("Faça login para assistir ao conteúdo completo.");
+                window.openLoginModal();
+                return;
+            }
+
             if(!window.currentDestaqueData || !window.currentDestaqueData.videoUrl) return window.showToast("Vídeo não cadastrado!", true);
             
             // Performance TV: Reinicialização total do buffer
