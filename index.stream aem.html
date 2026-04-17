@@ -664,8 +664,8 @@
                     colors: {
                         'brand-dark': '#0B0D12',
                         'brand-panel': '#15171C',
-                        'brand-gold': '#D6B778',
-                        'brand-gold-hover': '#e8c989',
+                        'brand-gold': 'var(--brand-gold, #D6B778)',
+                        'brand-gold-hover': 'var(--brand-gold-hover, #e8c989)',
                         'brand-blue': '#2563EB',
                         'brand-blue-hover': '#1d4ed8',
                         'brand-gray': '#2A2C33',
@@ -680,6 +680,11 @@
     </script>
 
     <style>
+        :root {
+            --brand-gold: #D6B778;
+            --brand-gold-hover: #e8c989;
+        }
+
         /* Estilos de Foco para Controle Remoto (Estilo Netflix) */
         .focusable {
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -935,8 +940,9 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
     <!-- ESTRUTURA DA INTRO CINEMÁTICA -->
     <div id="intro-container">
         <div id="red-flash"></div>
-        <div class="am-logo-wrapper" id="am-logo">
-            <svg class="am-logo" viewBox="0 0 300 130" xmlns="http://www.w3.org/2000/svg">
+        <div class="am-logo-wrapper flex items-center justify-center" id="am-logo">
+            <img id="am-logo-img" src="" class="hidden w-full h-full object-contain">
+            <svg id="am-logo-svg" class="am-logo" viewBox="0 0 300 130" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                     <linearGradient id="text-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
                         <stop offset="0%" stop-color="#FFFFFF" />
@@ -960,9 +966,12 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
     <header id="main-header" class="opacity-0 pointer-events-none fixed w-full top-0 z-40 bg-[#0B0D12]/90 backdrop-blur-md border-b border-white/5 transition-all py-3 px-4 md:px-8 flex justify-between items-center">
         <div class="flex items-center gap-6 md:gap-10 overflow-x-auto scrollbar-hide">
             <!-- Logo -->
-            <div class="flex flex-col cursor-pointer shrink-0" onclick="navigate('home')">
-                <h1 class="text-xl md:text-2xl font-serif text-brand-gold tracking-widest font-bold">A&M</h1>
-                <span class="text-[0.5rem] md:text-[0.6rem] tracking-[0.2em] text-brand-text -mt-1">STREAMING</span>
+            <div class="flex flex-col cursor-pointer shrink-0 items-center" onclick="navigate('home')">
+                <img id="main-logo-img" src="" class="hidden h-7 md:h-9 object-contain mb-1">
+                <div id="main-logo-text" class="flex flex-col items-center">
+                    <h1 class="text-xl md:text-2xl font-serif text-brand-gold tracking-widest font-bold leading-none">A&M</h1>
+                    <span class="text-[0.5rem] md:text-[0.6rem] tracking-[0.2em] text-brand-text">STREAMING</span>
+                </div>
             </div>
 
             <!-- Navegação -->
@@ -980,8 +989,8 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
 
         <div class="flex items-center gap-3 md:gap-5 text-lg md:text-xl text-brand-text shrink-0 pl-4 bg-[#0B0D12]/90">
             <i class="ph ph-magnifying-glass cursor-pointer hover:text-white transition"></i>
-            <button onclick="openAuthModal()" class="p-1.5 md:p-2 border border-brand-gold/30 rounded-lg text-brand-gold hover:bg-brand-gold/10 transition">
-                <i class="ph ph-gear"></i>
+            <button onclick="openRegistrationModal()" class="p-1.5 md:p-2 border border-brand-gold/30 rounded-lg text-brand-gold hover:bg-brand-gold/10 transition">
+                <i class="ph ph-user"></i>
             </button>
             <div class="hidden md:flex items-center gap-2 cursor-pointer">
                 <div class="w-7 h-7 md:w-8 md:h-8 rounded-full bg-brand-gold flex items-center justify-center text-xs md:text-sm text-black font-bold">AM</div>
@@ -1366,14 +1375,22 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
         <div class="text-[10px] md:text-xs">&copy; 2024 A&M Streaming. Todos os direitos reservados.</div>
     </footer>
 
-    <!-- MODAL AUTH -->
-    <div id="auth-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+    <!-- MODAL CADASTRO USUÁRIO -->
+    <div id="registration-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
         <div class="bg-[#15171C] border border-white/5 rounded-3xl w-full max-w-md p-8 shadow-2xl relative">
-            <h2 class="text-brand-gold text-lg font-bold mb-3 uppercase tracking-wide text-center">Acesso Restrito</h2>
-            <form onsubmit="handleLogin(event)" class="flex flex-col gap-3">
-                <input type="password" id="admin-pwd" placeholder="Senha..." required class="w-full px-4 py-3 rounded-xl bg-transparent border-2 border-[#2563EB] text-white outline-none mb-4">
-                <button type="submit" class="w-full bg-[#2563EB] text-white py-3.5 rounded-full font-bold">ENTRAR</button>
-                <button type="button" onclick="closeAuthModal()" class="w-full bg-[#52525B] text-white py-3.5 rounded-full font-bold">CANCELAR</button>
+            <h2 class="text-brand-gold text-lg font-bold mb-3 uppercase tracking-wide text-center">Área do Usuário</h2>
+            <p class="text-brand-text text-[10px] text-center mb-6 uppercase tracking-widest font-bold">Cadastre-se para uma experiência personalizada</p>
+            <form onsubmit="handleRegistration(event)" class="flex flex-col gap-4">
+                <div>
+                    <label class="block text-white text-[10px] font-bold uppercase mb-1 ml-1 opacity-50">Nome Completo</label>
+                    <input type="text" id="reg-nome" placeholder="Ex: João da Silva" required class="w-full px-4 py-3 rounded-xl bg-[#2A2C33] border-2 border-transparent text-white outline-none focus:border-brand-gold transition text-sm">
+                </div>
+                <div>
+                    <label class="block text-white text-[10px] font-bold uppercase mb-1 ml-1 opacity-50">Telefone / WhatsApp</label>
+                    <input type="tel" id="reg-telefone" placeholder="(00) 00000-0000" required class="w-full px-4 py-3 rounded-xl bg-[#2A2C33] border-2 border-transparent text-white outline-none focus:border-brand-gold transition text-sm">
+                </div>
+                <button type="submit" id="btn-submit-reg" class="w-full bg-brand-gold text-black py-4 rounded-xl font-black mt-2 hover:bg-brand-gold-hover transition shadow-lg text-sm">CONFIRMAR CADASTRO</button>
+                <button type="button" onclick="closeRegistrationModal()" class="w-full bg-transparent text-brand-text py-2 rounded-full font-bold text-[10px] uppercase hover:text-white transition tracking-widest">FECHAR</button>
             </form>
         </div>
     </div>
@@ -1856,6 +1873,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 if (typeof window.carregarCurtidasRealtime === 'function') window.carregarCurtidasRealtime();
                 if (typeof window.carregarLeadsRealtime === 'function') window.carregarLeadsRealtime();
                 if (typeof window.carregarConfigContrato === 'function') window.carregarConfigContrato();
+                if (typeof window.carregarBrandingRealtime === 'function') window.carregarBrandingRealtime();
             }
         });
 
@@ -1900,16 +1918,39 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             window.scrollTo(0,0);
         }
 
-        window.openAuthModal = () => { document.getElementById('auth-modal').classList.remove('hidden'); }
-        window.closeAuthModal = () => { document.getElementById('auth-modal').classList.add('hidden'); }
-        window.handleLogin = (e) => {
+        window.openRegistrationModal = () => { document.getElementById('registration-modal').classList.remove('hidden'); }
+        window.closeRegistrationModal = () => { document.getElementById('registration-modal').classList.add('hidden'); }
+        window.handleRegistration = async (e) => {
             e.preventDefault();
-            if(document.getElementById('admin-pwd').value === '123456') { 
-                isAdminAuthenticated = true; closeAuthModal(); showToast("Acesso Liberado!");
-                document.getElementById('nav-admin').classList.remove('hidden');
-                document.getElementById('nav-crm').classList.remove('hidden');
-                navigate('admin');
-            } else { showToast("Senha incorreta", true); }
+            const btn = document.getElementById('btn-submit-reg');
+            const nome = document.getElementById('reg-nome').value;
+            const telefoneInput = document.getElementById('reg-telefone').value;
+            const telefoneID = telefoneInput.replace(/\D/g, ''); 
+
+            if (telefoneID.length < 10) return showToast("Informe um telefone válido.", true);
+
+            btn.disabled = true;
+            btn.innerText = "PROCESSANDO...";
+
+            try {
+                // ALVO MUDADO: Agora salva diretamente na coleção 'leads' do CRM!
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'leads', telefoneID), {
+                    nome: nome,
+                    telefone: telefoneInput,
+                    empresa: "Pessoa Física (Via Site)", // Preenchimento automático para o CRM
+                    documento: "Pendente",
+                    endereco: "Pendente",
+                    createdAt: new Date().getTime()
+                });
+                showToast("Cadastro realizado com sucesso!");
+                closeRegistrationModal();
+            } catch (err) {
+                console.error(err);
+                showToast("Erro ao salvar cadastro.", true);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "CONFIRMAR CADASTRO";
+            }
         }
         window.showToast = (msg, isError = false) => {
             const t = document.getElementById('toast');
@@ -1992,6 +2033,91 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             });
             showToast("Configurações salvas!");
         }
+
+        window.carregarBrandingRealtime = function() {
+            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'configuracoes', 'branding'), (snap) => {
+                if(snap.exists()) {
+                    const dados = snap.data();
+                    
+                    // 1. ATUALIZA AS LOGOS DO SITE (Intro, Header e Footer)
+                    if (dados.logoUrl) {
+                        // Logo do Header Superior
+                        const logoHeader = document.getElementById('main-logo-img');
+                        const textHeader = document.getElementById('main-logo-text');
+                        if(logoHeader && textHeader) {
+                            logoHeader.src = dados.logoUrl;
+                            logoHeader.classList.remove('hidden');
+                            textHeader.classList.add('hidden');
+                        }
+                        
+                        // Logo da Intro Cinematográfica
+                        const introLogo = document.getElementById('am-logo-img');
+                        const introLogoSvg = document.getElementById('am-logo-svg');
+                        if(introLogo && introLogoSvg) {
+                            introLogo.src = dados.logoUrl;
+                            introLogo.classList.remove('hidden');
+                            introLogoSvg.classList.add('hidden');
+                        }
+
+                        // Logo do Rodapé (Footer)
+                        const footerLogo = document.querySelector('#main-footer h1');
+                        if (footerLogo) {
+                            footerLogo.innerHTML = `<img src="${dados.logoUrl}" class="h-6 md:h-8 object-contain opacity-50">`;
+                        }
+
+                        // 2. ATUALIZA O FAVICON (Ícone da aba do Navegador)
+                        let linkIcon = document.querySelector("link[rel~='icon']");
+                        if (!linkIcon) {
+                            linkIcon = document.createElement('link');
+                            linkIcon.rel = 'icon';
+                            document.head.appendChild(linkIcon);
+                        }
+                        linkIcon.href = dados.logoUrl;
+                        
+                        // Ícone para dispositivos Apple
+                        let appleIcon = document.querySelector("link[rel='apple-touch-icon']");
+                        if (!appleIcon) {
+                            appleIcon = document.createElement('link');
+                            appleIcon.rel = 'apple-touch-icon';
+                            document.head.appendChild(appleIcon);
+                        }
+                        appleIcon.href = dados.logoUrl;
+
+                        // 3. ATUALIZA O MANIFESTO DO APLICATIVO (Ícone de Instalação PWA)
+                        const manifestBlob = new Blob([JSON.stringify({
+                            "name": "Streaming App",
+                            "short_name": "Streaming",
+                            "display": "standalone",
+                            "start_url": ".",
+                            "background_color": "#0B0D12",
+                            "theme_color": dados.corPrincipal || "#D6B778",
+                            "icons": [{
+                                "src": dados.logoUrl,
+                                "sizes": "512x512",
+                                "type": "image/png",
+                                "purpose": "any maskable"
+                            }]
+                        })], {type: 'application/json'});
+                        
+                        const manifestURL = URL.createObjectURL(manifestBlob);
+                        let manifestLink = document.querySelector("link[rel='manifest']");
+                        if (manifestLink) {
+                            manifestLink.href = manifestURL;
+                        }
+                    }
+                    
+                    // 4. ATUALIZA AS CORES DO SITE (Tailwind CSS e Barra do Celular)
+                    if (dados.corPrincipal) {
+                        document.documentElement.style.setProperty('--brand-gold', dados.corPrincipal);
+                        document.documentElement.style.setProperty('--brand-gold-hover', dados.corPrincipal + 'CC');
+                        
+                        // Muda a cor do topo do navegador no celular
+                        let themeMeta = document.querySelector("meta[name='theme-color']");
+                        if(themeMeta) themeMeta.content = dados.corPrincipal;
+                    }
+                }
+            });
+        };
 
         window.carregarConfigContrato = async function() {
             const snap = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'configuracoes', 'contrato'));
