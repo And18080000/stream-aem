@@ -181,17 +181,33 @@
             }, 200);
         };
 
-        window.installAsPWA = () => {
-            runProcessingAnimation(async () => {
-                if (!window.deferredPrompt) { if(typeof window.showToast === 'function') window.showToast("PWA já instalado ou não suportado.", true); return; }
-                window.deferredPrompt.prompt();
-                const { outcome } = await window.deferredPrompt.userChoice;
-                if (outcome === 'accepted') {
-                    document.getElementById('btn-install-header').classList.add('hidden');
-                    if(typeof window.showToast === 'function') window.showToast("Instalação iniciada com sucesso!");
+        window.installAsPWA = async () => {
+            // Verifica logo se a prompt está disponível, se não redireciona conforme o sistema
+            if (!window.deferredPrompt) {
+                window.closeInstallModal();
+                if (/iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase())) {
+                    window.installAsIos();
+                } else {
+                    window.showToast("App já instalado ou vá ao menu do navegador e clique em 'Adicionar à Tela Inicial'.", true);
                 }
+                return;
+            }
+
+            // O prompt nativo do navegador DEVE ser chamado de forma síncrona com o clique do utilizador
+            window.deferredPrompt.prompt();
+            const { outcome } = await window.deferredPrompt.userChoice;
+            
+            if (outcome === 'accepted') {
                 window.deferredPrompt = null;
-            });
+                // Animação de sucesso PÓS-aceitação
+                runProcessingAnimation(() => {
+                    const btnHeader = document.getElementById('btn-install-header');
+                    if(btnHeader) btnHeader.classList.add('hidden');
+                    window.showToast("Instalação concluída com sucesso!");
+                });
+            } else {
+                window.closeInstallModal();
+            }
         };
 
         window.installAsAPK = () => {
@@ -300,8 +316,11 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                     <p id="hero-subtitulo" class="text-brand-text text-xs md:text-sm mb-6 md:mb-8 font-medium">Classificação: 14+ | Estreia Exclusiva</p>
                     
                     <div class="flex flex-wrap items-center gap-3 md:gap-5">
-                        <button onclick="event.stopPropagation(); abrirPlayerFull()" class="focusable bg-white hover:bg-gray-200 text-black px-6 md:px-10 py-2.5 md:py-3 rounded flex items-center gap-2 font-bold transition text-xs md:text-sm shadow-lg" tabindex="0">
+                        <button id="btn-hero-assistir" onclick="event.stopPropagation(); abrirPlayerFull()" class="focusable bg-white hover:bg-gray-200 text-black px-6 md:px-10 py-2.5 md:py-3 rounded flex items-center gap-2 font-bold transition text-xs md:text-sm shadow-lg" tabindex="0">
                             <i class="ph-fill ph-play text-xl"></i> Assistir
+                        </button>
+                        <button id="btn-hero-login" onclick="event.stopPropagation(); openLoginPrompt()" class="hidden focusable bg-brand-gold/10 border border-brand-gold/30 text-brand-gold hover:bg-brand-gold/20 px-6 md:px-8 py-2.5 md:py-3 rounded font-bold transition text-xs md:text-sm flex items-center gap-2" tabindex="0">
+                            <i class="ph ph-sign-in text-xl"></i> Entrar para Assistir
                         </button>
                         <button onclick="event.stopPropagation(); abrirDetalhesViaHero()" class="focusable bg-gray-500/50 backdrop-blur-md border border-white/20 hover:bg-gray-500/80 text-white px-6 md:px-8 py-2.5 md:py-3 rounded font-bold transition text-xs md:text-sm flex items-center gap-2" tabindex="0">
                             <i class="ph ph-info text-xl"></i> Mais Informações
@@ -346,19 +365,25 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                         <h2 id="details-title" class="text-3xl md:text-5xl font-bold mb-6 font-serif text-white tracking-wide drop-shadow-md">TÍTULO</h2>
                         
                         <div class="flex flex-wrap items-center gap-3 mb-6">
-                            <button onclick="playTrailerDetails()" title="Assistir Trailer" class="prime-btn focusable" tabindex="0"><i class="ph ph-film-strip text-xl text-white"></i></button>
+                            <!-- Container dinâmico para os trailers -->
+                            <div id="dynamic-trailers-container" class="flex flex-wrap gap-2"></div>
+                            
                             <button onclick="toggleMinhaListaDetails()" title="Adicionar à Lista" class="prime-btn focusable" tabindex="0"><i id="details-icon-add" class="ph ph-plus text-xl text-white"></i></button>
                             <button onclick="toggleJoinhaDetails()" title="Gostei" class="prime-btn focusable" tabindex="0"><i id="details-icon-like" class="ph ph-thumbs-up text-xl text-white"></i></button>
                             <button title="Não Gostei" class="prime-btn focusable hidden sm:flex" tabindex="0"><i class="ph ph-thumbs-down text-xl text-white"></i></button>
-                            <button title="Compartilhar" class="prime-btn focusable hidden sm:flex" tabindex="0"><i class="ph ph-share-network text-xl text-white"></i></button>
-                            <button title="Baixar para Assistir Offline" class="prime-btn focusable" tabindex="0"><i class="ph ph-download-simple text-xl text-white"></i></button>
+                            <button title="Partilhar" class="prime-btn focusable hidden sm:flex" tabindex="0"><i class="ph ph-share-network text-xl text-white"></i></button>
+                            <button title="Transferir para Ver Offline" class="prime-btn focusable" tabindex="0"><i class="ph ph-download-simple text-xl text-white"></i></button>
                         </div>
 
                         <button onclick="abrirPlayerFull()" class="focusable w-full md:w-80 bg-white text-black px-8 py-3.5 rounded flex items-center justify-center gap-2 font-bold transition hover:bg-gray-200 text-sm shadow-xl" tabindex="0">
                             <i class="ph-fill ph-play text-xl"></i> <span id="details-cta-text">Retomar</span>
                         </button>
+
+                        <button id="btn-details-login" onclick="openLoginPrompt()" class="hidden focusable mt-3 w-full md:w-80 bg-brand-gold/10 border border-brand-gold/30 text-brand-gold px-8 py-3.5 rounded flex items-center justify-center gap-2 font-bold transition hover:bg-brand-gold/20 text-sm" tabindex="0">
+                            <i class="ph ph-sign-in text-xl"></i> Entrar para Assistir
+                        </button>
                         
-                        <button id="btn-remover-propaganda" onclick="window.openAdsRemovalModal()" class="focusable mt-3 w-full md:w-80 bg-brand-gold/10 border border-brand-gold/30 text-brand-gold px-8 py-2 rounded flex items-center justify-center gap-2 font-bold transition hover:bg-brand-gold/20 text-[10px] uppercase tracking-widest" tabindex="0">
+                        <button id="btn-remover-propaganda" onclick="window.openAdsRemovalModal()" class="focusable mt-3 w-full md:w-80 bg-white/5 border border-white/10 text-white px-8 py-2 rounded flex items-center justify-center gap-2 font-bold transition hover:bg-white/10 text-[10px] uppercase tracking-widest" tabindex="0">
                             <i class="ph ph-megaphone-slash"></i> Assistir sem propaganda
                         </button>
                         
@@ -479,7 +504,14 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             
             <div id="login-form-container" class="w-full space-y-4">
                 <input type="email" id="login-email" placeholder="E-mail" class="w-full px-4 py-3 rounded-xl bg-[#2A2C33] border border-white/5 text-white outline-none focus:border-brand-gold transition text-sm">
-                <input type="password" id="login-pass" placeholder="Senha" class="w-full px-4 py-3 rounded-xl bg-[#2A2C33] border border-white/5 text-white outline-none focus:border-brand-gold transition text-sm">
+                
+                <!-- Container da Senha com Olho -->
+                <div class="relative">
+                    <input type="password" id="login-pass" placeholder="Senha" class="w-full px-4 py-3 pr-10 rounded-xl bg-[#2A2C33] border border-white/5 text-white outline-none focus:border-brand-gold transition text-sm">
+                    <button type="button" onclick="togglePasswordVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-brand-text hover:text-brand-gold transition focus:outline-none">
+                        <i id="icon-pass-toggle" class="ph ph-eye text-xl"></i>
+                    </button>
+                </div>
                 
                 <button onclick="handleEmailAuth()" id="btn-login-action" class="w-full bg-brand-gold text-black py-3 rounded-xl font-bold hover:scale-105 transition shadow-lg text-sm">ENTRAR</button>
                 
@@ -785,6 +817,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
         window.currentDestaqueData = null;
         window.authMode = 'login';
         window.ignoreNextPopState = false; // TRAVA DE HISTÓRICO GLOBAL
+        window.isWatchingTrailer = false; // TRAVA DO TRAILER ATIVO
         
         let userProfileUnsubscribe = null;
 
@@ -855,6 +888,11 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             } else {
                 signInAnonymously(auth);
             }
+            
+            // Força a verificação visual dos botões em qualquer mudança de estado (Login/Logout)
+            if (window.verificarStatusBotoes) {
+                setTimeout(() => window.verificarStatusBotoes(), 500);
+            }
         });
 
         // ==========================================
@@ -881,11 +919,33 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
         };
         window.closeLoginModal = () => document.getElementById('login-modal').classList.add('hidden');
         
+        // Mostrar / Ocultar Senha
+        window.togglePasswordVisibility = () => {
+            const passInput = document.getElementById('login-pass');
+            const icon = document.getElementById('icon-pass-toggle');
+            if (passInput.type === 'password') {
+                passInput.type = 'text';
+                icon.classList.replace('ph-eye', 'ph-eye-slash');
+            } else {
+                passInput.type = 'password';
+                icon.classList.replace('ph-eye-slash', 'ph-eye');
+            }
+        };
+
         window.toggleAuthMode = () => {
             window.authMode = window.authMode === 'login' ? 'register' : 'login';
             document.getElementById('login-title').innerText = window.authMode === 'login' ? 'Entrar na Conta' : 'Criar Nova Conta';
             document.getElementById('btn-login-action').innerText = window.authMode === 'login' ? 'ENTRAR' : 'CADASTRAR E ENTRAR';
             document.getElementById('btn-toggle-auth').innerText = window.authMode === 'login' ? 'Cadastre-se' : 'Já tenho conta';
+        };
+
+        window.openLoginPrompt = function() {
+            window.authMode = 'login';
+            document.getElementById('login-title').innerText = 'Entrar na Conta';
+            document.getElementById('btn-login-action').innerText = 'ENTRAR';
+            document.getElementById('btn-toggle-auth').innerText = 'Cadastre-se';
+            window.openLoginModal();
+            window.showToast("Inicie sessão para assistir ao conteúdo completo!");
         };
 
         window.handleGoogleLogin = async () => {
@@ -1206,7 +1266,6 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
 
         function renderCardRetrato(data) {
             const dataStr = btoa(encodeURIComponent(JSON.stringify(data)));
-            // AGORA REDIRECIONA PARA A TELA DE DETALHES (PRIME STYLE) EM VEZ DE ABRIR O PLAYER DIRETO
             return `<div onclick="window.abrirDetalhes('${dataStr}')" onfocus="window.mudarDestaque('${dataStr}')" class="focusable min-w-[130px] md:min-w-[170px] h-[190px] md:h-[250px] bg-[#1A1C23] rounded-xl overflow-hidden border border-white/5 relative group cursor-pointer snap-start transition-all shadow-lg" tabindex="0">
                 <img src="${data.capaUrl}" loading="lazy" class="w-full h-full object-cover">
                 <div class="absolute top-0 w-full p-2 bg-gradient-to-b from-black/80 to-transparent"><p class="text-[8px] text-[var(--brand-gold)] font-bold tracking-widest uppercase">${data.selo}</p></div>
@@ -1217,7 +1276,6 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
 
         function renderCardPaisagem(data, colorClass) {
             const dataStr = btoa(encodeURIComponent(JSON.stringify(data)));
-            // AGORA REDIRECIONA PARA A TELA DE DETALHES (PRIME STYLE) EM VEZ DE ABRIR O PLAYER DIRETO
             return `<div onclick="window.abrirDetalhes('${dataStr}')" onfocus="window.mudarDestaque('${dataStr}')" class="focusable min-w-[220px] md:min-w-[280px] h-[120px] md:h-[150px] bg-[#1A1C23] rounded-xl overflow-hidden border border-white/5 relative group cursor-pointer snap-start transition-all shadow-lg" tabindex="0">
                 <img src="${data.capaUrl}" loading="lazy" class="w-full h-full object-cover">
                 <div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity z-20"><div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/40 shadow-xl"><i class="ph-bold ph-info text-white text-2xl"></i></div></div>
@@ -1254,36 +1312,64 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             const isPlayerOpen = !document.getElementById('netflix-player').classList.contains('hidden');
             const isDetailsOpen = !document.getElementById('view-details').classList.contains('hidden');
 
+            let urlDoTrailerParaTocar = data.videoUrl;
+            let isOficialTrailer = false;
+            
+            // Prioridade para múltiplos trailers ou trailer único oficial
+            if (data.trailers && data.trailers.length > 0) {
+                urlDoTrailerParaTocar = data.trailers[0].url;
+                isOficialTrailer = true;
+            } else if (data.trailerUrl) {
+                urlDoTrailerParaTocar = data.trailerUrl;
+                isOficialTrailer = true;
+            }
+
             // Só roda o trailer na home se não estiver no player e NÃO estiver na aba de detalhes
-            if (data.videoUrl && data.videoUrl.trim() !== "" && !isPlayerOpen && !isDetailsOpen) {
+            if (urlDoTrailerParaTocar && urlDoTrailerParaTocar.trim() !== "" && !isPlayerOpen && !isDetailsOpen) {
                 window.heroTimeout = setTimeout(() => {
-                    heroVideo.src = data.videoUrl; 
+                    heroVideo.src = urlDoTrailerParaTocar; 
                     heroVideo.muted = true; // Por padrão na home é mutado
                     heroVideo.volume = 0; // Prepara para fade in caso desmute
                     
-                    const heroPlay = heroVideo.play();
-                    if (heroPlay !== undefined) {
-                        heroPlay.then(() => {
-                            heroImg.style.opacity = '0'; 
-                            heroVideo.style.opacity = '0.7'; 
-                            btnMute.classList.remove('hidden'); 
-                            
-                            // Aplica o fade de áudio caso o vídeo não esteja mutado no player
-                            if (!heroVideo.muted) window.fadeAudio(heroVideo, 0, 1, 1000);
+                    heroVideo.onloadedmetadata = () => {
+                        let startPos = 0;
+                        let durationToPlay = 15; // default tempo limite fallback
 
-                            // Programa o Fade Out e pausa
-                            window.videoTimeout = setTimeout(() => { 
-                                heroVideo.style.opacity = '0'; 
-                                heroImg.style.opacity = '0.7'; 
-                                btnMute.classList.add('hidden'); 
+                        if (!isOficialTrailer && heroVideo.duration > 60) {
+                            startPos = heroVideo.duration / 2;
+                        } else if (isOficialTrailer && isFinite(heroVideo.duration)) {
+                            durationToPlay = heroVideo.duration; // Toca inteiro se for trailer oficial
+                        }
+                        
+                        heroVideo.currentTime = startPos;
+                        
+                        const heroPlay = heroVideo.play();
+                        if (heroPlay !== undefined) {
+                            heroPlay.then(() => {
+                                heroImg.style.opacity = '0'; 
+                                heroVideo.style.opacity = '0.7'; 
+                                btnMute.classList.remove('hidden'); 
                                 
-                                if (!heroVideo.muted) window.fadeAudio(heroVideo, heroVideo.volume, 0, 1000);
-                                
-                                // Pausa após o final do fade out
-                                setTimeout(() => { heroVideo.pause(); }, 1000);
-                            }, 7000); // 7s rodando + 1s de fade out = 8s no total
-                        }).catch(e => {}); 
-                    }
+                                // Aplica o fade de áudio caso o vídeo não esteja mutado no player
+                                if (!heroVideo.muted) window.fadeAudio(heroVideo, 0, 1, 1000);
+
+                                heroVideo.ontimeupdate = () => {
+                                    // Faltando 1 seg para acabar a duração proposta
+                                    if (heroVideo.currentTime >= startPos + durationToPlay - 1 && heroVideo.style.opacity !== '0') {
+                                        heroVideo.style.opacity = '0'; 
+                                        heroImg.style.opacity = '0.7'; 
+                                        btnMute.classList.add('hidden'); 
+                                        if (!heroVideo.muted) window.fadeAudio(heroVideo, heroVideo.volume, 0, 1000);
+                                    }
+                                    
+                                    if (heroVideo.currentTime >= startPos + durationToPlay || heroVideo.ended) {
+                                        heroVideo.pause();
+                                        heroVideo.ontimeupdate = null;
+                                    }
+                                };
+                            }).catch(e => {}); 
+                        }
+                    };
                 }, 100);
             }
         };
@@ -1357,11 +1443,24 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 }
             }
 
-            // Atualiza CTA Detalhes
-            const ctaText = document.getElementById('details-cta-text');
-            if(ctaText) {
-                // Se já estiver na lista ou curtido, diz "Retomar", se não "Assistir" (lógica simples para simular)
-                ctaText.innerText = (minhaListaIds.includes(itemId) || curtidasIds.includes(itemId)) ? "Retomar" : "Assistir";
+            // Atualiza CTA Detalhes e Hero dinamicamente com base na Autenticação
+            const isAnon = (!currentUser || currentUser.isAnonymous);
+            const ctaTextDet = document.getElementById('details-cta-text');
+            const ctaBtnHero = document.getElementById('btn-hero-assistir');
+            const btnHeroLogin = document.getElementById('btn-hero-login');
+            const btnDetailsLogin = document.getElementById('btn-details-login');
+            
+            if (isAnon) {
+                if(ctaTextDet) ctaTextDet.innerText = "Ver Trailer";
+                if(ctaBtnHero) ctaBtnHero.innerHTML = `<i class="ph-fill ph-play text-xl"></i> Ver Trailer`;
+                if(btnHeroLogin) btnHeroLogin.classList.remove('hidden');
+                if(btnDetailsLogin) btnDetailsLogin.classList.remove('hidden');
+            } else {
+                const text = (minhaListaIds.includes(itemId) || curtidasIds.includes(itemId)) ? "Retomar" : "Assistir";
+                if(ctaTextDet) ctaTextDet.innerText = text;
+                if(ctaBtnHero) ctaBtnHero.innerHTML = `<i class="ph-fill ph-play text-xl"></i> ${text}`;
+                if(btnHeroLogin) btnHeroLogin.classList.add('hidden');
+                if(btnDetailsLogin) btnDetailsLogin.classList.add('hidden');
             }
         };
 
@@ -1403,6 +1502,20 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             document.getElementById('details-info-trilho').innerText = data.trilho || "Geral";
             document.getElementById('details-info-desc').innerText = data.descricao || "Sem descrição disponível no momento.";
 
+            // Renderização Dinâmica de Multiplos Trailers
+            const trailersDiv = document.getElementById('dynamic-trailers-container');
+            trailersDiv.innerHTML = '';
+            
+            if (data.trailers && data.trailers.length > 0) {
+                data.trailers.forEach((t, i) => {
+                    trailersDiv.innerHTML += `<button onclick="playTrailerDetails('${t.url}')" title="${t.nome || 'Trailer '+(i+1)}" class="focusable bg-black/50 border-2 border-white/40 hover:border-white hover:bg-white/20 transition-all rounded-full h-[44px] px-4 flex items-center gap-2 backdrop-blur-sm" tabindex="0"><i class="ph ph-film-strip text-xl text-white"></i><span class="text-xs text-white font-bold whitespace-nowrap">${t.nome || 'Trailer '+(i+1)}</span></button>`;
+                });
+            } else if (data.trailerUrl) {
+                trailersDiv.innerHTML = `<button onclick="playTrailerDetails('${data.trailerUrl}')" title="Ver Trailer Oficial" class="prime-btn focusable" tabindex="0"><i class="ph ph-film-strip text-xl text-white"></i></button>`;
+            } else {
+                trailersDiv.innerHTML = `<button onclick="playTrailerDetails(null)" title="Ver Trecho" class="prime-btn focusable" tabindex="0"><i class="ph ph-film-strip text-xl text-white"></i></button>`;
+            }
+
             // 3. Sistema de Vídeo e Imagem de Fundo
             const vid = document.getElementById('details-video');
             const img = document.getElementById('details-img');
@@ -1412,8 +1525,16 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             img.style.opacity = '0.6';
             vid.style.opacity = '0';
             
-            // Usamos o Trailer Oficial (se cadastrado no Admin), senão usamos o vídeo completo.
-            const urlDoTrailerParaTocar = data.trailerUrl || data.videoUrl;
+            let urlDoTrailerParaTocar = data.videoUrl;
+            let isOficialTrailer = false;
+            
+            if (data.trailers && data.trailers.length > 0) {
+                urlDoTrailerParaTocar = data.trailers[0].url;
+                isOficialTrailer = true;
+            } else if (data.trailerUrl) {
+                urlDoTrailerParaTocar = data.trailerUrl;
+                isOficialTrailer = true;
+            }
 
             if (urlDoTrailerParaTocar) {
                 vid.src = urlDoTrailerParaTocar;
@@ -1421,8 +1542,13 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 vid.volume = 0; // Prepara para fade in
                 
                 vid.onloadedmetadata = () => {
-                    // Pula para a metade do vídeo (apenas se for o vídeo completo grande)
-                    const mid = (vid.duration > 60) ? vid.duration / 2 : 0;
+                    let mid = 0;
+                    // Se não for oficial e for muito longo (Filme), joga pro meio. Se for oficial, toca do início
+                    if (!isOficialTrailer && vid.duration > 60) {
+                        mid = vid.duration / 2;
+                    }
+                    
+                    const durationToPlay = (isOficialTrailer && isFinite(vid.duration)) ? vid.duration : 15;
                     vid.currentTime = mid;
                     
                     const playPromise = vid.play();
@@ -1436,16 +1562,17 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                         }).catch(e => { console.warn("Autoplay prevenido", e); });
                     }
 
-                    // Faz o loop do snippet de 15 segundos com FADE OUT e IN
+                    // Sistema de reprodução baseada no tempo detectado
                     vid.ontimeupdate = () => {
-                        if (vid.currentTime >= mid + 14 && vid.style.opacity !== '0') {
-                            // Faltando 1 segundo para acabar, inicia fade out
+                        // Faltando 1 seg para acabar a duração proposta, desce com fade
+                        if (vid.currentTime >= mid + durationToPlay - 1 && vid.style.opacity !== '0') {
                             vid.style.opacity = '0';
                             img.style.opacity = '0.6'; // Garante fundo liso
                             if(!vid.muted) window.fadeAudio(vid, vid.volume, 0, 1000);
                         }
-                        if (vid.currentTime >= mid + 15) {
-                            // Retorna o ciclo com fade in
+                        
+                        // Ao atingir o limite ou fim do vídeo, reinicia o loop do trailer (Background de Detalhes)
+                        if (vid.currentTime >= mid + durationToPlay || vid.ended) {
                             vid.currentTime = mid;
                             vid.style.opacity = '0.6';
                             img.style.opacity = '0';
@@ -1479,9 +1606,9 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             window.startHeroAutoCycle();
         };
 
-        window.playTrailerDetails = function() {
-            window.abrirPlayerFull(true);
-            window.showToast("Reproduzindo Trailer...");
+        window.playTrailerDetails = function(url = null) {
+            window.abrirPlayerFull(true, url);
+            window.showToast("A reproduzir o Trailer...");
         };
 
         window.switchDetailsTab = function(tabName) {
@@ -1583,16 +1710,19 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
         playerDiv.addEventListener('touchstart', showPlayerControls, { passive: true });
         mainVid.addEventListener('click', () => window.togglePlayerPlay());
 
-        window.abrirPlayerFull = function(isTrailer = false) {
-            // INTERCEÇÃO DE LOGIN: Se não for trailer e o user for anônimo, exige login
-            if (!isTrailer && (!currentUser || currentUser.isAnonymous)) {
-                window.showToast("Faça login para assistir ao conteúdo completo.");
-                window.openLoginModal();
-                return;
+        window.abrirPlayerFull = function(isTrailer = false, specificUrl = null) {
+            const isAnon = (!currentUser || currentUser.isAnonymous);
+
+            // INTERCEÇÃO DE CADASTRO: Se o usuário for anônimo, ele só pode assistir ao trailer.
+            if (!isTrailer && isAnon) {
+                window.showToast("A reproduzir o trailer. Registe-se para assistir ao filme completo.");
+                isTrailer = true;
             }
 
-            if(!window.currentDestaqueData || !window.currentDestaqueData.videoUrl) return window.showToast("Vídeo não cadastrado!", true);
+            if(!window.currentDestaqueData || !window.currentDestaqueData.videoUrl) return window.showToast("Vídeo não registado!", true);
             
+            window.isWatchingTrailer = isTrailer;
+
             // Performance TV: Reinicialização total do buffer
             mainVid.pause();
             mainVid.src = "";
@@ -1611,12 +1741,23 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             
             document.getElementById('player-full-title').innerText = isTrailer ? `Trailer: ${window.currentDestaqueData.titulo}` : window.currentDestaqueData.titulo;
             
-            // Se for trailer, preferimos usar a URL de trailer enviada pelo Admin, se não, usamos o vídeo original
-            if (isTrailer && window.currentDestaqueData.trailerUrl) {
-                mainVid.src = window.currentDestaqueData.trailerUrl;
-            } else {
-                mainVid.src = window.currentDestaqueData.videoUrl;
+            let urlParaTocar = window.currentDestaqueData.videoUrl;
+            let isOficialTrailer = false;
+
+            if (isTrailer) {
+                if (specificUrl) {
+                    urlParaTocar = specificUrl;
+                    isOficialTrailer = true;
+                } else if (window.currentDestaqueData.trailers && window.currentDestaqueData.trailers.length > 0) {
+                    urlParaTocar = window.currentDestaqueData.trailers[0].url;
+                    isOficialTrailer = true;
+                } else if (window.currentDestaqueData.trailerUrl) {
+                    urlParaTocar = window.currentDestaqueData.trailerUrl;
+                    isOficialTrailer = true;
+                }
             }
+            
+            mainVid.src = urlParaTocar;
             
             playerDiv.classList.remove('hidden');
             
@@ -1638,8 +1779,12 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             mainVid.onloadedmetadata = () => {
                 if (isTrailer) {
                     let startPos = 0;
-                    if (mainVid.duration > 60) {
-                        startPos = mainVid.duration / 2;
+                    let durationToPlay = 15; // padrão 15s para Fallback
+                    
+                    if (!isOficialTrailer && mainVid.duration > 60) {
+                        startPos = mainVid.duration / 2; // Pula pro meio no fallback
+                    } else if (isOficialTrailer && isFinite(mainVid.duration)) {
+                        durationToPlay = mainVid.duration; // Toca inteiro se for trailer oficial
                     }
                     
                     mainVid.currentTime = startPos;
@@ -1657,17 +1802,24 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                     }
                     
                     const checkTrailerEnd = () => {
-                        // Fade Out Visual e Áudio faltando 1 segundo
-                        if (mainVid.currentTime >= startPos + 14 && mainVid.style.opacity !== '0') {
+                        // Fade Out Visual e Áudio faltando 1 segundo pro final da exibição do trailer
+                        if (mainVid.currentTime >= startPos + durationToPlay - 1 && mainVid.style.opacity !== '0') {
                             mainVid.style.opacity = '0';
                             window.fadeAudio(mainVid, mainVid.volume, 0, 1000);
                         }
 
-                        if (mainVid.currentTime >= startPos + 15 || mainVid.ended) {
+                        if (mainVid.currentTime >= startPos + durationToPlay || mainVid.ended) {
                             mainVid.removeEventListener('timeupdate', checkTrailerEnd);
                             if(document.getElementById('trailer-cta-container').classList.contains('hidden')) return; // Usuário já clicou em assistir completo
-                            window.fecharPlayerFull();
-                            window.showToast("Finalizando trailer...");
+                            
+                            window.fecharPlayerFull(); // Retorna automaticamente para a aba Detalhes
+                            
+                            // GATILHO DE CADASTRO OBRIGATÓRIO (MODAL) SE FOR ANÔNIMO
+                            if (isAnon) {
+                                setTimeout(() => {
+                                    window.openLoginPrompt();
+                                }, 600);
+                            }
                         }
                     };
                     mainVid.addEventListener('timeupdate', checkTrailerEnd);
@@ -1692,6 +1844,17 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
         };
 
         window.assistirVideoCompleto = function() {
+            const isAnon = (!currentUser || currentUser.isAnonymous);
+            
+            // SE O UTILIZADOR FOR ANÓNIMO E TENTAR CLICAR EM "VÍDEO COMPLETO" DURANTE O TRAILER
+            if (isAnon) {
+                window.fecharPlayerFull();
+                setTimeout(() => {
+                    window.openLoginPrompt();
+                }, 500);
+                return;
+            }
+
             mainVid.removeEventListener('timeupdate', window.currentTrailerListener);
             document.getElementById('trailer-cta-container').classList.add('hidden');
             controlsUI.classList.remove('hidden');
@@ -1734,6 +1897,8 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 window.ignoreNextPopState = true;
                 history.back();
             }
+
+            window.isWatchingTrailer = false; // Libera a trava do Trailer
             
             // Se o Detalhes estiver aberto, deixa o vídeo do detalhes tocar. Se não, volta pro Hero.
             if(!document.getElementById('view-details').classList.contains('hidden')) {
@@ -1790,7 +1955,8 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             const timeLeft = mainVid.duration - mainVid.currentTime;
             const overlay = document.getElementById('next-video-overlay');
             
-            if (timeLeft <= 6 && !nextVideoTriggered && !window.isMandatoryTrailer) {
+            // Oculta o Próximo Vídeo se estivermos a reproduzir um Trailer
+            if (timeLeft <= 6 && !nextVideoTriggered && !window.isMandatoryTrailer && !window.isWatchingTrailer) {
                 const playList = window.masterPlayOrder && window.masterPlayOrder.length > 0 ? window.masterPlayOrder : cacheCatalogo;
                 if (playList && playList.length > 1) {
                     const currentIndex = playList.findIndex(v => v.id === window.currentDestaqueData.id);
@@ -1811,14 +1977,14 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 }
             }
 
-            if (nextVideoTriggered && timeLeft > 0 && timeLeft <= 6 && !window.isMandatoryTrailer) {
+            if (nextVideoTriggered && timeLeft > 0 && timeLeft <= 6 && !window.isMandatoryTrailer && !window.isWatchingTrailer) {
                 const count = Math.max(0, Math.floor(timeLeft - 1));
                 document.getElementById('next-timer-text').innerText = count;
                 const offset = 126 - ( (5 - count) * (126 / 5) );
                 document.getElementById('countdown-circle').style.strokeDashoffset = offset;
             }
 
-            if (timeLeft <= 0.5 && nextVideoTriggered && !window.isMandatoryTrailer) {
+            if (timeLeft <= 0.5 && nextVideoTriggered && !window.isMandatoryTrailer && !window.isWatchingTrailer) {
                 nextVideoTriggered = false;
                 window.playNextVideo();
             }
@@ -1885,7 +2051,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
         });
 
         // ==========================================
-        // GESTÃO DE NEXT VIDEO E ANÚNCIOS (COM FADE)
+        // GESTÃO DE NEXT VIDEO E ANÚNCIOS (COM FADE E FALLBACK)
         // ==========================================
         window.videoSessionCount = 0;
         window.isAdsApproved = false;
@@ -1936,6 +2102,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             
             let adVideoUrl = "";
             let adTitle = "Sugestão A&M";
+            let isFallbackLongVideo = false;
 
             // Escolhe anúncios exclusivos subidos no Painel Admin ou usa o catálogo como fallback
             if (window.adsConfig && window.adsConfig.videos && window.adsConfig.videos.length > 0) {
@@ -1944,10 +2111,14 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 adVideoUrl = randomAd.url;
                 adTitle = randomAd.nome || "Publicidade";
             } else {
-                const outrosVideos = cacheCatalogo.filter(v => v.id !== window.currentDestaqueData.id && v.videoUrl);
+                const outrosVideos = cacheCatalogo.filter(v => v.id !== window.currentDestaqueData.id && (v.trailerUrl || v.videoUrl));
                 const randomVideo = outrosVideos.length > 0 ? outrosVideos[Math.floor(Math.random() * outrosVideos.length)] : window.currentDestaqueData;
-                adVideoUrl = randomVideo.videoUrl || "";
+                
+                adVideoUrl = randomVideo.trailerUrl || randomVideo.videoUrl || "";
                 adTitle = `Sugestão: ${randomVideo.titulo || 'A&M'}`;
+                
+                // Marca se tivemos que puxar o filme grande por não ter um trailer
+                isFallbackLongVideo = !randomVideo.trailerUrl && (randomVideo.videoUrl === adVideoUrl);
             }
 
             controlsUI.classList.add('hidden');
@@ -1965,10 +2136,16 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 mainVid.volume = 0;
 
                 let startPos = 0;
-                if (mainVid.duration > 60) {
+                // Se pegou um vídeo gigante e não um trailer oficial, puxa pro meio
+                if (isFallbackLongVideo && mainVid.duration > 60) {
                     startPos = mainVid.duration / 2;
                 }
                 mainVid.currentTime = startPos;
+                
+                let durationOfAd = 15; // padrão 15s se for fallback
+                if (!isFallbackLongVideo && isFinite(mainVid.duration) && mainVid.duration > 0) {
+                    durationOfAd = Math.floor(mainVid.duration);
+                }
 
                 mainVid.play().then(() => {
                     mainVid.style.opacity = '1';
@@ -1976,21 +2153,20 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 }).catch(e => { console.warn("Erro autoplay propaganda", e); });
 
                 let elapsed = 0;
-                const duration = 15; // Mantém a regra de 15 segundos ou termina se o vídeo for menor
                 
                 window.mandatoryInterval = setInterval(() => {
                     elapsed++;
-                    const pct = (elapsed / duration) * 100;
+                    const pct = (elapsed / durationOfAd) * 100;
                     document.getElementById('mandatory-progress-fill').style.width = pct + '%';
-                    document.getElementById('mandatory-countdown-text').innerText = `Próximo vídeo em ${duration - elapsed}s`;
+                    document.getElementById('mandatory-countdown-text').innerText = `Próximo vídeo em ${Math.max(0, durationOfAd - elapsed)}s`;
 
                     // Fade Out no último segundo do anúncio
-                    if (elapsed === duration - 1) {
+                    if (elapsed === durationOfAd - 1) {
                         mainVid.style.opacity = '0';
                         window.fadeAudio(mainVid, mainVid.volume, 0, 1000);
                     }
 
-                    if (elapsed >= duration || mainVid.ended) {
+                    if (elapsed >= durationOfAd || mainVid.ended) {
                         clearInterval(window.mandatoryInterval);
                         window.isMandatoryTrailer = false;
                         document.getElementById('mandatory-trailer-overlay').classList.add('hidden');
