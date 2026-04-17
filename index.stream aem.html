@@ -156,7 +156,6 @@
             window.deferredPrompt = e;
         });
 
-        // O botão agora fica visível por padrão no HTML
         window.triggerInstall = () => { document.getElementById('install-modal').classList.remove('hidden'); };
         window.closeInstallModal = () => { document.getElementById('install-modal').classList.add('hidden'); };
 
@@ -197,18 +196,16 @@
 
         window.installAsAPK = () => {
             runProcessingAnimation(() => {
-                // Prioriza a URL do painel admin, caso contrário usa o link direto fornecido (app-debug.apk)
                 const apkUrl = (window.brandingConfig?.apkUrl && window.brandingConfig.apkUrl.trim() !== "") 
                     ? window.brandingConfig.apkUrl 
                     : "https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev/aem%20streaming.apk";
 
                 if(typeof window.showToast === 'function') window.showToast("Iniciando download direto do instalador...");
                 
-                // Cria um elemento de ancoragem temporário para disparar o download imediato
                 const link = document.createElement('a');
                 link.href = apkUrl;
                 link.setAttribute('download', 'A&M_Streaming.apk');
-                link.target = "_self"; // Garante que a operação ocorra na mesma janela para evitar popups
+                link.target = "_self";
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
@@ -505,13 +502,12 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
         </div>
     </div>
 
-    <!-- MODAL PERFIL USUÁRIO (LIGAÇÃO DIRETA COM CRM) -->
+    <!-- MODAL PERFIL USUÁRIO -->
     <div id="registration-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
         <div class="bg-brand-panel border border-brand-gold/30 rounded-3xl w-full max-w-md p-8 shadow-2xl relative">
             <h2 class="text-brand-gold text-lg font-bold mb-1 uppercase tracking-wide text-center">Configurações de Perfil</h2>
             <p id="profile-welcome-msg" class="text-white text-xs text-center mb-5 opacity-70">Olá! Bem-vindo ao seu espaço A&M.</p>
             
-            <!-- Foto de Perfil / Logo Empresa -->
             <div class="flex flex-col items-center mb-6">
                 <div class="relative group">
                     <div class="w-20 h-20 rounded-full bg-[#2A2C33] border-2 border-brand-gold/30 overflow-hidden flex items-center justify-center shadow-lg">
@@ -662,7 +658,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
 
     <!-- PLAYER DE VÍDEO FULLSCREEN ESTILO NETFLIX -->
     <div id="netflix-player" class="hidden fixed inset-0 z-[100] bg-black flex flex-col justify-center items-center">
-        <video id="main-full-video" class="w-full h-full object-contain absolute inset-0 cursor-pointer" playsinline preload="auto"></video>
+        <video id="main-full-video" class="w-full h-full object-contain absolute inset-0 cursor-pointer transition-opacity duration-1000" playsinline preload="auto"></video>
 
         <!-- Overlay de Trailer Obrigatório (Propaganda) -->
         <div id="mandatory-trailer-overlay" class="hidden absolute inset-0 z-[80] pointer-events-none flex flex-col justify-end">
@@ -677,7 +673,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             </div>
         </div>
         
-        <!-- CTA Trailer: Voltar e Assistir Vídeo Completo (MENORES E À DIREITA) -->
+        <!-- CTA Trailer: Voltar e Assistir Vídeo Completo -->
         <div id="trailer-cta-container" class="hidden absolute bottom-12 right-6 md:right-16 z-[70] flex items-center gap-3">
             <button onclick="window.fecharPlayerFull()" class="focusable bg-black/60 backdrop-blur-md border border-white/20 hover:bg-white/10 text-white px-5 py-2.5 rounded-lg font-bold flex items-center gap-2 transition-all text-xs md:text-sm uppercase tracking-tight" tabindex="0">
                 <i class="ph ph-arrow-left text-lg"></i> VOLTAR
@@ -788,28 +784,60 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
         let curtidasDocs = [];
         window.currentDestaqueData = null;
         window.authMode = 'login';
+        window.ignoreNextPopState = false; // TRAVA DE HISTÓRICO GLOBAL
+        
+        let userProfileUnsubscribe = null;
+
+        // MOTOR GLOBAL DE FADE IN/OUT ÁUDIO (Suavização de Transição)
+        window.fadeAudio = function(video, startVol, endVol, duration) {
+            if (!video) return;
+            let start = null;
+            video.volume = startVol;
+            const step = (timestamp) => {
+                if (!start) start = timestamp;
+                const progress = Math.min((timestamp - start) / duration, 1);
+                video.volume = startVol + (endVol - startVol) * progress;
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        };
 
         // AUTH & INITS
         onAuthStateChanged(auth, (user) => {
             currentUser = user;
             if (user) {
-                // Se o utilizador logou de verdade (não anônimo), preenchemos os campos do perfil
                 if (!user.isAnonymous) {
                     document.getElementById('profile-email-display').innerText = user.email;
-                    // Tenta buscar dados do Firestore para preencher nome e telefone
-                    getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_registrations', user.uid)).then(snap => {
+                    
+                    // ESCUTA EM TEMPO REAL OS DADOS E STATUS DE AD DO USUÁRIO LOGADO
+                    if (userProfileUnsubscribe) userProfileUnsubscribe();
+                    userProfileUnsubscribe = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'user_registrations', user.uid), (snap) => {
                         if(snap.exists()){
                             const d = snap.data();
                             document.getElementById('reg-nome').value = d.nome || "";
                             document.getElementById('reg-telefone').value = d.telefone || "";
                             
-                            // Carrega Foto e Mensagem de Boas-Vindas
                             if(d.nome) document.getElementById('profile-welcome-msg').innerText = `Bem-vindo de volta, ${d.nome.split(' ')[0]}!`;
                             if(d.photoUrl) {
                                 currentProfilePhotoUrl = d.photoUrl;
                                 const img = document.getElementById('profile-img-preview');
                                 img.src = d.photoUrl; img.classList.remove('hidden');
                                 document.getElementById('profile-img-icon').classList.add('hidden');
+                            }
+
+                            // A MÁGICA EM TEMPO REAL: Sincronia instantânea de Ad-Free
+                            if (d.statusAds === 'aprovado') {
+                                window.isAdsApproved = true;
+                                localStorage.setItem('am_adfree', 'true');
+                                const btn = document.getElementById('btn-remover-propaganda');
+                                if(btn) btn.classList.add('hidden');
+                            } else {
+                                window.isAdsApproved = false;
+                                localStorage.removeItem('am_adfree');
+                                const btn = document.getElementById('btn-remover-propaganda');
+                                if(btn) btn.classList.remove('hidden');
                             }
                         }
                     });
@@ -823,11 +851,24 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 window.carregarCatalogoRealtime();
                 window.carregarMinhaListaRealtime();
                 window.carregarCurtidasRealtime();
+                window.carregarConfigAnunciosRealtime();
             } else {
-                // Se não há user nenhum (nem anônimo), loga anônimo por padrão para leitura de dados
                 signInAnonymously(auth);
             }
         });
+
+        // ==========================================
+        // CONFIGURAÇÕES DE ANÚNCIOS EM TEMPO REAL
+        // ==========================================
+        window.adsConfig = { frequencia: 3, videos: [] };
+        
+        window.carregarConfigAnunciosRealtime = function() {
+            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'configuracoes', 'anuncios'), (snap) => {
+                if(snap.exists()) {
+                    window.adsConfig = snap.data();
+                }
+            });
+        };
 
         // SISTEMA DE LOGIN / REGISTRO
         window.openLoginModal = () => {
@@ -961,8 +1002,8 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                     updatedAt: new Date().getTime()
                 };
 
-                // Salva os dados vinculados ao UID do utilizador real
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_registrations', currentUser.uid), payload);
+                // Salva os dados vinculados ao UID do utilizador real (aqui o onSnapshot já dispara se mudarmos o status)
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_registrations', currentUser.uid), payload, { merge: true });
 
                 // Envia para o CRM (Leads) usando o telefone como ID para manter compatibilidade
                 const telefoneID = telefoneInput.replace(/\D/g, ''); 
@@ -970,7 +1011,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                     ...payload,
                     empresa: "Utilizador Autenticado",
                     createdAt: new Date().getTime()
-                });
+                }, { merge: true });
 
                 window.showToast("Perfil atualizado!");
                 document.getElementById('profile-welcome-msg').innerText = `Bem-vindo de volta, ${nome.split(' ')[0]}!`;
@@ -1204,7 +1245,10 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             const btnMute = document.getElementById('btn-mute-hero');
             
             heroVideo.pause(); heroVideo.removeAttribute('src'); heroVideo.load();
-            heroImg.src = data.capaUrl; heroImg.style.opacity = '0.7'; heroVideo.style.opacity = '0'; btnMute.classList.add('hidden');
+            heroImg.src = data.capaUrl; 
+            heroImg.style.opacity = '0.7'; 
+            heroVideo.style.opacity = '0'; 
+            btnMute.classList.add('hidden');
             
             clearTimeout(window.heroTimeout); clearTimeout(window.videoTimeout);
             const isPlayerOpen = !document.getElementById('netflix-player').classList.contains('hidden');
@@ -1213,15 +1257,33 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             // Só roda o trailer na home se não estiver no player e NÃO estiver na aba de detalhes
             if (data.videoUrl && data.videoUrl.trim() !== "" && !isPlayerOpen && !isDetailsOpen) {
                 window.heroTimeout = setTimeout(() => {
-                    heroVideo.src = data.videoUrl; heroVideo.muted = true;
+                    heroVideo.src = data.videoUrl; 
+                    heroVideo.muted = true; // Por padrão na home é mutado
+                    heroVideo.volume = 0; // Prepara para fade in caso desmute
                     
                     const heroPlay = heroVideo.play();
                     if (heroPlay !== undefined) {
-                        heroPlay.catch(e => {}); // Silencia AbortError ao mudar o trilho rapidamente
-                    }
+                        heroPlay.then(() => {
+                            heroImg.style.opacity = '0'; 
+                            heroVideo.style.opacity = '0.7'; 
+                            btnMute.classList.remove('hidden'); 
+                            
+                            // Aplica o fade de áudio caso o vídeo não esteja mutado no player
+                            if (!heroVideo.muted) window.fadeAudio(heroVideo, 0, 1, 1000);
 
-                    heroImg.style.opacity = '0'; heroVideo.style.opacity = '0.7'; btnMute.classList.remove('hidden'); 
-                    window.videoTimeout = setTimeout(() => { heroVideo.pause(); heroImg.style.opacity = '0.7'; heroVideo.style.opacity = '0'; btnMute.classList.add('hidden'); }, 8000);
+                            // Programa o Fade Out e pausa
+                            window.videoTimeout = setTimeout(() => { 
+                                heroVideo.style.opacity = '0'; 
+                                heroImg.style.opacity = '0.7'; 
+                                btnMute.classList.add('hidden'); 
+                                
+                                if (!heroVideo.muted) window.fadeAudio(heroVideo, heroVideo.volume, 0, 1000);
+                                
+                                // Pausa após o final do fade out
+                                setTimeout(() => { heroVideo.pause(); }, 1000);
+                            }, 7000); // 7s rodando + 1s de fade out = 8s no total
+                        }).catch(e => {}); 
+                    }
                 }, 100);
             }
         };
@@ -1350,13 +1412,17 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             img.style.opacity = '0.6';
             vid.style.opacity = '0';
             
-            if (data.videoUrl) {
-                vid.src = data.videoUrl;
+            // Usamos o Trailer Oficial (se cadastrado no Admin), senão usamos o vídeo completo.
+            const urlDoTrailerParaTocar = data.trailerUrl || data.videoUrl;
+
+            if (urlDoTrailerParaTocar) {
+                vid.src = urlDoTrailerParaTocar;
                 vid.muted = true;
+                vid.volume = 0; // Prepara para fade in
                 
                 vid.onloadedmetadata = () => {
-                    // Pula para a metade do vídeo
-                    const mid = vid.duration > 30 ? vid.duration / 2 : 0;
+                    // Pula para a metade do vídeo (apenas se for o vídeo completo grande)
+                    const mid = (vid.duration > 60) ? vid.duration / 2 : 0;
                     vid.currentTime = mid;
                     
                     const playPromise = vid.play();
@@ -1365,14 +1431,25 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                             setTimeout(() => {
                                 vid.style.opacity = '0.6';
                                 img.style.opacity = '0';
+                                if (!vid.muted) window.fadeAudio(vid, 0, 1, 1000);
                             }, 300);
                         }).catch(e => { console.warn("Autoplay prevenido", e); });
                     }
 
-                    // Faz o loop do snippet de 15 segundos
+                    // Faz o loop do snippet de 15 segundos com FADE OUT e IN
                     vid.ontimeupdate = () => {
+                        if (vid.currentTime >= mid + 14 && vid.style.opacity !== '0') {
+                            // Faltando 1 segundo para acabar, inicia fade out
+                            vid.style.opacity = '0';
+                            img.style.opacity = '0.6'; // Garante fundo liso
+                            if(!vid.muted) window.fadeAudio(vid, vid.volume, 0, 1000);
+                        }
                         if (vid.currentTime >= mid + 15) {
+                            // Retorna o ciclo com fade in
                             vid.currentTime = mid;
+                            vid.style.opacity = '0.6';
+                            img.style.opacity = '0';
+                            if(!vid.muted) window.fadeAudio(vid, 0, 1, 1000);
                         }
                     };
                 };
@@ -1385,7 +1462,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             history.pushState({ detailsOpen: true }, null);
         };
 
-        window.fecharDetalhes = function() {
+        window.fecharDetalhes = function(fromPopstate = false) {
             document.getElementById('view-details').classList.add('hidden');
             document.getElementById('view-home').classList.remove('hidden');
             
@@ -1393,7 +1470,12 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             vid.pause();
             vid.ontimeupdate = null; // Limpa o loop
 
-            if (history.state && history.state.detailsOpen) history.back();
+            // Se a função foi chamada via botão da interface, mandamos recuar no histórico
+            if (fromPopstate !== true && history.state && history.state.detailsOpen) {
+                window.ignoreNextPopState = true;
+                history.back();
+            }
+
             window.startHeroAutoCycle();
         };
 
@@ -1473,7 +1555,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
 
 
         // ==========================================
-        // MOTOR DO PLAYER SUPREMO (RESTAURADO E PROTEGIDO CONTRA ABORTERROR)
+        // MOTOR DO PLAYER SUPREMO COM TRANSIÇÕES FADE
         // ==========================================
         const mainVid = document.getElementById('main-full-video');
         const playerDiv = document.getElementById('netflix-player');
@@ -1528,7 +1610,14 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             if(detailsVid) detailsVid.pause();
             
             document.getElementById('player-full-title').innerText = isTrailer ? `Trailer: ${window.currentDestaqueData.titulo}` : window.currentDestaqueData.titulo;
-            mainVid.src = window.currentDestaqueData.videoUrl;
+            
+            // Se for trailer, preferimos usar a URL de trailer enviada pelo Admin, se não, usamos o vídeo original
+            if (isTrailer && window.currentDestaqueData.trailerUrl) {
+                mainVid.src = window.currentDestaqueData.trailerUrl;
+            } else {
+                mainVid.src = window.currentDestaqueData.videoUrl;
+            }
+            
             playerDiv.classList.remove('hidden');
             
             // Reset de interface
@@ -1545,14 +1634,36 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 document.getElementById('trailer-cta-container').classList.add('hidden');
             }
 
-            // Lógica de Tempo do Trailer
+            // Lógica de Tempo e Fade Suave para Trailer Aberto
             mainVid.onloadedmetadata = () => {
                 if (isTrailer) {
-                    const middle = mainVid.duration > 30 ? mainVid.duration / 2 : 0;
-                    mainVid.currentTime = middle;
+                    let startPos = 0;
+                    if (mainVid.duration > 60) {
+                        startPos = mainVid.duration / 2;
+                    }
+                    
+                    mainVid.currentTime = startPos;
+                    mainVid.volume = 0; // Prepara áudio zerado
+                    mainVid.style.opacity = '0'; // Imagem escura inicial
+
+                    const startPlay = mainVid.play();
+                    if (startPlay !== undefined) {
+                        startPlay.then(() => {
+                            mainVid.style.opacity = '1';
+                            window.fadeAudio(mainVid, 0, 1, 1000); // Fade In
+                        }).catch(e => { 
+                            if(e.name !== 'AbortError') { mainVid.muted = true; mainVid.play().catch(()=>{}); } 
+                        });
+                    }
                     
                     const checkTrailerEnd = () => {
-                        if (mainVid.currentTime >= middle + 15) {
+                        // Fade Out Visual e Áudio faltando 1 segundo
+                        if (mainVid.currentTime >= startPos + 14 && mainVid.style.opacity !== '0') {
+                            mainVid.style.opacity = '0';
+                            window.fadeAudio(mainVid, mainVid.volume, 0, 1000);
+                        }
+
+                        if (mainVid.currentTime >= startPos + 15 || mainVid.ended) {
                             mainVid.removeEventListener('timeupdate', checkTrailerEnd);
                             if(document.getElementById('trailer-cta-container').classList.contains('hidden')) return; // Usuário já clicou em assistir completo
                             window.fecharPlayerFull();
@@ -1562,20 +1673,18 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                     mainVid.addEventListener('timeupdate', checkTrailerEnd);
                     window.currentTrailerListener = checkTrailerEnd;
                 } else {
+                    mainVid.style.opacity = '1';
+                    mainVid.volume = 1;
                     mainVid.removeEventListener('timeupdate', window.currentTrailerListener);
+                    
+                    const startPlay = mainVid.play();
+                    if (startPlay !== undefined) {
+                        startPlay.catch(err => { 
+                            if(err.name !== 'AbortError') { mainVid.muted = true; mainVid.play().catch(()=>{}); } 
+                        });
+                    }
                 }
             };
-
-            const startPlay = mainVid.play();
-            if (startPlay !== undefined) {
-                startPlay.catch(err => { 
-                    if(err.name !== 'AbortError') { 
-                        mainVid.muted = true; 
-                        const retryPlay = mainVid.play();
-                        if (retryPlay !== undefined) retryPlay.catch(()=>{});
-                    } 
-                });
-            }
             
             document.getElementById('control-play-icon').classList.replace('ph-play', 'ph-pause');
             document.getElementById('center-play-icon').classList.add('hidden');
@@ -1586,22 +1695,45 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             mainVid.removeEventListener('timeupdate', window.currentTrailerListener);
             document.getElementById('trailer-cta-container').classList.add('hidden');
             controlsUI.classList.remove('hidden');
-            mainVid.currentTime = 0; // Reinicia o vídeo do começo ou de onde parou conforme preferência
+            
+            // Restaura Visibilidade Global caso venha de um trailer com Fade
+            mainVid.style.opacity = '1';
+            window.fadeAudio(mainVid, mainVid.volume, 1, 500); // Traz volume de volta
+
+            // Garantir que a URL do vídeo seja o vídeo completo e não o trailer
+            if (mainVid.src !== window.currentDestaqueData.videoUrl) {
+                mainVid.src = window.currentDestaqueData.videoUrl;
+                mainVid.load();
+                mainVid.play().catch(e => {});
+            } else {
+                mainVid.currentTime = 0; 
+            }
+            
             document.getElementById('player-full-title').innerText = window.currentDestaqueData.titulo;
             showPlayerControls();
         };
 
-        window.fecharPlayerFull = function() {
+        window.fecharPlayerFull = function(fromPopstate = false) {
             if(window.isMandatoryTrailer) return; // Impede fechar durante o anúncio
             clearInterval(window.mandatoryInterval);
             mainVid.removeEventListener('timeupdate', window.currentTrailerListener);
             mainVid.pause(); mainVid.removeAttribute('src'); mainVid.load();
+            
+            // Restaura estado padrao do player no encerramento
+            mainVid.style.opacity = '1';
+            mainVid.volume = 1;
+
             playerDiv.classList.add('hidden');
             document.getElementById('trailer-cta-container').classList.add('hidden');
             controlsUI.classList.remove('hidden');
 
             if (document.fullscreenElement) document.exitFullscreen();
-            if (history.state && history.state.playerOpen) history.back();
+            
+            // CORREÇÃO DO BOTÃO VOLTAR - IGNORA O PRÓXIMO POPSTATE
+            if (fromPopstate !== true && history.state && history.state.playerOpen) {
+                window.ignoreNextPopState = true;
+                history.back();
+            }
             
             // Se o Detalhes estiver aberto, deixa o vídeo do detalhes tocar. Se não, volta pro Hero.
             if(!document.getElementById('view-details').classList.contains('hidden')) {
@@ -1658,7 +1790,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             const timeLeft = mainVid.duration - mainVid.currentTime;
             const overlay = document.getElementById('next-video-overlay');
             
-            if (timeLeft <= 6 && !nextVideoTriggered) {
+            if (timeLeft <= 6 && !nextVideoTriggered && !window.isMandatoryTrailer) {
                 const playList = window.masterPlayOrder && window.masterPlayOrder.length > 0 ? window.masterPlayOrder : cacheCatalogo;
                 if (playList && playList.length > 1) {
                     const currentIndex = playList.findIndex(v => v.id === window.currentDestaqueData.id);
@@ -1679,14 +1811,14 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 }
             }
 
-            if (nextVideoTriggered && timeLeft > 0 && timeLeft <= 6) {
+            if (nextVideoTriggered && timeLeft > 0 && timeLeft <= 6 && !window.isMandatoryTrailer) {
                 const count = Math.max(0, Math.floor(timeLeft - 1));
                 document.getElementById('next-timer-text').innerText = count;
                 const offset = 126 - ( (5 - count) * (126 / 5) );
                 document.getElementById('countdown-circle').style.strokeDashoffset = offset;
             }
 
-            if (timeLeft <= 0.5 && nextVideoTriggered) {
+            if (timeLeft <= 0.5 && nextVideoTriggered && !window.isMandatoryTrailer) {
                 nextVideoTriggered = false;
                 window.playNextVideo();
             }
@@ -1752,6 +1884,9 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             setTimeout(() => { if(framePreview.style.opacity === '0') framePreview.classList.add('hidden'); }, 200);
         });
 
+        // ==========================================
+        // GESTÃO DE NEXT VIDEO E ANÚNCIOS (COM FADE)
+        // ==========================================
         window.videoSessionCount = 0;
         window.isAdsApproved = false;
 
@@ -1759,7 +1894,6 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             if (window.isTransitioningToNext || window.isMandatoryTrailer) return;
             window.isTransitioningToNext = true;
             
-            // Otimização de Troca de Vídeo (TV)
             mainVid.pause();
             mainVid.removeAttribute('src');
             mainVid.load(); 
@@ -1774,10 +1908,11 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 proximo = playList[(currentIndex + 1) % playList.length];
             }
 
-            // Lógica de Frequência Intercalada (Sorteio entre 2 e 3)
             window.videoSessionCount++;
-            const randomThreshold = Math.random() > 0.5 ? 2 : 3;
-            const shouldShowAd = (window.videoSessionCount % randomThreshold === 0);
+            
+            // Frequência é definida no painel admin (padrão 3)
+            const freq = window.adsConfig?.frequencia || 3;
+            const shouldShowAd = (window.videoSessionCount % freq === 0);
 
             if (shouldShowAd && !window.isAdsApproved) {
                 window.iniciarTrailerObrigatorio(proximo);
@@ -1799,25 +1934,49 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
         window.iniciarTrailerObrigatorio = function(proximoDestino) {
             window.isMandatoryTrailer = true;
             
-            const outrosVideos = cacheCatalogo.filter(v => v.id !== window.currentDestaqueData.id);
-            const randomVideo = outrosVideos.length > 0 ? outrosVideos[Math.floor(Math.random() * outrosVideos.length)] : window.currentDestaqueData;
+            let adVideoUrl = "";
+            let adTitle = "Sugestão A&M";
+
+            // Escolhe anúncios exclusivos subidos no Painel Admin ou usa o catálogo como fallback
+            if (window.adsConfig && window.adsConfig.videos && window.adsConfig.videos.length > 0) {
+                const ads = window.adsConfig.videos;
+                const randomAd = ads[Math.floor(Math.random() * ads.length)];
+                adVideoUrl = randomAd.url;
+                adTitle = randomAd.nome || "Publicidade";
+            } else {
+                const outrosVideos = cacheCatalogo.filter(v => v.id !== window.currentDestaqueData.id && v.videoUrl);
+                const randomVideo = outrosVideos.length > 0 ? outrosVideos[Math.floor(Math.random() * outrosVideos.length)] : window.currentDestaqueData;
+                adVideoUrl = randomVideo.videoUrl || "";
+                adTitle = `Sugestão: ${randomVideo.titulo || 'A&M'}`;
+            }
 
             controlsUI.classList.add('hidden');
             document.getElementById('trailer-cta-container').classList.add('hidden');
             document.getElementById('mandatory-trailer-overlay').classList.remove('hidden');
             document.getElementById('mandatory-progress-fill').style.width = '0%';
-            document.getElementById('mandatory-trailer-title').innerText = `Sugestão: ${randomVideo.titulo}`;
+            document.getElementById('mandatory-trailer-title').innerText = adTitle;
 
-            mainVid.src = randomVideo.videoUrl;
-            mainVid.load(); // Previne travas de src
+            mainVid.src = adVideoUrl;
+            mainVid.load(); 
 
             mainVid.onloadedmetadata = () => {
-                const middle = mainVid.duration > 30 ? mainVid.duration / 2 : 0;
-                mainVid.currentTime = middle;
-                mainVid.play().catch(e => { console.warn("Erro autoplay propaganda", e); });
+                // Inicia opaco e mudo para fazer a transição gradual
+                mainVid.style.opacity = '0';
+                mainVid.volume = 0;
+
+                let startPos = 0;
+                if (mainVid.duration > 60) {
+                    startPos = mainVid.duration / 2;
+                }
+                mainVid.currentTime = startPos;
+
+                mainVid.play().then(() => {
+                    mainVid.style.opacity = '1';
+                    window.fadeAudio(mainVid, 0, 1, 1000); // Fade In Audio 1s
+                }).catch(e => { console.warn("Erro autoplay propaganda", e); });
 
                 let elapsed = 0;
-                const duration = 15;
+                const duration = 15; // Mantém a regra de 15 segundos ou termina se o vídeo for menor
                 
                 window.mandatoryInterval = setInterval(() => {
                     elapsed++;
@@ -1825,12 +1984,21 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                     document.getElementById('mandatory-progress-fill').style.width = pct + '%';
                     document.getElementById('mandatory-countdown-text').innerText = `Próximo vídeo em ${duration - elapsed}s`;
 
-                    if (elapsed >= duration) {
+                    // Fade Out no último segundo do anúncio
+                    if (elapsed === duration - 1) {
+                        mainVid.style.opacity = '0';
+                        window.fadeAudio(mainVid, mainVid.volume, 0, 1000);
+                    }
+
+                    if (elapsed >= duration || mainVid.ended) {
                         clearInterval(window.mandatoryInterval);
                         window.isMandatoryTrailer = false;
                         document.getElementById('mandatory-trailer-overlay').classList.add('hidden');
                         
-                        // Avança para o próximo vídeo em vez de fechar
+                        // Restaura atributos para não estragar o próximo filme
+                        mainVid.style.opacity = '1';
+                        mainVid.volume = 1;
+
                         window.executarTrocaVideo(proximoDestino);
                     }
                 }, 1000);
@@ -1839,7 +2007,9 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
 
         // LÓGICA DE REMOÇÃO DE ANÚNCIOS (LEAD FORM)
         window.openAdsRemovalModal = () => document.getElementById('ads-removal-modal').classList.remove('hidden');
-        window.closeAdsRemovalModal = () => document.getElementById('ads-removal-modal').classList.add('hidden');
+        window.closeAdsRemovalModal = () => { 
+            document.getElementById('ads-removal-modal').classList.add('hidden'); 
+        };
         window.toggleOutrosServicos = () => {
             const val = document.getElementById('ads-servico').value;
             document.getElementById('ads-outros-container').classList.toggle('hidden', val !== 'Outros');
@@ -1861,12 +2031,19 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'leads', leadId), {
                     nome, telefone: tel, servico: serv, mensagem: desc, 
                     origem: "Solicitação Sem Ads", status: "pendente", createdAt: new Date().getTime()
-                });
+                }, { merge: true }); // Salva como merge para não sobescrever caso já exista
+
+                // Se houver usuário logado, atualiza o statusAds no perfil oficial também
+                if (currentUser && !currentUser.isAnonymous) {
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_registrations', currentUser.uid), {
+                        statusAds: "pendente", updatedAt: new Date().getTime()
+                    }, { merge: true });
+                }
 
                 localStorage.setItem('am_ad_requested', leadId);
                 window.showToast("Solicitação enviada! Aguarde a aprovação do administrador.");
                 window.closeAdsRemovalModal();
-                window.checkAdsStatus(); // Inicia monitoramento
+                window.checkAdsStatus(); // Inicia monitoramento caso seja usuário offline
             } catch (err) {
                 window.showToast("Erro ao enviar dados.", true);
             } finally {
@@ -1874,6 +2051,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             }
         };
 
+        // Monitoramento Offline (Para usuários que não tem conta de Email/Senha)
         window.checkAdsStatus = function() {
             const requestedId = localStorage.getItem('am_ad_requested');
             if(!requestedId) return;
@@ -1884,12 +2062,16 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                     localStorage.setItem('am_adfree', 'true');
                     const btn = document.getElementById('btn-remover-propaganda');
                     if(btn) btn.classList.add('hidden');
-                    window.showToast("Anúncios desativados pelo administrador!");
+                } else if(snap.exists() && snap.data().status === 'normal') {
+                    window.isAdsApproved = false;
+                    localStorage.removeItem('am_adfree');
+                    const btn = document.getElementById('btn-remover-propaganda');
+                    if(btn) btn.classList.remove('hidden');
                 }
             });
         };
 
-        // Verifica status inicial
+        // Verifica status inicial do cache
         if(localStorage.getItem('am_adfree') === 'true') {
             window.isAdsApproved = true;
             setTimeout(() => {
@@ -2016,7 +2198,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             if(window.isMandatoryTrailer) {
                 if([13, 37, 38, 39, 40, 27, 8, 461, 10009].includes(e.keyCode)) {
                     e.preventDefault();
-                    window.showToast("Assista ao trailer para continuar...", true);
+                    window.showToast("Assista ao anúncio para continuar...", true);
                     return;
                 }
             }
@@ -2092,17 +2274,24 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             }, 300);
         });
 
-        // Proteção do Botão Voltar do Android
+        // Proteção do Botão Voltar do Android e controle de Histórico
         window.addEventListener('popstate', (e) => {
+            if (window.ignoreNextPopState) {
+                window.ignoreNextPopState = false;
+                return;
+            }
+
             const player = document.getElementById('netflix-player');
             const details = document.getElementById('view-details');
             const auth = document.getElementById('registration-modal');
             const install = document.getElementById('install-modal');
+            const adsRemoval = document.getElementById('ads-removal-modal');
 
-            if (!player.classList.contains('hidden')) { window.fecharPlayerFull(); } 
-            else if (!details.classList.contains('hidden')) { window.fecharDetalhes(); }
-            else if (!auth.classList.contains('hidden')) { window.closeRegistrationModal(); } 
-            else if (!install.classList.contains('hidden')) { window.closeInstallModal(); } 
+            if (!player.classList.contains('hidden')) { window.fecharPlayerFull(true); } 
+            else if (!details.classList.contains('hidden')) { window.fecharDetalhes(true); }
+            else if (adsRemoval && !adsRemoval.classList.contains('hidden')) { window.closeAdsRemovalModal(); history.pushState(null, null); }
+            else if (!auth.classList.contains('hidden')) { window.closeRegistrationModal(); history.pushState(null, null); } 
+            else if (!install.classList.contains('hidden')) { window.closeInstallModal(); history.pushState(null, null); } 
             else { history.pushState(null, null); window.showToast("Pressione Início no controle para sair."); }
         });
         history.pushState(null, null);
