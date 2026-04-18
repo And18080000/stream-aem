@@ -513,6 +513,17 @@
                             <button id="btn-download-details" onclick="toggleDownloadDetails()" title="Transferir para Ver Offline" class="prime-btn focusable" tabindex="0"><i id="details-icon-download" class="ph ph-download-simple text-xl text-white"></i></button>
                         </div>
 
+                        <!-- Mini Barra de Progresso de Download -->
+                        <div id="download-progress-container" class="hidden w-full md:w-80 mb-4 bg-white/5 border border-white/10 p-3 rounded-2xl">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-[9px] text-brand-gold font-black uppercase tracking-widest">A Descarregar...</span>
+                                <span id="download-pct-text" class="text-[10px] text-white font-mono">0%</span>
+                            </div>
+                            <div class="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                <div id="download-progress-fill" class="h-full bg-brand-gold w-0 transition-all duration-300 shadow-[0_0_10px_var(--brand-gold)]"></div>
+                            </div>
+                        </div>
+
                         <button onclick="abrirPlayerFull()" class="focusable w-full md:w-80 bg-white text-black px-8 py-4 rounded-full flex items-center justify-center gap-2 font-black transition hover:bg-gray-200 text-sm shadow-xl" tabindex="0">
                             <i class="ph-fill ph-play text-xl"></i> <span id="details-cta-text">Retomar</span>
                         </button>
@@ -1086,6 +1097,8 @@
                     userProfileUnsubscribe = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'user_registrations', user.uid), (snap) => {
                         if(snap.exists()){
                             const d = snap.data();
+                            // SALVA PARA LOGIN OFFLINE
+                            localStorage.setItem('am_offline_user', JSON.stringify({ uid: user.uid, ...d }));
                             document.getElementById('reg-nome').value = d.nome || "";
                             document.getElementById('reg-telefone').value = d.telefone || "";
                             
@@ -3161,36 +3174,39 @@
             if (!('caches' in window)) return window.showToast("Seu dispositivo não suporta downloads offline.", true);
             
             const btnIcon = document.getElementById('details-icon-download');
+            const progressCont = document.getElementById('download-progress-container');
+            const progressFill = document.getElementById('download-progress-fill');
+            const progressText = document.getElementById('download-pct-text');
+            
             btnIcon.classList.replace('ph-download-simple', 'ph-circle-notch');
             btnIcon.classList.add('animate-spin');
-            window.showToast("Iniciando download... Não feche a aplicação.");
+            progressCont.classList.remove('hidden');
+            
+            window.showToast("A preparar transferência...");
 
             try {
                 const cache = await caches.open(OFFLINE_CACHE_NAME);
-                
-                // Ficheiros para guardar localmente
                 const urls = [data.capaUrl];
                 if(data.videoUrl && data.videoUrl.trim() !== "") urls.push(data.videoUrl);
                 if(data.trailerUrl && data.trailerUrl.trim() !== "") urls.push(data.trailerUrl);
-                
-                // Transfere cada um para o armazenamento permanente de cache do navegador
+
+                let completed = 0;
                 for (const url of urls) {
-                    if(!url || url.trim() === "") continue;
-                    try {
-                        // Tenta baixar com as permissões padrão
-                        const response = await fetch(url);
-                        if (response.ok) {
-                            await cache.put(url, response);
-                        } else {
-                            // Fallback para modo no-cors se o servidor restringir o acesso (Opaque Response)
-                            const opaqueResp = await fetch(url, { mode: 'no-cors' });
-                            await cache.put(url, opaqueResp);
-                        }
-                    } catch (e) {
-                        // Se houver erro de rede ou bloqueio CORS (TypeError), força modo no-cors para garantir o armazenamento
+                    if(!url || url.trim() === "") { completed++; continue; }
+                    
+                    // Lógica de Progresso Real por Ficheiro (Simulada para agregação de UI)
+                    const response = await fetch(url);
+                    if (!response.ok) {
                         const opaqueResp = await fetch(url, { mode: 'no-cors' });
                         await cache.put(url, opaqueResp);
+                    } else {
+                        await cache.put(url, response);
                     }
+                    
+                    completed++;
+                    const pct = Math.round((completed / urls.length) * 100);
+                    progressFill.style.width = pct + '%';
+                    progressText.innerText = pct + '%';
                 }
 
                 // Salva metadados no localStorage para reconstrução da UI em modo avião
@@ -3209,9 +3225,11 @@
                 }
 
                 window.showToast("Conteúdo disponível offline!");
+                setTimeout(() => progressCont.classList.add('hidden'), 2000);
             } catch (err) {
                 console.error(err);
                 window.showToast("Erro no download. Verifique sua conexão.", true);
+                progressCont.classList.add('hidden');
             } finally {
                 btnIcon.classList.replace('ph-circle-notch', 'ph-download-simple');
                 btnIcon.classList.remove('animate-spin');
@@ -3246,11 +3264,34 @@
 
         window.atualizarModoConexao = function() {
             const isOnline = navigator.onLine;
+            const nav = document.querySelector('nav');
+            
             if (!isOnline) {
-                window.showToast("Modo Offline Ativo", true);
+                // TENTA "LOGIN" OFFLINE RECUPERANDO DADOS DO LOCALSTORAGE
+                const offlineUser = JSON.parse(localStorage.getItem('am_offline_user') || 'null');
+                if (offlineUser) {
+                    document.getElementById('profile-welcome-msg').innerText = `Modo Offline: ${offlineUser.nome}`;
+                    if (offlineUser.photoUrl) {
+                        const img = document.getElementById('profile-img-preview');
+                        img.src = offlineUser.photoUrl; img.classList.remove('hidden');
+                        document.getElementById('profile-img-icon').classList.add('hidden');
+                    }
+                }
+
+                // AJUSTA MENU PARA "ABA ÚNICA"
+                if (nav) {
+                    nav.innerHTML = `
+                        <button class="nav-link focusable active pb-1 text-brand-gold font-bold flex items-center gap-2" tabindex="0">
+                            <i class="ph-fill ph-download-simple"></i> DOWNLOADS
+                        </button>
+                    `;
+                }
+
+                window.showToast("Ligação perdida. A mostrar apenas downloads.", true);
                 window.renderizarModoOffline();
             } else {
-                if(window.renderizarTrilhosNaHome) window.renderizarTrilhosNaHome();
+                // RESTAURA MENUS ORIGINAIS AO VOLTAR ONLINE (Recarrega para garantir sincronia completa)
+                if (window.renderizarTrilhosNaHome) window.renderizarTrilhosNaHome();
             }
         };
 
@@ -3258,15 +3299,17 @@
             const offlineList = JSON.parse(localStorage.getItem('am_offline_metadata') || '[]');
             const container = document.getElementById('dynamic-rails-container');
             const sectionLista = document.getElementById('section-minha-lista');
+            const hero = document.querySelector('#view-home > div.relative');
             
             if (sectionLista) sectionLista.classList.add('hidden');
+            if (hero) hero.classList.add('hidden'); // Oculta o Hero online para focar na aba única
             
             if (offlineList.length === 0) {
                 container.innerHTML = `
-                    <div class="flex flex-col items-center justify-center py-32 text-center px-8">
-                        <i class="ph ph-cloud-slash text-6xl text-white/10 mb-4"></i>
-                        <h3 class="text-xl font-bold text-white mb-2 uppercase">Sem Downloads</h3>
-                        <p class="text-brand-text text-sm max-w-xs mx-auto">Conecte-se à internet para baixar conteúdos e assistir quando estiver sem sinal.</p>
+                    <div class="flex flex-col items-center justify-center py-40 text-center px-8">
+                        <i class="ph ph-cloud-slash text-7xl text-white/10 mb-6"></i>
+                        <h3 class="text-2xl font-bold text-white mb-3 uppercase tracking-tighter">Nenhum vídeo disponível</h3>
+                        <p class="text-brand-text text-sm max-w-xs mx-auto leading-relaxed">Os seus downloads aparecerão aqui quando estiver sem internet.</p>
                     </div>
                 `;
                 return;
@@ -3275,12 +3318,15 @@
             let cardsHtml = offlineList.map(item => renderCardPaisagem(item, "text-[var(--brand-gold)]")).join('');
             
             container.innerHTML = `
-                <div class="relative pb-4 animate-fadeIn">
-                    <h3 class="text-lg md:text-xl font-bold mb-6 text-white uppercase tracking-widest flex items-center gap-3">
-                        <i class="ph-fill ph-download-simple text-[var(--brand-gold)]"></i> Meus Downloads
-                    </h3>
-                    <div class="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
-                        ${cardsHtml}
+                <div class="relative pb-10 animate-fadeIn px-4 md:px-0">
+                    <div class="flex items-center justify-between mb-8">
+                        <h3 class="text-xl md:text-2xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
+                            <i class="ph-fill ph-download-simple text-[var(--brand-gold)]"></i> Seus Downloads Offline
+                        </h3>
+                        <span class="text-[10px] bg-brand-gold/10 text-brand-gold px-3 py-1 rounded-full font-bold border border-brand-gold/20">${offlineList.length} TÍTULOS</span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        ${cardsHtml.replace(/min-w-\[220px\]/g, 'w-full')} 
                     </div>
                 </div>
             `;
