@@ -2285,12 +2285,16 @@
 
         window.abrirPlayerFull = function(isTrailer = false, specificUrl = null) {
             const isAnon = (!currentUser || currentUser.isAnonymous);
+            const isOffline = !navigator.onLine;
             
+            // Se estiver offline, força a reprodução do vídeo completo que está em cache
+            if (isOffline) isTrailer = false;
+
             // Reseta estados do próximo vídeo ao iniciar um novo conteúdo
             window.isNextVideoCanceled = false;
             mainVid.loop = false;
 
-            // INTERCEÇÃO DE CADASTRO: Se o usuário for anônimo, ele só pode assistir ao trailer.
+            // INTERCEÇÃO DE CADASTRO: Se o usuário for anônimo e estiver online, ele só pode assistir ao trailer.
             if (!isTrailer && isAnon) {
                 window.showToast("A reproduzir o trailer. Registe-se para assistir ao filme completo.");
                 isTrailer = true;
@@ -3364,6 +3368,7 @@
             const isOnline = navigator.onLine;
             const nav = document.querySelector('nav');
             const searchIcon = document.querySelector('.ph-magnifying-glass');
+            const installBtn = document.getElementById('btn-install-header');
             
             if (!isOnline) {
                 // TENTA "LOGIN" OFFLINE RECUPERANDO DADOS DO LOCALSTORAGE
@@ -3377,19 +3382,20 @@
                     }
                 }
 
-                // AJUSTA INTERFACE PARA "MODO AVIÃO" (Aba Única)
+                // AJUSTA INTERFACE PARA "MODO APP OFFLINE" (Aba Única)
                 if (nav) {
                     nav.innerHTML = `
-                        <div class="flex w-full justify-center">
+                        <div class="flex w-full justify-center items-center">
                             <button class="nav-link active pb-1 text-brand-gold font-black flex items-center gap-3 text-sm md:text-lg tracking-widest" style="border-bottom: 3px solid var(--brand-gold);">
-                                <i class="ph-fill ph-download-simple"></i> DOWNLOADS
+                                <i class="ph-fill ph-download-simple text-xl"></i> MEUS DOWNLOADS
                             </button>
                         </div>
                     `;
                 }
                 if (searchIcon) searchIcon.classList.add('hidden');
+                if (installBtn) installBtn.classList.add('hidden');
 
-                window.showToast("Ligação perdida. Modo Offline Ativado.", true);
+                window.showToast("Ligação perdida. A carregar biblioteca offline.", true);
                 window.renderizarModoOffline();
             } else {
                 // RESTAURA TUDO AO VOLTAR ONLINE
