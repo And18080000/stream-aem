@@ -105,10 +105,10 @@
             transform: translateZ(0);
         }
         .focusable:focus {
-            transform: scale(1.10); z-index: 50;
-            border-color: var(--brand-gold) !important;
-            box-shadow: 0 0 15px var(--brand-gold);
-            filter: brightness(1.1);
+            transform: scale(1.05); z-index: 50;
+            border: 3px solid var(--brand-gold) !important;
+            box-shadow: none !important; /* LEDs removidos para performance TV */
+            filter: none !important;
         }
         #player-controls .focusable:focus {
             box-shadow: none !important; border-color: transparent !important;
@@ -354,8 +354,8 @@
     <!-- HEADER / NAVBAR -->
     <header id="main-header" class="opacity-0 pointer-events-none fixed w-full top-0 z-40 bg-black/90 backdrop-blur-md border-b border-white/5 transition-all py-3 px-4 md:px-8 flex justify-between items-center">
         <div class="flex items-center gap-6 md:gap-10 overflow-x-auto scrollbar-hide">
-            <div class="flex flex-col cursor-pointer shrink-0 items-start" onclick="navigate('home')">
-                <div id="main-logo-text" class="flex flex-col items-start scale-90 origin-left">
+            <div class="flex flex-col cursor-pointer shrink-0 items-start max-w-[140px] md:max-w-none" onclick="navigate('home')">
+                <div id="main-logo-text" class="flex flex-col items-start scale-75 md:scale-90 origin-left">
                     <h1 class="text-xl md:text-2xl font-sans text-white tracking-tighter font-black italic leading-none flex items-baseline gap-1">
                         A&amp;M <span class="text-[var(--prime-blue)] font-light not-italic text-sm md:text-base">streaming</span>
                     </h1>
@@ -401,19 +401,19 @@
                     <i id="icon-mute-hero" class="ph ph-speaker-slash text-xl"></i>
                 </button>
 
-                <div class="absolute bottom-12 md:bottom-1/4 left-4 md:left-16 max-w-3xl z-20 px-4 md:px-0">
-                    <h2 id="hero-title" class="text-4xl md:text-[5rem] leading-none font-bold mb-3 md:mb-6 font-serif text-white tracking-wide drop-shadow-lg transition-all duration-500">O MISTÉRIO DE VERÃO</h2>
-                    <p class="text-white text-sm md:text-lg mb-1 leading-relaxed font-light drop-shadow-md"><span id="hero-selo" class="font-bold text-brand-gold uppercase">A&amp;M ORIGINALS</span> | Selecione um conteúdo abaixo.</p>
-                    <p id="hero-subtitulo" class="text-brand-text text-xs md:text-sm mb-6 md:mb-8 font-medium">Classificação: 14+ | Estreia Exclusiva</p>
+                <div class="absolute bottom-10 md:bottom-1/4 left-4 md:left-16 max-w-3xl z-20 px-4 md:px-0">
+                    <h2 id="hero-title" class="text-3xl md:text-[5rem] leading-tight md:leading-none font-bold mb-3 md:mb-6 font-serif text-white tracking-wide drop-shadow-lg transition-all duration-500">O MISTÉRIO DE VERÃO</h2>
+                    <p class="text-white text-[11px] md:text-lg mb-1 leading-relaxed font-light drop-shadow-md"><span id="hero-selo" class="font-bold text-brand-gold uppercase">A&amp;M ORIGINALS</span> | Selecione abaixo.</p>
+                    <p id="hero-subtitulo" class="text-brand-text text-[10px] md:text-sm mb-6 md:mb-8 font-medium">Classificação: 14+ | Estreia Exclusiva</p>
                     
-                    <div class="flex flex-wrap items-center gap-3 md:gap-5">
-                        <button id="btn-hero-assistir" onclick="event.stopPropagation(); abrirPlayerFull()" class="focusable bg-white hover:bg-gray-200 text-black px-8 md:px-12 py-2.5 md:py-3.5 rounded-full flex items-center gap-2 font-bold transition text-xs md:text-sm shadow-lg" tabindex="0">
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 md:gap-5 w-full sm:w-auto">
+                        <button id="btn-hero-assistir" onclick="event.stopPropagation(); abrirPlayerFull()" class="focusable bg-white hover:bg-gray-200 text-black px-8 md:px-12 py-3 md:py-3.5 rounded-full flex items-center justify-center gap-2 font-bold transition text-xs md:text-sm shadow-lg" tabindex="0">
                             <i class="ph-fill ph-play text-xl"></i> Assistir
                         </button>
-                        <button id="btn-hero-login" onclick="event.stopPropagation(); openLoginPrompt()" class="hidden focusable bg-brand-gold/10 border border-brand-gold/30 text-brand-gold hover:bg-brand-gold/20 px-8 md:px-10 py-2.5 md:py-3.5 rounded-full font-bold transition text-xs md:text-sm flex items-center gap-2" tabindex="0">
+                        <button id="btn-hero-login" onclick="event.stopPropagation(); openLoginPrompt()" class="hidden focusable bg-brand-gold/10 border border-brand-gold/30 text-brand-gold hover:bg-brand-gold/20 px-8 md:px-10 py-3 md:py-3.5 rounded-full font-bold transition text-xs md:text-sm flex items-center justify-center gap-2" tabindex="0">
                             <i class="ph ph-sign-in text-xl"></i> Entrar para Assistir
                         </button>
-                        <button onclick="event.stopPropagation(); abrirDetalhesViaHero()" class="focusable bg-gray-500/50 backdrop-blur-md border border-white/20 hover:bg-gray-500/80 text-white px-8 md:px-10 py-2.5 md:py-3.5 rounded-full font-bold transition text-xs md:text-sm flex items-center gap-2" tabindex="0">
+                        <button onclick="event.stopPropagation(); abrirDetalhesViaHero()" class="focusable bg-gray-500/50 backdrop-blur-md border border-white/20 hover:bg-gray-500/80 text-white px-8 md:px-10 py-3 md:py-3.5 rounded-full font-bold transition text-xs md:text-sm flex items-center justify-center gap-2" tabindex="0">
                             <i class="ph ph-info text-xl"></i> Mais Informações
                         </button>
                     </div>
@@ -450,12 +450,12 @@
                 <div class="absolute inset-0 bg-gradient-to-t from-[#0B0D12] via-[#0B0D12]/70 to-transparent z-10 pointer-events-none"></div>
                 <div class="absolute inset-0 bg-gradient-to-r from-[#0B0D12] via-[#0B0D12]/80 to-transparent z-10 pointer-events-none w-full md:w-3/4"></div>
                 
-                <div class="absolute bottom-10 left-6 md:left-16 right-6 md:right-16 z-20 flex flex-col md:flex-row gap-10 items-end">
+                <div class="absolute bottom-6 md:bottom-10 left-4 md:left-16 right-4 md:right-16 z-20 flex flex-col md:flex-row gap-6 md:gap-10 items-start md:items-end">
                     
                     <!-- Lado Esquerdo: Ações e Título -->
-                    <div class="flex-1 w-full max-w-xl">
-                        <img id="details-brand-logo" src="" class="h-8 md:h-10 object-contain mb-4 hidden">
-                        <h2 id="details-title" class="text-3xl md:text-5xl font-bold mb-6 font-serif text-white tracking-wide drop-shadow-md">TÍTULO</h2>
+                    <div class="flex-1 w-full max-w-xl order-2 md:order-1">
+                        <img id="details-brand-logo" src="" class="h-6 md:h-10 object-contain mb-3 md:mb-4 hidden">
+                        <h2 id="details-title" class="text-2xl md:text-5xl font-bold mb-4 md:mb-6 font-serif text-white tracking-wide drop-shadow-md uppercase">TÍTULO</h2>
                         
                         <div class="flex flex-wrap items-center gap-3 mb-6">
                             <!-- Container dinâmico para os trailers -->
@@ -480,25 +480,25 @@
                             <i class="ph ph-megaphone-slash"></i> Assistir sem propaganda
                         </button>
                         
-                        <p class="text-[11px] text-brand-text mt-3 flex items-center gap-1.5"><i class="ph-fill ph-check-circle text-blue-500 text-base"></i> Incluso com sua assinatura A&M Streaming</p>
+                        <p class="text-[11px] text-brand-text mt-3 flex items-center gap-1.5"><i class="ph-fill ph-check-circle text-blue-500 text-base"></i> Incluso com sua assinatura A&amp;M Streaming</p>
                     </div>
 
                     <!-- Lado Direito: Sinopse e Metadados (PREPARADOS PARA EDIÇÃO DINÂMICA) -->
-                    <div class="flex-1 w-full text-sm text-brand-text mb-2 md:mb-6">
-                        <p id="details-desc" class="text-gray-300 mb-4 leading-relaxed md:line-clamp-4 font-medium text-xs md:text-sm">Descrição aqui...</p>
-                        <div class="flex flex-wrap gap-x-3 gap-y-2 items-center text-[11px] md:text-xs mb-3 font-bold">
+                    <div class="flex-1 w-full text-sm text-brand-text mb-4 md:mb-6 order-1 md:order-2">
+                        <p id="details-desc" class="text-gray-300 mb-4 leading-relaxed md:line-clamp-6 font-medium text-xs md:text-sm">Descrição aqui...</p>
+                        <div class="flex flex-wrap gap-x-2 gap-y-2 items-center text-[9px] md:text-xs mb-3 font-bold">
                             <span id="details-trilho" class="text-white border-b border-white/40 pb-0.5 uppercase tracking-wider">CATEGORIA</span>
                             <span class="dot-separator">•</span>
                             <span id="details-genero1" class="text-white border-b border-white/40 pb-0.5 uppercase tracking-wider">AÇÃO</span>
                             <span class="dot-separator">•</span>
                             <span id="details-genero2" class="text-white border-b border-white/40 pb-0.5 uppercase tracking-wider">EMOCIONANTE</span>
-                            <span id="details-imdb" class="ml-2 text-yellow-500 border border-yellow-500/30 px-1 rounded bg-yellow-500/10">IMDb 8.5/10</span>
-                            <span id="details-ano" class="ml-2 text-gray-400">2024</span>
-                            <span id="details-tempo" class="ml-2 text-gray-400">1 h 48 min</span>
-                            <span id="details-resolucao" class="ml-2 border border-white/30 px-1 rounded text-[10px] text-white bg-white/5 uppercase">4K HDR</span>
+                            <span id="details-imdb" class="ml-1 text-yellow-500 border border-yellow-500/30 px-1 rounded bg-yellow-500/10">IMDb 8.5/10</span>
+                            <span id="details-ano" class="ml-1 text-gray-400">2024</span>
+                            <span id="details-tempo" class="ml-1 text-gray-400">1h 48m</span>
+                            <span id="details-resolucao" class="ml-1 border border-white/30 px-1 rounded text-[8px] text-white bg-white/5 uppercase">4K HDR</span>
                         </div>
-                        <div class="text-[11px] mt-2">
-                            <span class="text-gray-500">Elenco:</span> <span id="details-elenco" class="text-white font-medium">A&M Studios, Convidados Especiais</span>
+                        <div class="text-[10px] md:text-[11px] mt-2">
+                            <span class="text-gray-500">Elenco:</span> <span id="details-elenco" class="text-white font-medium">A&amp;M Studios, Convidados Especiais</span>
                         </div>
                     </div>
                 </div>
@@ -537,15 +537,15 @@
                         <div class="space-y-3 pt-4 border-t border-white/10 text-sm">
                             <div class="grid grid-cols-3 gap-2">
                                 <span class="text-gray-500 font-medium">Diretores</span>
-                                <span class="col-span-2 text-blue-400 font-medium hover:underline cursor-pointer">Direção A&M</span>
+                                <span class="col-span-2 text-blue-400 font-medium hover:underline cursor-pointer">Direção A&amp;M</span>
                             </div>
                             <div class="grid grid-cols-3 gap-2">
                                 <span class="text-gray-500 font-medium">Produtores</span>
-                                <span class="col-span-2 text-blue-400 font-medium hover:underline cursor-pointer">A&M Streaming Originals</span>
+                                <span class="col-span-2 text-blue-400 font-medium hover:underline cursor-pointer">A&amp;M Streaming Originals</span>
                             </div>
                             <div class="grid grid-cols-3 gap-2">
                                 <span class="text-gray-500 font-medium">Estúdio</span>
-                                <span class="col-span-2 text-white font-medium">A&M Studios</span>
+                                <span class="col-span-2 text-white font-medium">A&amp;M Studios</span>
                             </div>
                         </div>
                     </div>
@@ -613,9 +613,9 @@
     <!-- FOOTER -->
     <footer id="main-footer" class="opacity-0 pointer-events-none border-t border-white/10 bg-[#0B0D12] py-6 md:py-8 px-4 md:px-8 mt-auto text-brand-text text-xs flex flex-col md:flex-row justify-between items-center gap-6 text-center z-20 relative">
         <div id="footer-logo" class="flex flex-col items-center md:items-start scale-75 origin-center md:origin-left">
-            <h1 class="text-xl font-sans text-white tracking-tighter font-black italic leading-none flex items-baseline gap-1">
-                A&amp;M <span class="text-[var(--prime-blue)] font-light not-italic text-sm">streaming</span>
-            </h1>
+                <h1 class="text-xl font-sans text-white tracking-tighter font-black italic leading-none flex items-baseline gap-1">
+                    A&amp;M <span class="text-[var(--prime-blue)] font-light not-italic text-sm">streaming</span>
+                </h1>
             <svg class="w-12 h-auto -mt-1 text-[var(--prime-blue)]" viewBox="0 0 100 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M5 8C25 18 75 18 95 8" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
                 <path d="M91 4L97 8L92 14" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -845,12 +845,28 @@
         <!-- VÍDEO PRINCIPAL COM PRELOAD AUTOMÁTICO E POSTER DINÂMICO PARA EVITAR ECRÃS PRETOS -->
         <video id="main-full-video" class="w-full h-full object-contain absolute inset-0 cursor-pointer transition-opacity duration-1000" playsinline preload="auto"></video>
 
+        <!-- Vinheta de Abertura/Fechamento (A&M Streaming) -->
+        <div id="vignette-overlay" class="hidden absolute inset-0 z-[110] bg-black flex flex-col items-center justify-center pointer-events-auto transition-opacity duration-700">
+            <div id="vignette-content" class="flex flex-col items-center opacity-0 transition-all duration-700 ease-out transform scale-90">
+                <h1 class="text-4xl md:text-7xl font-sans text-white tracking-tighter font-black italic leading-none flex items-baseline gap-2">
+                    A&amp;M <span class="text-[var(--prime-blue)] font-light not-italic">streaming</span>
+                </h1>
+                <svg class="w-32 md:w-48 h-auto -mt-3 text-[var(--prime-blue)]" viewBox="0 0 100 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5 8C25 18 75 18 95 8" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
+                    <path d="M91 4L97 8L92 14" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+        </div>
+
         <!-- Overlay de Trailer Obrigatório (Propaganda) -->
         <div id="mandatory-trailer-overlay" class="hidden absolute inset-0 z-[80] pointer-events-none flex flex-col justify-end">
             <div class="p-6 md:p-12 bg-gradient-to-t from-black/80 to-transparent flex flex-col gap-2">
                 <div class="flex justify-between items-end mb-2">
-                    <p id="mandatory-trailer-title" class="text-white font-black text-sm md:text-xl uppercase tracking-tighter italic">Publicidade: Sugestão A&M</p>
-                    <p id="mandatory-countdown-text" class="text-brand-gold font-bold text-xs uppercase">O vídeo continuará em 15s</p>
+                    <div class="flex flex-col">
+                        <span class="bg-brand-gold text-black text-[9px] font-black px-2 py-0.5 rounded w-fit mb-1 tracking-widest uppercase">Propaganda</span>
+                        <p id="mandatory-trailer-title" class="text-white font-bold text-sm md:text-lg uppercase tracking-tight">Sugestão A&amp;M</p>
+                    </div>
+                    <p id="mandatory-countdown-text" class="text-white font-bold text-xs tabular-nums uppercase">O vídeo começa em 00:15</p>
                 </div>
                 <div class="w-full h-1.5 bg-white/20 rounded-full overflow-hidden">
                     <div id="mandatory-progress-fill" class="h-full bg-brand-gold w-0 transition-all duration-1000 linear shadow-[0_0_10px_#D6B778]"></div>
@@ -864,26 +880,31 @@
                 <i class="ph ph-arrow-left text-lg"></i> VOLTAR
             </button>
             <button onclick="window.assistirVideoCompleto()" class="focusable bg-white hover:bg-gray-200 text-black px-5 py-2.5 rounded-lg font-black flex items-center gap-2 shadow-[0_0_20px_rgba(0,0,0,0.4)] hover:scale-105 transition-all text-xs md:text-sm uppercase tracking-tighter" tabindex="0">
-                <i class="ph-fill ph-play text-lg"></i> VÍDEO COMPLETO
+                <i class="ph-fill ph-play text-lg"></i> FILME
             </button>
         </div>
 
-        <!-- Botão Próximo Vídeo -->
-        <div id="next-video-overlay" class="hidden absolute bottom-32 right-8 z-[60]">
-            <button onclick="window.playNextVideo()" class="focusable bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/20 p-3 pr-5 rounded-xl flex items-center gap-3 md:gap-4 transition-all group" tabindex="0">
-                <div class="relative w-16 h-10 md:w-24 md:h-16 rounded-lg overflow-hidden flex-shrink-0 shadow-lg border border-white/10">
-                    <img id="next-video-cover-img" src="" class="w-full h-full object-cover">
-                </div>
-                <div class="relative w-10 h-10 md:w-12 md:h-12 flex items-center justify-center">
-                    <svg class="w-10 h-10 md:w-12 md:h-12"><circle cx="50%" cy="50%" r="40%" stroke="rgba(255,255,255,0.2)" stroke-width="4" fill="transparent" /><circle id="countdown-circle" class="circle-timer" cx="50%" cy="50%" r="40%" stroke="var(--brand-gold)" stroke-width="4" fill="transparent" stroke-dasharray="126" stroke-dashoffset="0" /></svg>
-                    <span id="next-timer-text" class="absolute text-white font-black text-xs md:text-sm">5</span>
-                </div>
-                <div class="text-left">
-                    <p class="text-[8px] md:text-[9px] text-brand-gold font-black uppercase tracking-[0.2em] mb-0.5">A Seguir</p>
-                    <p id="next-video-title-label" class="text-white font-bold text-xs md:text-sm truncate max-w-[120px] md:max-w-[150px]">Título</p>
-                </div>
-                <i class="ph ph-caret-right-bold text-white text-lg md:text-xl group-hover:translate-x-1 transition-transform ml-1"></i>
-            </button>
+        <!-- Botão Próximo Vídeo (Otimizado com Cancelar) -->
+        <div id="next-video-overlay" class="hidden absolute bottom-24 md:bottom-32 right-4 md:right-8 z-[60] flex flex-col items-end gap-2 scale-90 md:scale-100">
+            <div class="flex items-stretch bg-black/80 md:bg-black/60 backdrop-blur-md border border-white/20 rounded-xl overflow-hidden shadow-2xl transition-all">
+                <button onclick="window.playNextVideo()" class="focusable p-2.5 md:p-3 pr-4 md:pr-5 flex items-center gap-3 md:gap-4 group border-r border-white/10 hover:bg-white/5 transition-colors" tabindex="0">
+                    <div class="relative w-14 h-8 md:w-24 md:h-16 rounded-lg overflow-hidden flex-shrink-0 shadow-lg border border-white/10">
+                        <img id="next-video-cover-img" src="" class="w-full h-full object-cover">
+                    </div>
+                    <div class="relative w-10 h-10 md:w-12 md:h-12 flex items-center justify-center">
+                        <svg class="w-10 h-10 md:w-12 md:h-12"><circle cx="50%" cy="50%" r="40%" stroke="rgba(255,255,255,0.2)" stroke-width="4" fill="transparent" /><circle id="countdown-circle" class="circle-timer" cx="50%" cy="50%" r="40%" stroke="var(--brand-gold)" stroke-width="4" fill="transparent" stroke-dasharray="126" stroke-dashoffset="0" /></svg>
+                        <span id="next-timer-text" class="absolute text-white font-black text-xs md:text-sm">5</span>
+                    </div>
+                    <div class="text-left">
+                        <p class="text-[8px] md:text-[9px] text-brand-gold font-black uppercase tracking-[0.2em] mb-0.5">A Seguir</p>
+                        <p id="next-video-title-label" class="text-white font-bold text-xs md:text-sm truncate max-w-[120px] md:max-w-[150px]">Título</p>
+                    </div>
+                    <i class="ph ph-caret-right-bold text-white text-lg md:text-xl group-hover:translate-x-1 transition-transform ml-1"></i>
+                </button>
+                <button onclick="window.cancelNextVideo(event)" class="focusable px-4 flex items-center justify-center bg-red-600/20 hover:bg-red-600/40 text-red-400 transition-colors group/cancel" title="Cancelar e repetir vídeo" tabindex="0">
+                    <i class="ph-bold ph-x text-xl group-hover/cancel:scale-125 transition-transform"></i>
+                </button>
+            </div>
         </div>
 
         <div id="player-controls" class="absolute inset-0 flex flex-col justify-between opacity-0 z-50">
@@ -897,10 +918,10 @@
             <div class="flex-grow flex items-center justify-center pointer-events-none">
                 <div id="center-play-icon" onclick="event.stopPropagation(); togglePlayerPlay()" class="hidden w-24 h-24 bg-black/50 rounded-full flex items-center justify-center cursor-pointer pointer-events-auto active:scale-95 transition-transform"><i class="ph-fill ph-play text-white text-5xl"></i></div>
             </div>
-            <div class="w-full p-6 md:p-8 bg-gradient-to-t from-black/90 via-black/60 to-transparent flex flex-col gap-4">
-                <div class="w-full h-1.5 bg-white/30 cursor-pointer relative rounded-full group netflix-progress-bar" id="progress-container">
+            <div class="w-full p-4 md:p-8 bg-gradient-to-t from-black/90 via-black/60 to-transparent flex flex-col gap-4 md:gap-6">
+                <div class="w-full h-2 md:h-1.5 bg-white/30 cursor-pointer relative rounded-full group netflix-progress-bar" id="progress-container">
                     <div id="progress-bar" class="h-full bg-red-600 rounded-full w-0 relative">
-                        <div id="netflix-progress-thumb" class="absolute right-0 top-1/2 transform translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-red-600 rounded-full shadow transition-transform"></div>
+                        <div id="netflix-progress-thumb" class="absolute right-0 top-1/2 transform translate-x-1/2 -translate-y-1/2 w-5 h-5 md:w-4 md:h-4 bg-red-600 rounded-full shadow transition-transform"></div>
                     </div>
                     <div id="frame-preview" class="hidden absolute bottom-6 left-0 -translate-x-1/2 w-32 md:w-56 aspect-video bg-black border-2 border-white/20 rounded-lg overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.8)] z-50 pointer-events-none transition-opacity duration-200">
                         <video id="preview-frame-video" class="w-full h-full object-cover" muted playsinline></video>
@@ -921,9 +942,9 @@
                     </div>
                     <div id="player-time" class="text-sm md:text-base font-medium font-mono hidden md:block">00:00 / 00:00</div>
                     <div class="flex items-center gap-4 md:gap-6">
-                        <button onclick="togglePiP()" onpointerdown="event.stopPropagation(); togglePiP()" class="focusable hover:text-gray-300 active:scale-90 transition-transform" tabindex="0"><i class="ph ph-projector-screen text-2xl md:text-3xl"></i></button>
-                        <button onclick="toggleRemotePlayback()" onpointerdown="event.stopPropagation(); toggleRemotePlayback()" class="focusable hover:text-gray-300 active:scale-90 transition-transform" tabindex="0"><i class="ph ph-broadcast text-2xl md:text-3xl"></i></button>
-                        <button onclick="toggleFullscreenPlayer()" onpointerdown="event.stopPropagation(); toggleFullscreenPlayer()" class="focusable hover:text-gray-300 active:scale-90 transition-transform" tabindex="0"><i id="control-fs-icon" class="ph ph-corners-out text-2xl md:text-3xl"></i></button>
+                        <button onclick="togglePiP()" class="focusable hover:text-gray-300 active:scale-90 transition-transform" tabindex="0" title="Desprender Vídeo"><i id="pip-icon" class="ph ph-picture-in-picture text-2xl md:text-3xl"></i></button>
+                        <button onclick="toggleRemotePlayback()" class="focusable hover:text-gray-300 active:scale-90 transition-transform" tabindex="0" title="Transmitir para TV"><i class="ph ph-television text-2xl md:text-3xl"></i></button>
+                        <button onclick="toggleFullscreenPlayer()" class="focusable hover:text-gray-300 active:scale-90 transition-transform" tabindex="0"><i id="control-fs-icon" class="ph ph-corners-out text-2xl md:text-3xl"></i></button>
                     </div>
                 </div>
             </div>
@@ -977,17 +998,23 @@
         // MOTOR GLOBAL DE FADE IN/OUT ÁUDIO (Suavização de Transição)
         window.fadeAudio = function(video, startVol, endVol, duration) {
             if (!video) return;
-            let start = null;
-            video.volume = startVol;
-            const step = (timestamp) => {
-                if (!start) start = timestamp;
-                const progress = Math.min((timestamp - start) / duration, 1);
-                video.volume = startVol + (endVol - startVol) * progress;
-                if (progress < 1) {
-                    window.requestAnimationFrame(step);
+            if (video._fadeInterval) clearInterval(video._fadeInterval);
+            
+            let currentVol = startVol;
+            video.volume = currentVol;
+            const steps = 20;
+            const increment = (endVol - startVol) / steps;
+            const stepTime = duration / steps;
+
+            video._fadeInterval = setInterval(() => {
+                currentVol += increment;
+                if ((increment > 0 && currentVol >= endVol) || (increment < 0 && currentVol <= endVol)) {
+                    video.volume = endVol;
+                    clearInterval(video._fadeInterval);
+                } else {
+                    video.volume = Math.max(0, Math.min(1, currentVol));
                 }
-            };
-            window.requestAnimationFrame(step);
+            }, stepTime);
         };
 
         // AUTH & INITS
@@ -1216,7 +1243,11 @@
         // ==========================================
         // MODAL DE CADASTRO DO USUÁRIO
         // ==========================================
-        window.openRegistrationModal = () => { document.getElementById('registration-modal').classList.remove('hidden'); }
+        window.openRegistrationModal = () => { 
+            document.getElementById('registration-modal').classList.remove('hidden');
+            // Foca automaticamente no primeiro input para facilitar uso com controle remoto
+            setTimeout(() => document.getElementById('reg-nome').focus(), 100);
+        }
         window.closeRegistrationModal = () => { document.getElementById('registration-modal').classList.add('hidden'); }
         
         window.previewProfilePhoto = function(e) {
@@ -1351,10 +1382,10 @@
                         let themeMeta = document.querySelector("meta[name='theme-color']");
                         if(themeMeta) themeMeta.content = dados.corPrincipal;
                         
-                        // Atualiza as cores do Neon Focus
+                        // Atualiza os estilos de foco para Smart TV (Sem LEDs/Glow para maior performance)
                         let styleEl = document.getElementById('brand-custom-styles');
                         if (!styleEl) { styleEl = document.createElement('style'); styleEl.id = 'brand-custom-styles'; document.head.appendChild(styleEl); }
-                        styleEl.innerHTML = `.focusable:focus { border-color: ${dados.corPrincipal} !important; box-shadow: 0 0 15px ${dados.corPrincipal}CC, 0 0 30px ${dados.corPrincipal}66, 0 0 45px ${dados.corPrincipal}33 !important; } #toast.bg-green-600 { background-color: ${dados.corPrincipal} !important; color: #000 !important; font-weight: bold; }`;
+                        styleEl.innerHTML = `.focusable:focus { border: 4px solid ${dados.corPrincipal} !important; box-shadow: none !important; outline: none !important; } #toast.bg-green-600 { background-color: ${dados.corPrincipal} !important; color: #000 !important; font-weight: bold; }`;
                     }
                 }
             });
@@ -1669,7 +1700,7 @@
                 if(btnHeroLogin) btnHeroLogin.classList.remove('hidden');
                 if(btnDetailsLogin) btnDetailsLogin.classList.remove('hidden');
             } else {
-                const text = (minhaListaIds.includes(itemId) || curtidasIds.includes(itemId)) ? "Retomar" : "Assistir";
+                const text = (minhaListaIds.includes(itemId) || curtidasIds.includes(itemId)) ? "RETOMAR" : "FILME";
                 if(ctaTextDet) ctaTextDet.innerText = text;
                 if(ctaBtnHero) ctaBtnHero.innerHTML = `<i class="ph-fill ph-play text-xl"></i> ${text}`;
                 if(btnHeroLogin) btnHeroLogin.classList.add('hidden');
@@ -1910,7 +1941,15 @@
         let nextVideoTriggered = false;
 
         const showPlayerControls = () => {
+            // Se for propaganda, NUNCA mostra os controles do filme (Timeline/Play/Pause do filme)
+            if (window.isMandatoryTrailer) {
+                controlsUI.style.opacity = '0';
+                controlsUI.classList.add('hidden');
+                return;
+            }
+
             controlsUI.style.opacity = '1';
+            controlsUI.classList.remove('hidden');
             playerDiv.classList.remove('hide-cursor');
             clearTimeout(controlsTimeout);
             controlsTimeout = setTimeout(() => { 
@@ -1925,8 +1964,46 @@
         playerDiv.addEventListener('touchstart', showPlayerControls, { passive: true });
         mainVid.addEventListener('click', () => window.togglePlayerPlay());
 
+        window.runVignette = function(callback, isEnding = false) {
+            const overlay = document.getElementById('vignette-overlay');
+            const content = document.getElementById('vignette-content');
+            
+            // Reset inicial
+            overlay.classList.remove('hidden');
+            overlay.style.opacity = '1';
+            content.style.opacity = '0';
+            content.style.transform = 'scale(0.9)';
+            
+            setTimeout(() => {
+                // Fade In
+                content.style.opacity = '1';
+                content.style.transform = 'scale(1)';
+                
+                setTimeout(() => {
+                    if (isEnding) {
+                        // Zoom In no encerramento
+                        content.style.transform = 'scale(8)';
+                        content.style.opacity = '0';
+                    } else {
+                        // Fade Out na abertura
+                        content.style.opacity = '0';
+                        content.style.transform = 'scale(1.1)';
+                    }
+                    
+                    setTimeout(() => {
+                        overlay.classList.add('hidden');
+                        if(callback) callback();
+                    }, 800); // Tempo da transição de saída
+                }, 2000); // Tempo de exibição estática (2 segundos)
+            }, 50);
+        };
+
         window.abrirPlayerFull = function(isTrailer = false, specificUrl = null) {
             const isAnon = (!currentUser || currentUser.isAnonymous);
+            
+            // Reseta estados do próximo vídeo ao iniciar um novo conteúdo
+            window.isNextVideoCanceled = false;
+            mainVid.loop = false;
 
             // INTERCEÇÃO DE CADASTRO: Se o usuário for anônimo, ele só pode assistir ao trailer.
             if (!isTrailer && isAnon) {
@@ -1994,6 +2071,14 @@
 
             // Lógica de Tempo e Fade Suave para Trailer Aberto
             mainVid.onloadedmetadata = () => {
+                if (!isTrailer) {
+                    // Removida vinheta de abertura
+                    mainVid.style.opacity = '1';
+                    mainVid.muted = false; // Garante que o som não comece mudo
+                    mainVid.volume = 1;
+                    mainVid.play().catch(()=>{});
+                }
+
                 if (isTrailer) {
                     let startPos = 0;
                     let durationToPlay = 15; // padrão 15s para Fallback
@@ -2063,7 +2148,7 @@
         window.assistirVideoCompleto = function() {
             const isAnon = (!currentUser || currentUser.isAnonymous);
             
-            // SE O UTILIZADOR FOR ANÓNIMO E TENTAR CLICAR EM "VÍDEO COMPLETO" DURANTE O TRAILER
+            // SE O UTILIZADOR FOR ANÓNIMO E TENTAR CLICAR EM "FILME" DURANTE O TRAILER
             if (isAnon) {
                 window.fecharPlayerFull();
                 setTimeout(() => {
@@ -2073,20 +2158,21 @@
             }
 
             mainVid.removeEventListener('timeupdate', window.currentTrailerListener);
+            
+            // Transição direta sem vinheta
             document.getElementById('trailer-cta-container').classList.add('hidden');
             controlsUI.classList.remove('hidden');
             
-            // Restaura Visibilidade Global caso venha de um trailer com Fade
             mainVid.style.opacity = '1';
-            window.fadeAudio(mainVid, mainVid.volume, 1, 500); // Traz volume de volta
+            window.fadeAudio(mainVid, 0, 1, 500);
 
-            // Garantir que a URL do vídeo seja o vídeo completo e não o trailer
             if (mainVid.src !== window.currentDestaqueData.videoUrl) {
                 mainVid.src = window.currentDestaqueData.videoUrl;
                 mainVid.load();
                 mainVid.play().catch(e => {});
             } else {
-                mainVid.currentTime = 0; 
+                mainVid.currentTime = 0;
+                mainVid.play().catch(e => {});
             }
             
             document.getElementById('player-full-title').innerText = window.currentDestaqueData.titulo;
@@ -2095,11 +2181,12 @@
 
         window.fecharPlayerFull = function(fromPopstate = false) {
             if(window.isMandatoryTrailer) return; // Impede fechar durante o anúncio
+            
+            // Removida vinheta no fechamento manual (voltar para informações)
             clearInterval(window.mandatoryInterval);
             mainVid.removeEventListener('timeupdate', window.currentTrailerListener);
             mainVid.pause(); mainVid.removeAttribute('src'); mainVid.load();
             
-            // Restaura estado padrao do player no encerramento
             mainVid.style.opacity = '1';
             mainVid.volume = 1;
 
@@ -2109,15 +2196,13 @@
 
             if (document.fullscreenElement) document.exitFullscreen();
             
-            // CORREÇÃO DO BOTÃO VOLTAR - IGNORA O PRÓXIMO POPSTATE
             if (fromPopstate !== true && history.state && history.state.playerOpen) {
                 window.ignoreNextPopState = true;
                 history.back();
             }
 
-            window.isWatchingTrailer = false; // Libera a trava do Trailer
+            window.isWatchingTrailer = false;
             
-            // Se o Detalhes estiver aberto, deixa o vídeo do detalhes tocar. Se não, volta pro Hero.
             if(!document.getElementById('view-details').classList.contains('hidden')) {
                 const detailsVid = document.getElementById('details-video');
                 if(detailsVid.src) detailsVid.play().catch(()=>{});
@@ -2159,8 +2244,8 @@
 
         // Tempo e Barra de Progresso (Otimizado para menor uso de CPU)
         mainVid.addEventListener('timeupdate', () => {
-            if(!mainVid.duration || window.isTransitioningToNext || isDraggingProgress) return;
-            // Atualiza a cada 200ms aproximadamente para suavidade sem sobrecarga
+            if(!mainVid.duration || window.isTransitioningToNext || isDraggingProgress || window.isMandatoryTrailer) return;
+            
             if (Math.floor(mainVid.currentTime * 5) % 1 !== 0) return;
 
             const pct = (mainVid.currentTime / mainVid.duration) * 100;
@@ -2174,36 +2259,35 @@
             const timeLeft = mainVid.duration - mainVid.currentTime;
             const overlay = document.getElementById('next-video-overlay');
             
-            // Oculta o Próximo Vídeo se estivermos a reproduzir um Trailer
-            if (timeLeft <= 6 && !nextVideoTriggered && !window.isMandatoryTrailer && !window.isWatchingTrailer) {
-                const playList = window.masterPlayOrder && window.masterPlayOrder.length > 0 ? window.masterPlayOrder : cacheCatalogo;
-                if (playList && playList.length > 1) {
-                    const currentIndex = playList.findIndex(v => v.id === window.currentDestaqueData.id);
-                    if (currentIndex !== -1) {
-                        const nextVideo = playList[(currentIndex + 1) % playList.length];
-                        window.predictedNextVideo = nextVideo;
-                        
-                        if (nextVideo) {
-                            document.getElementById('next-video-title-label').innerText = 
-                                nextVideo.trilho !== window.currentDestaqueData.trilho ? `${nextVideo.titulo} (${nextVideo.trilho})` : nextVideo.titulo;
-                            
-                            document.getElementById('next-video-cover-img').src = nextVideo.capaUrl || '';
-
-                            overlay.classList.remove('hidden');
-                            nextVideoTriggered = true;
-                        }
-                    }
+            // LÓGICA DE APARECER/DESAPARECER NOS 6 SEGUNDOS FINAIS
+            if (timeLeft > 6 || window.isNextVideoCanceled || window.isMandatoryTrailer || window.isWatchingTrailer) {
+                overlay.classList.add('hidden');
+                nextVideoTriggered = false;
+            } else if (timeLeft <= 6 && !nextVideoTriggered) {
+                const playList = window.masterPlayOrder?.length > 0 ? window.masterPlayOrder : cacheCatalogo;
+                const currentIndex = playList.findIndex(v => v.id === window.currentDestaqueData?.id);
+                
+                if (currentIndex !== -1 && playList.length > 1) {
+                    const nextVideo = playList[(currentIndex + 1) % playList.length];
+                    window.predictedNextVideo = nextVideo;
+                    
+                    document.getElementById('next-video-title-label').innerText = nextVideo.titulo;
+                    document.getElementById('next-video-cover-img').src = nextVideo.capaUrl || '';
+                    overlay.classList.remove('hidden');
+                    nextVideoTriggered = true;
                 }
             }
 
-            if (nextVideoTriggered && timeLeft > 0 && timeLeft <= 6 && !window.isMandatoryTrailer && !window.isWatchingTrailer) {
+            // ATUALIZAÇÃO DO CONTADOR
+            if (nextVideoTriggered && timeLeft <= 6) {
                 const count = Math.max(0, Math.floor(timeLeft - 1));
                 document.getElementById('next-timer-text').innerText = count;
-                const offset = 126 - ( (5 - count) * (126 / 5) );
+                const offset = 126 - ((5 - count) * (126 / 5));
                 document.getElementById('countdown-circle').style.strokeDashoffset = offset;
             }
 
-            if (timeLeft <= 0.5 && nextVideoTriggered && !window.isMandatoryTrailer && !window.isWatchingTrailer) {
+            // EXECUÇÃO AUTOMÁTICA
+            if (timeLeft <= 0.5 && nextVideoTriggered) {
                 nextVideoTriggered = false;
                 window.playNextVideo();
             }
@@ -2280,9 +2364,6 @@
             window.isTransitioningToNext = true;
             
             mainVid.pause();
-            mainVid.removeAttribute('src');
-            mainVid.load(); 
-
             document.getElementById('next-video-overlay').classList.add('hidden');
             nextVideoTriggered = false;
 
@@ -2295,14 +2376,21 @@
 
             window.videoSessionCount++;
             
-            // Frequência é definida no painel admin (padrão 3)
             const freq = window.adsConfig?.frequencia || 3;
             const shouldShowAd = (window.videoSessionCount % freq === 0);
 
             if (shouldShowAd && !window.isAdsApproved) {
+                // Se houver propaganda, removemos a vinheta da transição (conforme pedido)
+                mainVid.removeAttribute('src');
+                mainVid.load();
                 window.iniciarTrailerObrigatorio(proximo);
             } else {
-                window.executarTrocaVideo(proximo);
+                // Se NÃO houver propaganda, exibe a vinheta de encerramento antes da troca
+                window.runVignette(() => {
+                    mainVid.removeAttribute('src');
+                    mainVid.load(); 
+                    window.executarTrocaVideo(proximo);
+                }, true);
             }
         };
 
@@ -2314,6 +2402,15 @@
                 window.abrirPlayerFull();
                 window.showToast(`Reproduzindo: ${proximo.titulo}`);
             }, 600);
+        };
+
+        // FUNÇÃO PARA CANCELAR PRÓXIMO VÍDEO E REPETIR ATUAL
+        window.cancelNextVideo = function(e) {
+            if(e) e.stopPropagation();
+            window.isNextVideoCanceled = true;
+            mainVid.loop = true; // Força o vídeo atual a repetir ao chegar no fim
+            document.getElementById('next-video-overlay').classList.add('hidden');
+            window.showToast("Reprodução automática cancelada. O vídeo irá repetir.");
         };
 
         window.iniciarTrailerObrigatorio = function(proximoDestino) {
@@ -2351,49 +2448,68 @@
             mainVid.load(); 
 
             mainVid.onloadedmetadata = () => {
-                // Inicia opaco e mudo para fazer a transição gradual
-                mainVid.style.opacity = '0';
+                // Configuração inicial agressiva para garantir som
+                mainVid.muted = false; 
                 mainVid.volume = 0;
+                mainVid.style.opacity = '0';
+                
+                document.getElementById('progress-bar').style.width = '0%';
 
                 let startPos = 0;
-                // Se pegou um vídeo gigante e não um trailer oficial, puxa pro meio
                 if (isFallbackLongVideo && mainVid.duration > 60) {
                     startPos = mainVid.duration / 2;
                 }
                 mainVid.currentTime = startPos;
                 
-                let durationOfAd = 15; // padrão 15s se for fallback
-                if (!isFallbackLongVideo && isFinite(mainVid.duration) && mainVid.duration > 0) {
-                    durationOfAd = Math.floor(mainVid.duration);
+                let durationOfAd = 15;
+                if (isFinite(mainVid.duration) && mainVid.duration > 0) {
+                    durationOfAd = Math.floor(mainVid.duration - startPos);
                 }
 
+                // Tenta tocar com som, se falhar toca mudo e avisa (política de navegadores)
                 mainVid.play().then(() => {
                     mainVid.style.opacity = '1';
-                    window.fadeAudio(mainVid, 0, 1, 1000); // Fade In Audio 1s
-                }).catch(e => { console.warn("Erro autoplay propaganda", e); });
+                    window.fadeAudio(mainVid, 0, 1, 1000);
+                }).catch(e => { 
+                    mainVid.muted = true; 
+                    mainVid.play().then(() => { mainVid.style.opacity = '1'; });
+                });
 
                 let elapsed = 0;
-                
-                window.mandatoryInterval = setInterval(() => {
-                    elapsed++;
-                    const pct = (elapsed / durationOfAd) * 100;
-                    document.getElementById('mandatory-progress-fill').style.width = pct + '%';
-                    document.getElementById('mandatory-countdown-text').innerText = `Próximo vídeo em ${Math.max(0, durationOfAd - elapsed)}s`;
+                if(window.mandatoryInterval) clearInterval(window.mandatoryInterval);
 
-                    // Fade Out no último segundo do anúncio
-                    if (elapsed === durationOfAd - 1) {
+                window.mandatoryInterval = setInterval(() => {
+                    const currentPos = Math.floor(mainVid.currentTime - startPos);
+                    elapsed = currentPos > elapsed ? currentPos : elapsed;
+
+                    const pct = (elapsed / durationOfAd) * 100;
+                    const fill = document.getElementById('mandatory-progress-fill');
+                    if(fill) fill.style.width = pct + '%';
+                    
+                    const remaining = Math.max(0, durationOfAd - elapsed);
+                    const min = Math.floor(remaining / 60);
+                    const sec = remaining % 60;
+                    
+                    const countText = document.getElementById('mandatory-countdown-text');
+                    if(countText) countText.innerText = `Publicidade • O vídeo começa em ${min}:${sec < 10 ? '0' + sec : sec}`;
+
+                    // Fade Out visual e sonoro apenas no último segundo
+                    if (remaining === 1) {
                         mainVid.style.opacity = '0';
-                        window.fadeAudio(mainVid, mainVid.volume, 0, 1000);
+                        window.fadeAudio(mainVid, mainVid.volume, 0, 800);
                     }
 
                     if (elapsed >= durationOfAd || mainVid.ended) {
                         clearInterval(window.mandatoryInterval);
+                        if (mainVid._fadeInterval) clearInterval(mainVid._fadeInterval);
+                        
                         window.isMandatoryTrailer = false;
                         document.getElementById('mandatory-trailer-overlay').classList.add('hidden');
                         
-                        // Restaura atributos para não estragar o próximo filme
-                        mainVid.style.opacity = '1';
+                        // RESET TOTAL PARA O FILME
+                        mainVid.muted = false;
                         mainVid.volume = 1;
+                        mainVid.style.opacity = '1';
 
                         window.executarTrocaVideo(proximoDestino);
                     }
@@ -2498,13 +2614,45 @@
         }
         window.togglePiP = async function() {
             if (!document.pictureInPictureEnabled) return window.showToast("Seu navegador não suporta PiP.", true);
-            if (mainVid !== document.pictureInPictureElement) { await mainVid.requestPictureInPicture(); window.showToast("Vídeo descolado!"); } 
-            else { await document.exitPictureInPicture(); }
+            try {
+                if (mainVid !== document.pictureInPictureElement) { 
+                    await mainVid.requestPictureInPicture(); 
+                    window.showToast("Vídeo desprendido!"); 
+                } else { 
+                    await document.exitPictureInPicture(); 
+                }
+            } catch (e) {
+                console.error("Erro ao alternar PiP", e);
+            }
         };
-        window.toggleRemotePlayback = function() {
-            if (mainVid.remote && typeof mainVid.remote.prompt === 'function') { mainVid.remote.prompt().catch(e => {}); } 
-            else if (mainVid.webkitShowPlaybackTargetPicker) { mainVid.webkitShowPlaybackTargetPicker(); } 
-            else { window.showToast("Seu dispositivo não suporta espelhamento nativo.", true); }
+
+        // Ouvintes para mudar o ícone conforme o estado da tela
+        mainVid.addEventListener('enterpictureinpicture', () => {
+            const icon = document.getElementById('pip-icon');
+            if(icon) {
+                icon.classList.remove('ph-picture-in-picture');
+                icon.classList.add('ph-arrow-square-out');
+            }
+        });
+        mainVid.addEventListener('leavepictureinpicture', () => {
+            const icon = document.getElementById('pip-icon');
+            if(icon) {
+                icon.classList.remove('ph-arrow-square-out');
+                icon.classList.add('ph-picture-in-picture');
+            }
+        });
+        window.toggleRemotePlayback = async function() {
+            try {
+                if (mainVid.remote && typeof mainVid.remote.prompt === 'function') { 
+                    await mainVid.remote.prompt(); 
+                } else if (mainVid.webkitShowPlaybackTargetPicker) { 
+                    mainVid.webkitShowPlaybackTargetPicker(); 
+                } else { 
+                    window.showToast("Seu dispositivo não suporta espelhamento nativo.", true); 
+                }
+            } catch (e) {
+                console.warn("Transmissão cancelada ou erro: ", e);
+            }
         };
 
         window.toggleMuteHero = function() {
