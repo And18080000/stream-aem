@@ -206,17 +206,32 @@
             window.addEventListener('load', () => {
                 const swCode = `
                     const CACHE_NAME = 'aem-offline-v1';
-                    self.addEventListener('install', (e) => self.skipWaiting());
-                    self.addEventListener('activate', (e) => self.clients.claim());
+                    const ASSETS_TO_CACHE = ['/', './index.html', location.href];
+
+                    self.addEventListener('install', (event) => {
+                        event.waitUntil(
+                            caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
+                        );
+                        self.skipWaiting();
+                    });
+
+                    self.addEventListener('activate', (event) => {
+                        event.waitUntil(self.clients.claim());
+                    });
+
                     self.addEventListener('fetch', (event) => {
-                        // Estratégia Cache-First para Mídia: Tenta o cache, se falhar vai à rede
+                        // Navegação: Se falhar a rede, entrega o HTML em cache
+                        if (event.request.mode === 'navigate') {
+                            event.respondWith(
+                                fetch(event.request).catch(() => caches.match('/'))
+                            );
+                            return;
+                        }
+
+                        // Mídia e Ativos: Cache-First para performance máxima offline
                         event.respondWith(
                             caches.match(event.request).then((response) => {
-                                return response || fetch(event.request).catch(() => {
-                                    if (event.request.mode === 'navigate') {
-                                        return caches.match('.');
-                                    }
-                                });
+                                return response || fetch(event.request).catch(() => null);
                             })
                         );
                     }); 
@@ -3437,7 +3452,13 @@
 
         window.addEventListener('online', window.atualizarModoConexao);
         window.addEventListener('offline', window.atualizarModoConexao);
-        setTimeout(window.atualizarModoConexao, 3000);
+        
+        // Execução Imediata: Verifica se já iniciou offline para evitar ecrãs de erro do Firebase
+        if (!navigator.onLine) {
+            setTimeout(window.atualizarModoConexao, 100);
+        } else {
+            setTimeout(window.atualizarModoConexao, 3000);
+        }
     </script>
 </body>
 </html>
