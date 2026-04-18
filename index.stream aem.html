@@ -635,6 +635,14 @@
                 </div>
 
                 <div id="search-results-container">
+                    <!-- Histórico de Pesquisa Recente -->
+                    <div id="search-history-container" class="mb-10 hidden">
+                        <h3 class="text-xs font-black text-brand-gold uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                            <i class="ph-fill ph-clock-counter-clockwise"></i> Pesquisas Recentes
+                        </h3>
+                        <div id="search-history-list" class="flex flex-wrap gap-2"></div>
+                    </div>
+
                     <div id="search-initial-msg" class="flex flex-col items-center justify-center py-20 text-center">
                         <i class="ph ph-film-strip text-6xl text-white/10 mb-4"></i>
                         <p class="text-brand-text text-lg">Encontre o seu próximo conteúdo favorito...</p>
@@ -1035,6 +1043,8 @@
         let curtidasDocs = [];
         let curtidasCategoriasIds = [];
         let curtidasCategoriasDocs = [];
+        let downloadsIds = [];
+        let searchHistory = [];
         window.currentDestaqueData = null;
         window.authMode = 'login';
         window.ignoreNextPopState = false; // TRAVA DE HISTÓRICO GLOBAL
@@ -1112,6 +1122,8 @@
                 window.carregarMinhaListaRealtime();
                 window.carregarCurtidasRealtime();
                 window.carregarCurtidasCategoriasRealtime();
+                window.carregarDownloadsRealtime();
+                window.carregarHistoricoPesquisaRealtime();
                 window.carregarConfigAnunciosRealtime();
             } else {
                 signInAnonymously(auth);
@@ -1490,6 +1502,22 @@
                 curtidasCategoriasDocs = snap.docs.map(d => ({ docId: d.id, catId: d.data().catId }));
                 curtidasCategoriasIds = curtidasCategoriasDocs.map(d => d.catId);
                 window.renderizarTrilhosNaHome();
+            });
+        }
+
+        window.carregarDownloadsRealtime = function() {
+            if(!currentUser) return;
+            onSnapshot(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'downloads'), (snap) => {
+                downloadsIds = snap.docs.map(d => d.id);
+                window.verificarStatusBotoes();
+            });
+        }
+
+        window.carregarHistoricoPesquisaRealtime = function() {
+            if(!currentUser || currentUser.isAnonymous) return;
+            onSnapshot(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'search_history'), (snap) => {
+                searchHistory = snap.docs.map(d => ({ id: d.id, query: d.data().query })).reverse();
+                window.renderSearchHistory();
             });
         }
 
@@ -2878,7 +2906,26 @@
             document.getElementById('view-search').classList.remove('hidden');
             document.getElementById('search-input').focus();
             document.body.style.overflow = 'hidden';
+            window.renderSearchHistory();
             history.pushState({ searchOpen: true }, null);
+        };
+
+        window.renderSearchHistory = function() {
+            const list = document.getElementById('search-history-list');
+            const container = document.getElementById('search-history-container');
+            if(!list || !container) return;
+
+            if (searchHistory.length === 0 || document.getElementById('search-input').value.length > 0) {
+                container.classList.add('hidden');
+                return;
+            }
+
+            container.classList.remove('hidden');
+            list.innerHTML = searchHistory.slice(0, 8).map(h => `
+                <button onclick="document.getElementById('search-input').value='${h.query}'; window.handleSearch('${h.query}')" class="focusable bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-full text-xs text-white transition flex items-center gap-2">
+                    <i class="ph ph-magnifying-glass opacity-50"></i> ${h.query}
+                </button>
+            `).join('');
         };
 
         window.closeSearch = function(fromPopstate = false) {
@@ -2899,15 +2946,33 @@
             const grid = document.getElementById('search-grid');
             const initialMsg = document.getElementById('search-initial-msg');
             const emptyMsg = document.getElementById('search-empty-msg');
+            const historyCont = document.getElementById('search-history-container');
             
             if (!query || query.trim().length < 2) {
                 grid.innerHTML = '';
                 initialMsg.classList.remove('hidden');
                 emptyMsg.classList.add('hidden');
+                if(searchHistory.length > 0) historyCont.classList.remove('hidden');
                 return;
             }
 
+            historyCont.classList.add('hidden');
             initialMsg.classList.add('hidden');
+            
+            // Salva no histórico do Firebase após 1.5s de inatividade na digitação
+            clearTimeout(window.searchSaveTimeout);
+            window.searchSaveTimeout = setTimeout(async () => {
+                if (currentUser && !currentUser.isAnonymous && query.trim().length > 3) {
+                    const exists = searchHistory.find(h => h.query.toLowerCase() === query.toLowerCase().trim());
+                    if (!exists) {
+                        await addDoc(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'search_history'), {
+                            query: query.trim(),
+                            timestamp: new Date().getTime()
+                        });
+                    }
+                }
+            }, 1500);
+
             const term = query.toLowerCase().trim();
             
             const results = cacheCatalogo.filter(item => 
@@ -3135,6 +3200,14 @@
                     localStorage.setItem('am_offline_metadata', JSON.stringify(offlineList));
                 }
 
+                // SINCRONIZA COM A CONTA (Login)
+                if (currentUser && !currentUser.isAnonymous) {
+                    await setDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'downloads', data.id), {
+                        ...data,
+                        baixadoEm: new Date().getTime()
+                    });
+                }
+
                 window.showToast("Conteúdo disponível offline!");
             } catch (err) {
                 console.error(err);
@@ -3158,6 +3231,11 @@
                 
                 const newList = offlineList.filter(i => i.id !== itemId);
                 localStorage.setItem('am_offline_metadata', JSON.stringify(newList));
+
+                // REMOVE DA SINCRONIA DA CONTA
+                if (currentUser && !currentUser.isAnonymous) {
+                    await deleteDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'downloads', itemId));
+                }
             }
         };
 
