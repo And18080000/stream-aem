@@ -48,6 +48,48 @@
         }
 
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        /* Estilo para o Card Expansível Prime Video Style */
+        .card-container {
+            perspective: 1000px;
+            z-index: 10;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), z-index 0s;
+        }
+        .card-expand-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #141a22;
+            padding: 12px;
+            transform: translateY(0);
+            opacity: 0;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            pointer-events: none;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-top: none;
+        }
+        .card-container:hover .card-expand-info, 
+        .card-container:focus-within .card-expand-info,
+        .card-container:active .card-expand-info {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(100%);
+        }
+        .card-container:hover, 
+        .card-container:focus-within {
+            z-index: 500;
+            /* Levantamos o card significativamente no hover para que a aba inferior não cubra o texto das linhas abaixo */
+            transform: scale(1.1) translateY(-50px);
+        }
+        /* Ajuste para não cortar o card expandido no trilho inferior e evitar cobrir títulos abaixo */
+        .auto-scroll-rail { 
+            padding-bottom: 110px !important; 
+            margin-bottom: -110px !important; 
+        }
         
         body { background-color: #000000; color: white; overflow-x: hidden; }
 
@@ -382,6 +424,9 @@
                 <i class="ph ph-user"></i>
             </button>
         </div>
+
+
+
     </header>
 
     <!-- CONTEÚDO PRINCIPAL -->
@@ -462,10 +507,10 @@
                             <div id="dynamic-trailers-container" class="flex flex-wrap gap-2"></div>
                             
                             <button onclick="toggleMinhaListaDetails()" title="Adicionar à Lista" class="prime-btn focusable" tabindex="0"><i id="details-icon-add" class="ph ph-plus text-xl text-white"></i></button>
-                            <button onclick="toggleJoinhaDetails()" title="Gostei" class="prime-btn focusable" tabindex="0"><i id="details-icon-like" class="ph ph-thumbs-up text-xl text-white"></i></button>
+                            <button onclick="toggleJoinhaDetails()" title="Gostei" class="prime-btn focusable" tabindex="0"><i id="details-icon-like" class="ph ph-heart text-xl text-white"></i></button>
                             <button title="Não Gostei" class="prime-btn focusable hidden sm:flex" tabindex="0"><i class="ph ph-thumbs-down text-xl text-white"></i></button>
                             <button title="Partilhar" class="prime-btn focusable hidden sm:flex" tabindex="0"><i class="ph ph-share-network text-xl text-white"></i></button>
-                            <button title="Transferir para Ver Offline" class="prime-btn focusable" tabindex="0"><i class="ph ph-download-simple text-xl text-white"></i></button>
+                            <button id="btn-download-details" onclick="toggleDownloadDetails()" title="Transferir para Ver Offline" class="prime-btn focusable" tabindex="0"><i id="details-icon-download" class="ph ph-download-simple text-xl text-white"></i></button>
                         </div>
 
                         <button onclick="abrirPlayerFull()" class="focusable w-full md:w-80 bg-white text-black px-8 py-4 rounded-full flex items-center justify-center gap-2 font-black transition hover:bg-gray-200 text-sm shadow-xl" tabindex="0">
@@ -845,7 +890,7 @@
         <!-- VÍDEO PRINCIPAL COM PRELOAD AUTOMÁTICO E POSTER DINÂMICO PARA EVITAR ECRÃS PRETOS -->
         <video id="main-full-video" class="w-full h-full object-contain absolute inset-0 cursor-pointer transition-opacity duration-1000" playsinline preload="auto"></video>
 
-        <!-- Vinheta de Abertura/Fechamento (A&M Streaming) -->
+        <!-- Vinheta de Abertura/Fechamento (A&amp;M Streaming) -->
         <div id="vignette-overlay" class="hidden absolute inset-0 z-[110] bg-black flex flex-col items-center justify-center pointer-events-auto transition-opacity duration-700">
             <div id="vignette-content" class="flex flex-col items-center opacity-0 transition-all duration-700 ease-out transform scale-90">
                 <h1 class="text-4xl md:text-7xl font-sans text-white tracking-tighter font-black italic leading-none flex items-baseline gap-2">
@@ -988,6 +1033,8 @@
         let minhaListaDocs = [];
         let curtidasIds = []; 
         let curtidasDocs = [];
+        let curtidasCategoriasIds = [];
+        let curtidasCategoriasDocs = [];
         window.currentDestaqueData = null;
         window.authMode = 'login';
         window.ignoreNextPopState = false; // TRAVA DE HISTÓRICO GLOBAL
@@ -1064,6 +1111,7 @@
                 window.carregarCatalogoRealtime();
                 window.carregarMinhaListaRealtime();
                 window.carregarCurtidasRealtime();
+                window.carregarCurtidasCategoriasRealtime();
                 window.carregarConfigAnunciosRealtime();
             } else {
                 signInAnonymously(auth);
@@ -1423,7 +1471,17 @@
             onSnapshot(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'curtidas'), (snap) => {
                 curtidasDocs = snap.docs.map(d => ({ docId: d.id, itemId: d.data().itemId }));
                 curtidasIds = curtidasDocs.map(d => d.itemId);
+                window.renderizarTrilhosNaHome(); // Força re-render para atualizar os corações nos cards
                 window.verificarStatusBotoes();
+            });
+        }
+
+        window.carregarCurtidasCategoriasRealtime = function() {
+            if(!currentUser) return;
+            onSnapshot(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'curtidas_categorias'), (snap) => {
+                curtidasCategoriasDocs = snap.docs.map(d => ({ docId: d.id, catId: d.data().catId }));
+                curtidasCategoriasIds = curtidasCategoriasDocs.map(d => d.catId);
+                window.renderizarTrilhosNaHome();
             });
         }
 
@@ -1445,11 +1503,16 @@
             });
         }
 
+        window.scrollRail = function(btn, direction) {
+            const rail = btn.parentElement.querySelector('.auto-scroll-rail');
+            const amount = rail.clientWidth * 0.8;
+            rail.scrollBy({ left: direction * amount, behavior: 'smooth' });
+        };
+
         window.renderizarTrilhosNaHome = function() {
             let listaHTML = "";
             const categories = {}; const itemsByCategory = {};
             
-            // Lógica de Filtro Aprimorada (Incluindo 'minhaLista')
             let catalogoFiltrado = [];
             if (window.currentActiveMenu === 'home') {
                 catalogoFiltrado = cacheCatalogo;
@@ -1466,14 +1529,12 @@
                 if (!categories[cat]) { categories[cat] = ""; itemsByCategory[cat] = []; }
                 itemsByCategory[cat].push(item);
 
-                // Renderiza para a sessão fixa 'Minha Lista' na Home (Se estiver na Home)
                 if (minhaListaIds.includes(item.id)) listaHTML += renderCardPaisagem(item, "text-[#2563EB]");
                 
                 if (cat.toLowerCase().includes('recente') || cat.toLowerCase().includes('retrato')) categories[cat] += renderCardRetrato(item);
                 else categories[cat] += renderCardPaisagem(item, "text-[var(--brand-gold)]");
             });
 
-            // Exibe a seção fixa "Minha Lista" apenas na Home
             const sectionListaFixa = document.getElementById('section-minha-lista');
             if (sectionListaFixa) {
                 if (window.currentActiveMenu === 'home' && listaHTML) {
@@ -1488,8 +1549,34 @@
             const sortedCategoryNames = Object.keys(categories).sort((a, b) => (window.cacheOrdemCategorias[a] || 99) - (window.cacheOrdemCategorias[b] || 99));
 
             sortedCategoryNames.forEach(catName => {
+                const itemsCount = itemsByCategory[catName].length;
                 if (itemsByCategory[catName]) window.masterPlayOrder.push(...itemsByCategory[catName]);
-                homeRailsHTML += `<div><h3 class="text-lg md:text-xl font-medium mb-3 md:mb-5 text-white uppercase tracking-wide">${catName}</h3><div class="auto-scroll-rail flex gap-3 md:gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory min-h-[120px] md:min-h-[150px] scroll-smooth">${categories[catName]}</div></div>`;
+                
+                // Lógica de visibilidade das setas baseada na instrução:
+                // Telemóvel: Mostra se > 2 | Tablet: Mostra se > 3 | Computador: Mostra se > 5
+                const visibilityClass = `
+                    ${itemsCount > 2 ? 'flex' : 'hidden'} 
+                    ${itemsCount > 3 ? 'sm:flex' : 'sm:hidden'} 
+                    ${itemsCount > 5 ? 'md:flex' : 'md:hidden'}
+                `.trim();
+
+                const isCatLiked = curtidasCategoriasIds.includes(catName);
+                const catHeartClass = isCatLiked ? 'ph-fill text-[var(--brand-gold)]' : 'ph text-white/40';
+
+                homeRailsHTML += `
+                <div class="relative group/rail pb-4">
+                    <div class="flex items-center gap-3 mb-3 md:mb-5">
+                        <h3 class="text-lg md:text-xl font-medium text-white uppercase tracking-wide">${catName}</h3>
+                        <button onclick="toggleCurtidaCategoria('${catName}')" class="focusable hover:scale-110 transition-transform flex items-center justify-center p-1" title="Curtir Categoria">
+                            <i class="${catHeartClass} ph-heart text-lg md:text-xl"></i>
+                        </button>
+                    </div>
+                    <div class="flex items-center relative">
+                        <button onclick="scrollRail(this, -1)" class="absolute left-0 z-40 bg-black/80 h-[150px] w-10 md:w-12 opacity-0 group-hover/rail:opacity-100 transition-opacity items-center justify-center hover:bg-black ${visibilityClass}"><i class="ph-bold ph-caret-left text-white text-2xl md:text-3xl"></i></button>
+                        <div class="auto-scroll-rail flex gap-3 md:gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory min-h-[120px] md:min-h-[150px] scroll-smooth w-full">${categories[catName]}</div>
+                        <button onclick="scrollRail(this, 1)" class="absolute right-0 z-40 bg-black/80 h-[150px] w-10 md:w-12 opacity-0 group-hover/rail:opacity-100 transition-opacity items-center justify-center hover:bg-black ${visibilityClass}"><i class="ph-bold ph-caret-right text-white text-2xl md:text-3xl"></i></button>
+                    </div>
+                </div>`;
             });
 
             const homeContainer = document.getElementById('dynamic-rails-container');
@@ -1501,22 +1588,61 @@
 
         function renderCardRetrato(data) {
             const dataStr = btoa(encodeURIComponent(JSON.stringify(data)));
-            // Imagens com brilho ultra reforçado e sem camadas de sombra padrão
-            return `<div onclick="window.abrirDetalhes('${dataStr}')" onfocus="window.mudarDestaque('${dataStr}')" class="focusable min-w-[130px] md:min-w-[170px] h-[190px] md:h-[250px] bg-black rounded-xl overflow-hidden border border-white/10 relative group cursor-pointer snap-start transition-all shadow-lg" tabindex="0">
-                <img src="${data.capaUrl}" loading="lazy" decoding="async" class="w-full h-full object-cover opacity-100 brightness-[1.2] saturate-[1.25]">
-                <div class="absolute top-0 w-full p-2 bg-gradient-to-b from-black/60 to-transparent"><p class="text-[8px] text-[var(--brand-gold)] font-bold tracking-widest uppercase">${data.selo}</p></div>
-                <div class="absolute inset-0 flex items-center justify-center bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity z-20"><div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/40 shadow-xl"><i class="ph-bold ph-info text-white text-2xl"></i></div></div>
-                <div class="absolute bottom-0 w-full p-4 bg-gradient-to-t from-black/80 to-transparent text-center group-hover:from-black transition-all"><p class="text-xs font-bold uppercase text-white drop-shadow-md">${data.titulo}</p></div>
+            const isLiked = curtidasIds.includes(data.id);
+            const heartClass = isLiked ? 'ph-fill text-[var(--brand-gold)]' : 'ph text-white';
+
+            return `
+            <div class="card-container relative transition-all duration-300">
+                <div onclick="window.abrirDetalhes('${dataStr}')" onfocus="window.mudarDestaque('${dataStr}')" class="focusable min-w-[130px] md:min-w-[170px] h-[190px] md:h-[250px] relative group cursor-pointer snap-start transition-all" tabindex="0">
+                    <div class="absolute inset-0 bg-black rounded-xl overflow-hidden border border-white/10 shadow-lg">
+                        <img src="${data.capaUrl}" loading="lazy" decoding="async" class="w-full h-full object-cover opacity-100 brightness-[1.2] saturate-[1.25]">
+                        <div class="absolute top-0 w-full p-2 bg-gradient-to-b from-black/60 to-transparent"><p class="text-[8px] text-[var(--brand-gold)] font-bold tracking-widest uppercase">${data.selo}</p></div>
+                    </div>
+                    <div class="card-expand-info">
+                        <p class="text-white font-bold text-[10px] uppercase truncate">${data.titulo}</p>
+                        <div class="flex items-center gap-1.5 mt-1 text-[8px] font-black">
+                            <span class="text-yellow-500">${data.imdb || '8.5'}/10</span>
+                            <span class="text-gray-400">${data.ano || '2024'}</span>
+                            <span class="border border-white/30 px-1 rounded text-white">${data.resolucao || '4K'}</span>
+                        </div>
+                        <div class="flex gap-2 mt-2">
+                             <div class="w-6 h-6 rounded-full bg-white flex items-center justify-center text-black"><i class="ph-fill ph-play text-[10px]"></i></div>
+                             <div onclick="event.stopPropagation(); toggleJoinhaById('${data.id}')" class="w-6 h-6 rounded-full bg-white/10 border border-white/30 flex items-center justify-center"><i class="${heartClass} ph-heart text-[10px]"></i></div>
+                             <div class="w-6 h-6 rounded-full bg-white/10 border border-white/30 flex items-center justify-center text-white"><i class="ph ph-plus text-[10px]"></i></div>
+                        </div>
+                    </div>
+                </div>
             </div>`;
         }
 
         function renderCardPaisagem(data, colorClass) {
             const dataStr = btoa(encodeURIComponent(JSON.stringify(data)));
-            // Imagens com brilho ultra reforçado e sem camadas de sombra padrão
-            return `<div onclick="window.abrirDetalhes('${dataStr}')" onfocus="window.mudarDestaque('${dataStr}')" class="focusable min-w-[220px] md:min-w-[280px] h-[120px] md:h-[150px] bg-black rounded-xl overflow-hidden border border-white/10 relative group cursor-pointer snap-start transition-all shadow-lg" tabindex="0">
-                <img src="${data.capaUrl}" loading="lazy" decoding="async" class="w-full h-full object-cover opacity-100 brightness-[1.2] saturate-[1.25]">
-                <div class="absolute inset-0 flex items-center justify-center bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity z-20"><div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/40 shadow-xl"><i class="ph-bold ph-info text-white text-2xl"></i></div></div>
-                <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex items-end p-4"><p class="text-sm font-bold ${colorClass} tracking-wider uppercase drop-shadow-md">${data.titulo}</p></div>
+            const isLiked = curtidasIds.includes(data.id);
+            const heartClass = isLiked ? 'ph-fill text-[var(--brand-gold)]' : 'ph text-white';
+
+            return `
+            <div class="card-container relative transition-all duration-300">
+                <div onclick="window.abrirDetalhes('${dataStr}')" onfocus="window.mudarDestaque('${dataStr}')" class="focusable min-w-[220px] md:min-w-[280px] h-[120px] md:h-[150px] relative group cursor-pointer snap-start transition-all" tabindex="0">
+                    <div class="absolute inset-0 bg-black rounded-xl overflow-hidden border border-white/10 shadow-lg">
+                        <img src="${data.capaUrl}" loading="lazy" decoding="async" class="w-full h-full object-cover opacity-100 brightness-[1.2] saturate-[1.25]">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex items-end p-3">
+                            <p class="text-[10px] md:text-xs font-bold ${colorClass} tracking-wider uppercase drop-shadow-md truncate">${data.titulo}</p>
+                        </div>
+                    </div>
+                    <div class="card-expand-info">
+                        <p class="text-white font-bold text-[10px] uppercase truncate">${data.titulo}</p>
+                        <div class="flex items-center gap-1.5 mt-1 text-[8px] font-black">
+                            <span class="text-yellow-500">IMDb ${data.imdb || '8.5'}</span>
+                            <span class="text-gray-400">${data.ano || '2024'}</span>
+                            <span class="border border-white/30 px-1 rounded text-white">${data.resolucao || '4K'}</span>
+                        </div>
+                        <div class="flex gap-2 mt-2">
+                             <div class="w-6 h-6 rounded-full bg-white flex items-center justify-center text-black"><i class="ph-fill ph-play text-[10px]"></i></div>
+                             <div onclick="event.stopPropagation(); toggleJoinhaById('${data.id}')" class="w-6 h-6 rounded-full bg-white/10 border border-white/30 flex items-center justify-center"><i class="${heartClass} ph-heart text-[10px]"></i></div>
+                             <div class="w-6 h-6 rounded-full bg-white/10 border border-white/30 flex items-center justify-center text-white"><i class="ph ph-plus text-[10px]"></i></div>
+                        </div>
+                    </div>
+                </div>
             </div>`;
         }
 
@@ -1638,13 +1764,40 @@
 
         window.toggleJoinha = async function() {
             if(!window.currentDestaqueData || !currentUser) return;
-            const itemId = window.currentDestaqueData.id;
+            await toggleJoinhaById(window.currentDestaqueData.id);
+        };
+
+        window.toggleJoinhaById = async function(itemId) {
+            if(!currentUser) return window.openLoginPrompt();
             if(curtidasIds.includes(itemId)) {
                 const docItem = curtidasDocs.find(d => d.itemId === itemId);
-                if(docItem) { await deleteDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'curtidas', docItem.docId)); window.showToast("Curtida removida."); }
+                if(docItem) { 
+                    await deleteDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'curtidas', docItem.docId)); 
+                    window.showToast("Coração removido."); 
+                }
             } else {
-                await addDoc(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'curtidas'), { itemId: itemId, adicionadoEm: new Date().getTime() });
+                await addDoc(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'curtidas'), { 
+                    itemId: itemId, 
+                    adicionadoEm: new Date().getTime() 
+                });
                 window.showToast("Você curtiu!");
+            }
+        };
+
+        window.toggleCurtidaCategoria = async function(catName) {
+            if(!currentUser) return window.openLoginPrompt();
+            if(curtidasCategoriasIds.includes(catName)) {
+                const docItem = curtidasCategoriasDocs.find(d => d.catId === catName);
+                if(docItem) { 
+                    await deleteDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'curtidas_categorias', docItem.docId)); 
+                    window.showToast(`Categoria ${catName} removida dos favoritos.`); 
+                }
+            } else {
+                await addDoc(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'curtidas_categorias'), { 
+                    catId: catName, 
+                    adicionadoEm: new Date().getTime() 
+                });
+                window.showToast(`Você curtiu a categoria ${catName}!`);
             }
         };
 
@@ -1679,11 +1832,19 @@
             const iconJoinhaDet = document.getElementById('details-icon-like');
             if(iconJoinha) {
                 if(curtidasIds.includes(itemId)) { 
-                    iconJoinha.classList.remove('ph'); iconJoinha.classList.add('ph-fill', 'text-[var(--brand-gold)]');
-                    if(iconJoinhaDet) { iconJoinhaDet.classList.remove('ph'); iconJoinhaDet.classList.add('ph-fill', 'text-[var(--brand-gold)]'); }
+                    iconJoinha.classList.replace('ph', 'ph-fill');
+                    iconJoinha.classList.add('text-[var(--brand-gold)]');
+                    if(iconJoinhaDet) { 
+                        iconJoinhaDet.classList.replace('ph', 'ph-fill'); 
+                        iconJoinhaDet.classList.add('text-[var(--brand-gold)]'); 
+                    }
                 } else { 
-                    iconJoinha.classList.remove('ph-fill', 'text-[var(--brand-gold)]'); iconJoinha.classList.add('ph');
-                    if(iconJoinhaDet) { iconJoinhaDet.classList.remove('ph-fill', 'text-[var(--brand-gold)]'); iconJoinhaDet.classList.add('ph'); }
+                    iconJoinha.classList.replace('ph-fill', 'ph');
+                    iconJoinha.classList.remove('text-[var(--brand-gold)]');
+                    if(iconJoinhaDet) { 
+                        iconJoinhaDet.classList.replace('ph-fill', 'ph'); 
+                        iconJoinhaDet.classList.remove('text-[var(--brand-gold)]'); 
+                    }
                 }
             }
 
@@ -1705,6 +1866,20 @@
                 if(ctaBtnHero) ctaBtnHero.innerHTML = `<i class="ph-fill ph-play text-xl"></i> ${text}`;
                 if(btnHeroLogin) btnHeroLogin.classList.add('hidden');
                 if(btnDetailsLogin) btnDetailsLogin.classList.add('hidden');
+            }
+
+            // Status do ícone de Download (Verifica Offline Storage)
+            const iconDownload = document.getElementById('details-icon-download');
+            if (iconDownload) {
+                window.estaBaixado(itemId).then(isBaixado => {
+                    if (isBaixado) {
+                        iconDownload.classList.replace('ph', 'ph-fill');
+                        iconDownload.classList.add('text-[var(--brand-gold)]');
+                    } else {
+                        iconDownload.classList.replace('ph-fill', 'ph');
+                        iconDownload.classList.remove('text-[var(--brand-gold)]');
+                    }
+                });
             }
         };
 
@@ -1889,14 +2064,11 @@
             const relacionados = cacheCatalogo.filter(c => c.trilho === currentData.trilho && c.id !== currentData.id).slice(0, 5);
             const containerSimilares = document.getElementById('details-similares');
             
+            // Adicionamos padding inferior ao container do grid para permitir a expansão dos cards sem cortes
+            containerSimilares.classList.add('pb-24', '-mb-24');
+
             if (relacionados.length > 0) {
-                containerSimilares.innerHTML = relacionados.map(item => {
-                    const dataStr = btoa(encodeURIComponent(JSON.stringify(item)));
-                    return `<div onclick="window.abrirDetalhes('${dataStr}')" class="focusable bg-[#1A1C23] rounded-lg overflow-hidden border border-white/5 relative cursor-pointer transition-transform hover:scale-105 shadow-md aspect-video group">
-                        <img src="${item.capaUrl}" loading="lazy" decoding="async" class="w-full h-full object-cover opacity-100 brightness-110 saturate-110">
-                        <div class="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 flex items-center justify-center transition"><i class="ph-fill ph-play text-white text-3xl drop-shadow-md"></i></div>
-                    </div>`;
-                }).join('');
+                containerSimilares.innerHTML = relacionados.map(item => renderCardPaisagem(item, "text-[var(--brand-gold)]")).join('');
             } else {
                 containerSimilares.innerHTML = `<p class="text-sm text-brand-text col-span-full">Nenhum título semelhante encontrado.</p>`;
             }
@@ -1910,15 +2082,17 @@
             categoriasAleatorias.forEach(cat => {
                 const itens = cacheCatalogo.filter(c => c.trilho === cat).slice(0, 8);
                 if (itens.length > 0) {
-                    let cardsHtml = itens.map(item => {
-                        const dataStr = btoa(encodeURIComponent(JSON.stringify(item)));
-                        return `<div onclick="window.abrirDetalhes('${dataStr}')" class="focusable min-w-[200px] h-[110px] bg-[#1A1C23] rounded-lg overflow-hidden border border-white/5 relative cursor-pointer snap-start shadow-md group">
-                            <img src="${item.capaUrl}" loading="lazy" decoding="async" class="w-full h-full object-cover">
-                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition"><i class="ph-fill ph-play text-white text-3xl drop-shadow-md"></i></div>
-                        </div>`;
-                    }).join('');
+                    let cardsHtml = itens.map(item => renderCardPaisagem(item, "text-[var(--brand-gold)]")).join('');
                     
-                    randomRailsHTML += `<div><h4 class="text-sm font-bold mb-3 text-brand-text uppercase tracking-wide">Mais de ${cat}</h4><div class="auto-scroll-rail flex gap-3 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">${cardsHtml}</div></div>`;
+                    randomRailsHTML += `
+                    <div class="relative group/rail pb-4">
+                        <h4 class="text-sm font-bold mb-3 text-brand-text uppercase tracking-wide">Mais de ${cat}</h4>
+                        <div class="flex items-center relative">
+                            <button onclick="scrollRail(this, -1)" class="absolute left-0 z-40 bg-black/80 h-[100px] w-10 opacity-0 group-hover/rail:opacity-100 transition-opacity flex items-center justify-center hover:bg-black"><i class="ph-bold ph-caret-left text-white text-xl"></i></button>
+                            <div class="auto-scroll-rail flex gap-3 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory min-h-[120px] scroll-smooth w-full">${cardsHtml}</div>
+                            <button onclick="scrollRail(this, 1)" class="absolute right-0 z-40 bg-black/80 h-[100px] w-10 opacity-0 group-hover/rail:opacity-100 transition-opacity flex items-center justify-center hover:bg-black"><i class="ph-bold ph-caret-right text-white text-xl"></i></button>
+                        </div>
+                    </div>`;
                 }
             });
             
@@ -2417,7 +2591,7 @@
             window.isMandatoryTrailer = true;
             
             let adVideoUrl = "";
-            let adTitle = "Sugestão A&M";
+            let adTitle = "Sugestão A&amp;M";
             let isFallbackLongVideo = false;
 
             // Escolhe anúncios exclusivos subidos no Painel Admin ou usa o catálogo como fallback
@@ -2431,7 +2605,7 @@
                 const randomVideo = outrosVideos.length > 0 ? outrosVideos[Math.floor(Math.random() * outrosVideos.length)] : window.currentDestaqueData;
                 
                 adVideoUrl = randomVideo.trailerUrl || randomVideo.videoUrl || "";
-                adTitle = `Sugestão: ${randomVideo.titulo || 'A&M'}`;
+                adTitle = `Sugestão: ${randomVideo.titulo || 'A&amp;M'}`;
                 
                 // Marca se tivemos que puxar o filme grande por não ter um trailer
                 isFallbackLongVideo = !randomVideo.trailerUrl && (randomVideo.videoUrl === adVideoUrl);
@@ -2888,6 +3062,147 @@
             else { history.pushState(null, null); window.showToast("Pressione Início no controle para sair."); }
         });
         history.pushState(null, null);
+
+        // ==========================================
+        // MOTOR DE DOWNLOAD E VISUALIZAÇÃO OFFLINE
+        // ==========================================
+        const OFFLINE_CACHE_NAME = 'aem-offline-v1';
+
+        window.toggleDownloadDetails = async function() {
+            if(!window.currentDestaqueData) return;
+            const data = window.currentDestaqueData;
+            const isDownloaded = await window.estaBaixado(data.id);
+            
+            if (isDownloaded) {
+                if(confirm("Deseja remover este download do seu dispositivo?")) {
+                    await window.removerDownload(data.id);
+                    window.showToast("Download removido.");
+                    window.verificarStatusBotoes();
+                }
+            } else {
+                window.baixarParaOffline(data);
+            }
+        };
+
+        window.baixarParaOffline = async function(data) {
+            if (!('caches' in window)) return window.showToast("Seu dispositivo não suporta downloads offline.", true);
+            
+            const btnIcon = document.getElementById('details-icon-download');
+            btnIcon.classList.replace('ph-download-simple', 'ph-circle-notch');
+            btnIcon.classList.add('animate-spin');
+            window.showToast("Iniciando download... Não feche a aplicação.");
+
+            try {
+                const cache = await caches.open(OFFLINE_CACHE_NAME);
+                
+                // Ficheiros para guardar localmente
+                const urls = [data.capaUrl];
+                if(data.videoUrl && data.videoUrl.trim() !== "") urls.push(data.videoUrl);
+                if(data.trailerUrl && data.trailerUrl.trim() !== "") urls.push(data.trailerUrl);
+                
+                // Transfere cada um para o armazenamento permanente de cache do navegador
+                for (const url of urls) {
+                    if(!url || url.trim() === "") continue;
+                    try {
+                        // Tenta baixar com as permissões padrão
+                        const response = await fetch(url);
+                        if (response.ok) {
+                            await cache.put(url, response);
+                        } else {
+                            // Fallback para modo no-cors se o servidor restringir o acesso (Opaque Response)
+                            const opaqueResp = await fetch(url, { mode: 'no-cors' });
+                            await cache.put(url, opaqueResp);
+                        }
+                    } catch (e) {
+                        // Se houver erro de rede ou bloqueio CORS (TypeError), força modo no-cors para garantir o armazenamento
+                        const opaqueResp = await fetch(url, { mode: 'no-cors' });
+                        await cache.put(url, opaqueResp);
+                    }
+                }
+
+                // Salva metadados no localStorage para reconstrução da UI em modo avião
+                let offlineList = JSON.parse(localStorage.getItem('am_offline_metadata') || '[]');
+                if (!offlineList.find(i => i.id === data.id)) {
+                    offlineList.push(data);
+                    localStorage.setItem('am_offline_metadata', JSON.stringify(offlineList));
+                }
+
+                window.showToast("Conteúdo disponível offline!");
+            } catch (err) {
+                console.error(err);
+                window.showToast("Erro no download. Verifique sua conexão.", true);
+            } finally {
+                btnIcon.classList.replace('ph-circle-notch', 'ph-download-simple');
+                btnIcon.classList.remove('animate-spin');
+                window.verificarStatusBotoes();
+            }
+        };
+
+        window.removerDownload = async function(itemId) {
+            const cache = await caches.open(OFFLINE_CACHE_NAME);
+            const offlineList = JSON.parse(localStorage.getItem('am_offline_metadata') || '[]');
+            const item = offlineList.find(i => i.id === itemId);
+            
+            if (item) {
+                if(item.capaUrl) await cache.delete(item.capaUrl);
+                if(item.videoUrl) await cache.delete(item.videoUrl);
+                if(item.trailerUrl) await cache.delete(item.trailerUrl);
+                
+                const newList = offlineList.filter(i => i.id !== itemId);
+                localStorage.setItem('am_offline_metadata', JSON.stringify(newList));
+            }
+        };
+
+        window.estaBaixado = async function(itemId) {
+            const offlineList = JSON.parse(localStorage.getItem('am_offline_metadata') || '[]');
+            return offlineList.some(i => i.id === itemId);
+        };
+
+        window.atualizarModoConexao = function() {
+            const isOnline = navigator.onLine;
+            if (!isOnline) {
+                window.showToast("Modo Offline Ativo", true);
+                window.renderizarModoOffline();
+            } else {
+                if(window.renderizarTrilhosNaHome) window.renderizarTrilhosNaHome();
+            }
+        };
+
+        window.renderizarModoOffline = function() {
+            const offlineList = JSON.parse(localStorage.getItem('am_offline_metadata') || '[]');
+            const container = document.getElementById('dynamic-rails-container');
+            const sectionLista = document.getElementById('section-minha-lista');
+            
+            if (sectionLista) sectionLista.classList.add('hidden');
+            
+            if (offlineList.length === 0) {
+                container.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-32 text-center px-8">
+                        <i class="ph ph-cloud-slash text-6xl text-white/10 mb-4"></i>
+                        <h3 class="text-xl font-bold text-white mb-2 uppercase">Sem Downloads</h3>
+                        <p class="text-brand-text text-sm max-w-xs mx-auto">Conecte-se à internet para baixar conteúdos e assistir quando estiver sem sinal.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let cardsHtml = offlineList.map(item => renderCardPaisagem(item, "text-[var(--brand-gold)]")).join('');
+            
+            container.innerHTML = `
+                <div class="relative pb-4 animate-fadeIn">
+                    <h3 class="text-lg md:text-xl font-bold mb-6 text-white uppercase tracking-widest flex items-center gap-3">
+                        <i class="ph-fill ph-download-simple text-[var(--brand-gold)]"></i> Meus Downloads
+                    </h3>
+                    <div class="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
+                        ${cardsHtml}
+                    </div>
+                </div>
+            `;
+        };
+
+        window.addEventListener('online', window.atualizarModoConexao);
+        window.addEventListener('offline', window.atualizarModoConexao);
+        setTimeout(window.atualizarModoConexao, 3000);
     </script>
 </body>
 </html>
