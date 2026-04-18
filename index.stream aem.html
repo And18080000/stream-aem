@@ -205,10 +205,20 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 const swCode = `
+                    const CACHE_NAME = 'aem-offline-v1';
                     self.addEventListener('install', (e) => self.skipWaiting());
                     self.addEventListener('activate', (e) => self.clients.claim());
-                    self.addEventListener('fetch', (e) => {
-                        e.respondWith(fetch(e.request).catch(() => new Response('Offline')));
+                    self.addEventListener('fetch', (event) => {
+                        // Estratégia Cache-First para Mídia: Tenta o cache, se falhar vai à rede
+                        event.respondWith(
+                            caches.match(event.request).then((response) => {
+                                return response || fetch(event.request).catch(() => {
+                                    if (event.request.mode === 'navigate') {
+                                        return caches.match('.');
+                                    }
+                                });
+                            })
+                        );
                     }); 
                 `;
                 const blob = new Blob([swCode], { type: 'application/javascript' });
@@ -893,6 +903,21 @@
         </div>
     </div>
 
+    <!-- MODAL DE CONFIRMAÇÃO INTERNA (Replacement para confirm()) -->
+    <div id="confirm-modal" class="hidden fixed inset-0 z-[300] flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
+        <div class="bg-brand-panel border border-white/10 rounded-[32px] w-full max-w-xs p-8 shadow-2xl text-center animate-fadeIn">
+            <div class="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i class="ph ph-warning-circle text-3xl text-red-500"></i>
+            </div>
+            <h3 id="confirm-title" class="text-white font-black text-lg mb-2 uppercase tracking-tighter">Confirmar Ação</h3>
+            <p id="confirm-msg" class="text-brand-text text-xs mb-8 leading-relaxed">Tem a certeza que deseja prosseguir com esta operação?</p>
+            <div class="flex flex-col gap-3">
+                <button id="confirm-ok" class="focusable w-full bg-white text-black py-3.5 rounded-full font-black text-xs transition uppercase tracking-widest shadow-lg">Confirmar</button>
+                <button id="confirm-cancel" class="focusable w-full bg-white/5 hover:bg-white/10 text-white py-3.5 rounded-full font-bold text-xs transition uppercase tracking-widest">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- OVERLAY DE PROCESSAMENTO -->
     <div id="install-processing-overlay">
         <div class="flex flex-col items-center">
@@ -1410,6 +1435,28 @@
             t.classList.add(isError ? 'bg-red-600' : 'bg-green-600');
             t.classList.remove('translate-x-full', 'opacity-0');
             setTimeout(() => { t.classList.add('translate-x-full', 'opacity-0'); }, 3000);
+        };
+
+        // Motor de Confirmação Interno (Anti-Navegador Externo)
+        window.showConfirm = function(title, msg, onConfirm) {
+            const modal = document.getElementById('confirm-modal');
+            const titleEl = document.getElementById('confirm-title');
+            const msgEl = document.getElementById('confirm-msg');
+            const btnOk = document.getElementById('confirm-ok');
+            const btnCancel = document.getElementById('confirm-cancel');
+
+            titleEl.innerText = title;
+            msgEl.innerText = msg;
+            modal.classList.remove('hidden');
+
+            const closeConfirm = () => {
+                modal.classList.add('hidden');
+                btnOk.onclick = null;
+                btnCancel.onclick = null;
+            };
+
+            btnOk.onclick = () => { closeConfirm(); onConfirm(); };
+            btnCancel.onclick = () => { closeConfirm(); };
         };
 
         // ==========================================
@@ -3136,10 +3183,12 @@
             const searchView = document.getElementById('view-search');
             const iosInst = document.getElementById('ios-instructions-modal');
             const andInst = document.getElementById('android-instructions-modal');
+            const confModal = document.getElementById('confirm-modal');
 
             if (!player.classList.contains('hidden')) { window.fecharPlayerFull(true); } 
             else if (!details.classList.contains('hidden')) { window.fecharDetalhes(true); }
             else if (searchView && !searchView.classList.contains('hidden')) { window.closeSearch(true); }
+            else if (confModal && !confModal.classList.contains('hidden')) { confModal.classList.add('hidden'); history.pushState(null, null); }
             else if (adsRemoval && !adsRemoval.classList.contains('hidden')) { window.closeAdsRemovalModal(); history.pushState(null, null); }
             else if (!auth.classList.contains('hidden')) { window.closeRegistrationModal(); history.pushState(null, null); } 
             else if (!install.classList.contains('hidden')) { window.closeInstallModal(); history.pushState(null, null); } 
@@ -3160,11 +3209,15 @@
             const isDownloaded = await window.estaBaixado(data.id);
             
             if (isDownloaded) {
-                if(confirm("Deseja remover este download do seu dispositivo?")) {
-                    await window.removerDownload(data.id);
-                    window.showToast("Download removido.");
-                    window.verificarStatusBotoes();
-                }
+                window.showConfirm(
+                    "Remover Download", 
+                    `Deseja eliminar "${data.titulo}" do armazenamento do seu dispositivo?`, 
+                    async () => {
+                        await window.removerDownload(data.id);
+                        window.showToast("Download removido com sucesso.");
+                        window.verificarStatusBotoes();
+                    }
+                );
             } else {
                 window.baixarParaOffline(data);
             }
@@ -3182,25 +3235,55 @@
             btnIcon.classList.add('animate-spin');
             progressCont.classList.remove('hidden');
             
-            window.showToast("A preparar transferência...");
+            window.showToast("A transferir conteúdo...");
 
             try {
                 const cache = await caches.open(OFFLINE_CACHE_NAME);
+                
+                // Ativos essenciais do vídeo
                 const urls = [data.capaUrl];
                 if(data.videoUrl && data.videoUrl.trim() !== "") urls.push(data.videoUrl);
                 if(data.trailerUrl && data.trailerUrl.trim() !== "") urls.push(data.trailerUrl);
+                
+                // Download silencioso de ativos de marca se ainda não existirem no cache
+                const systemAssets = [
+                    "https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev/0416.mp4",
+                    "https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev/Cinematic%20logo%20intro%20sound%20effect%20(no%20copyright)%20%23logointro%20%23soundeffects%20%23cinematic%20-%20Vfx%20Secrets%20(youtube).mp3"
+                ];
+                if (window.brandingConfig?.logoUrl) systemAssets.push(window.brandingConfig.logoUrl);
+
+                for (const sUrl of systemAssets) {
+                    const match = await cache.match(sUrl);
+                    if (!match) fetch(sUrl).then(r => cache.put(sUrl, r)).catch(()=>{});
+                }
 
                 let completed = 0;
                 for (const url of urls) {
                     if(!url || url.trim() === "") { completed++; continue; }
                     
-                    // Lógica de Progresso Real por Ficheiro (Simulada para agregação de UI)
-                    const response = await fetch(url);
-                    if (!response.ok) {
-                        const opaqueResp = await fetch(url, { mode: 'no-cors' });
-                        await cache.put(url, opaqueResp);
-                    } else {
-                        await cache.put(url, response);
+                    try {
+                        // MOTOR DE INTEGRIDADE: Forçamos o download integral via .blob() 
+                        // para garantir que o vídeo não fique corrompido no cache.
+                        let response = await fetch(url);
+                        if (!response.ok) {
+                            response = await fetch(url, { mode: 'no-cors' });
+                        }
+                        
+                        const fullBlob = await response.blob();
+                        const fullResponse = new Response(fullBlob, {
+                            status: 200,
+                            statusText: 'OK',
+                            headers: response.headers
+                        });
+                        
+                        await cache.put(url, fullResponse);
+                    } catch (e) {
+                        // Fallback em caso de erro de rede severo
+                        try {
+                            const fallbackResp = await fetch(url, { mode: 'no-cors' });
+                            const b = await fallbackResp.blob();
+                            await cache.put(url, new Response(b));
+                        } catch(err) { console.error("Erro crítico ao baixar:", url); }
                     }
                     
                     completed++;
@@ -3265,12 +3348,13 @@
         window.atualizarModoConexao = function() {
             const isOnline = navigator.onLine;
             const nav = document.querySelector('nav');
+            const searchIcon = document.querySelector('.ph-magnifying-glass');
             
             if (!isOnline) {
                 // TENTA "LOGIN" OFFLINE RECUPERANDO DADOS DO LOCALSTORAGE
                 const offlineUser = JSON.parse(localStorage.getItem('am_offline_user') || 'null');
                 if (offlineUser) {
-                    document.getElementById('profile-welcome-msg').innerText = `Modo Offline: ${offlineUser.nome}`;
+                    document.getElementById('profile-welcome-msg').innerText = `Utilizador: ${offlineUser.nome}`;
                     if (offlineUser.photoUrl) {
                         const img = document.getElementById('profile-img-preview');
                         img.src = offlineUser.photoUrl; img.classList.remove('hidden');
@@ -3278,21 +3362,40 @@
                     }
                 }
 
-                // AJUSTA MENU PARA "ABA ÚNICA"
+                // AJUSTA INTERFACE PARA "MODO AVIÃO" (Aba Única)
                 if (nav) {
                     nav.innerHTML = `
-                        <button class="nav-link focusable active pb-1 text-brand-gold font-bold flex items-center gap-2" tabindex="0">
-                            <i class="ph-fill ph-download-simple"></i> DOWNLOADS
-                        </button>
+                        <div class="flex w-full justify-center">
+                            <button class="nav-link active pb-1 text-brand-gold font-black flex items-center gap-3 text-sm md:text-lg tracking-widest" style="border-bottom: 3px solid var(--brand-gold);">
+                                <i class="ph-fill ph-download-simple"></i> DOWNLOADS
+                            </button>
+                        </div>
                     `;
                 }
+                if (searchIcon) searchIcon.classList.add('hidden');
 
-                window.showToast("Ligação perdida. A mostrar apenas downloads.", true);
+                window.showToast("Ligação perdida. Modo Offline Ativado.", true);
                 window.renderizarModoOffline();
             } else {
-                // RESTAURA MENUS ORIGINAIS AO VOLTAR ONLINE (Recarrega para garantir sincronia completa)
-                if (window.renderizarTrilhosNaHome) window.renderizarTrilhosNaHome();
+                // RESTAURA TUDO AO VOLTAR ONLINE
+                if (searchIcon) searchIcon.classList.remove('hidden');
+                if(window.renderizarTrilhosNaHome) window.renderizarTrilhosNaHome();
+                
+                // Pré-carrega ativos de sistema na entrada online
+                window.precacheSystem();
             }
+        };
+
+        window.precacheSystem = async function() {
+            if (!('caches' in window)) return;
+            const cache = await caches.open(OFFLINE_CACHE_NAME);
+            const core = [
+                "https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev/0416.mp4",
+                "https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev/Cinematic%20logo%20intro%20sound%20effect%20(no%20copyright)%20%23logointro%20%23soundeffects%20%23cinematic%20-%20Vfx%20Secrets%20(youtube).mp3"
+            ];
+            core.forEach(url => {
+                caches.match(url).then(m => { if(!m) fetch(url).then(r => cache.put(url, r)).catch(()=>{}); });
+            });
         };
 
         window.renderizarModoOffline = function() {
