@@ -1097,6 +1097,7 @@
         let downloadsIds = [];
         let searchHistory = [];
         window.currentDestaqueData = null;
+        window.cardReadyToOpenId = null; // Controla qual card está em estado de "preparado para abrir"
         window.authMode = 'login';
         window.ignoreNextPopState = false; // TRAVA DE HISTÓRICO GLOBAL
         window.isWatchingTrailer = false; // TRAVA DO TRAILER ATIVO
@@ -1704,7 +1705,7 @@
 
             return `
             <div class="card-container relative transition-all duration-300">
-                <div onclick="window.abrirDetalhes('${dataStr}')" onfocus="window.mudarDestaque('${dataStr}')" class="focusable min-w-[130px] md:min-w-[170px] h-[190px] md:h-[250px] relative group cursor-pointer snap-start transition-all" tabindex="0">
+                <div onclick="window.handleCardAction('${dataStr}', this)" onfocus="window.handleCardFocus('${dataStr}')" class="focusable min-w-[130px] md:min-w-[170px] h-[190px] md:h-[250px] relative group cursor-pointer snap-start transition-all" tabindex="0">
                     <div class="absolute inset-0 bg-black rounded-xl overflow-hidden border border-white/10 shadow-lg">
                         <img src="${data.capaUrl}" loading="lazy" decoding="async" class="w-full h-full object-cover opacity-100 brightness-[1.2] saturate-[1.25]">
                         <div class="absolute top-0 w-full p-2 bg-gradient-to-b from-black/60 to-transparent"><p class="text-[8px] text-[var(--brand-gold)] font-bold tracking-widest uppercase">${data.selo}</p></div>
@@ -1733,7 +1734,7 @@
 
             return `
             <div class="card-container relative transition-all duration-300">
-                <div onclick="window.abrirDetalhes('${dataStr}')" onfocus="window.mudarDestaque('${dataStr}')" class="focusable min-w-[220px] md:min-w-[280px] h-[120px] md:h-[150px] relative group cursor-pointer snap-start transition-all" tabindex="0">
+                <div onclick="window.handleCardAction('${dataStr}', this)" onfocus="window.handleCardFocus('${dataStr}')" class="focusable min-w-[220px] md:min-w-[280px] h-[120px] md:h-[150px] relative group cursor-pointer snap-start transition-all" tabindex="0">
                     <div class="absolute inset-0 bg-black rounded-xl overflow-hidden border border-white/10 shadow-lg">
                         <img src="${data.capaUrl}" loading="lazy" decoding="async" class="w-full h-full object-cover opacity-100 brightness-[1.2] saturate-[1.25]">
                         <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex items-end p-3">
@@ -1920,6 +1921,35 @@
         window.toggleJoinhaDetails = async function() {
             await window.toggleJoinha();
             window.verificarStatusBotoes();
+        };
+
+        // Motor de Ação de Card (Estilo Amazon Prime: 1º Seleciona, 2º Entra)
+        window.handleCardAction = function(dataStr, el) {
+            const data = JSON.parse(decodeURIComponent(atob(dataStr)));
+            
+            // Se o card clicado já é o que está "Pronto para Abrir" (foi clicado uma vez antes)
+            if (window.cardReadyToOpenId === data.id) {
+                // SEGUNDO CLIQUE: Abre os detalhes
+                window.abrirDetalhes(dataStr);
+                window.cardReadyToOpenId = null; // Reseta para a próxima interação
+            } else {
+                // PRIMEIRO CLIQUE: Apenas seleciona, destaca no Hero e foca
+                window.cardReadyToOpenId = data.id;
+                window.mudarDestaque(dataStr);
+                el.focus();
+                
+                // Feedback visual discreto (Toast)
+                window.showToast("Clique novamente para abrir detalhes");
+            }
+        };
+
+        window.handleCardFocus = function(dataStr) {
+            const data = JSON.parse(decodeURIComponent(atob(dataStr)));
+            // O Foco apenas muda o destaque visual no Hero (Preview)
+            // Não definimos o cardReadyToOpenId aqui para garantir que o clique seja uma ação intencional
+            if (window.currentDestaqueData?.id !== data.id) {
+                window.mudarDestaque(dataStr, false);
+            }
         };
 
         window.verificarStatusBotoes = function() {
