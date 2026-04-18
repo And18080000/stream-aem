@@ -1196,18 +1196,22 @@
                     window.showToast("Bem-vindo de volta!");
                 } else {
                     await createUserWithEmailAndPassword(auth, email, pass);
-                    window.showToast("Conta criada com sucesso!");
-                }
-                closeLoginModal();
-            } catch (e) { window.showToast("Erro na autenticação: " + e.message, true); }
-        };
+                window.showToast("Conta criada com sucesso!");
+            }
+            window.closeLoginModal();
+        } catch (e) { window.showToast("Erro na autenticação: " + e.message, true); }
+    };
 
-        window.handleLogout = async () => {
+    window.handleLogout = async () => {
+        try {
             await signOut(auth);
             window.showToast("Sessão encerrada.");
-            closeRegistrationModal();
+            window.closeRegistrationModal();
             location.reload();
-        };
+        } catch (e) {
+            window.showToast("Erro ao sair da conta.", true);
+        }
+    };
 
         // ==========================================
         // NOVA LÓGICA DE INTRODUÇÃO / LANDING PAGE
@@ -1292,9 +1296,13 @@
         // MODAL DE CADASTRO DO USUÁRIO
         // ==========================================
         window.openRegistrationModal = () => { 
-            document.getElementById('registration-modal').classList.remove('hidden');
-            // Foca automaticamente no primeiro input para facilitar uso com controle remoto
-            setTimeout(() => document.getElementById('reg-nome').focus(), 100);
+            if (!currentUser || currentUser.isAnonymous) {
+                window.openLoginModal();
+            } else {
+                document.getElementById('registration-modal').classList.remove('hidden');
+                // Foca automaticamente no primeiro input para facilitar uso com controle remoto
+                setTimeout(() => document.getElementById('reg-nome').focus(), 100);
+            }
         }
         window.closeRegistrationModal = () => { document.getElementById('registration-modal').classList.add('hidden'); }
         
@@ -1361,7 +1369,7 @@
                 document.getElementById('profile-welcome-msg').innerText = `Bem-vindo de volta, ${nome.split(' ')[0]}!`;
                 selectedProfilePhoto = null;
                 currentProfilePhotoUrl = finalPhotoUrl;
-                closeRegistrationModal();
+                window.closeRegistrationModal();
             } catch (err) {
                 console.error(err);
                 window.showToast("Erro ao salvar dados.", true);
