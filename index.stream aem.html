@@ -3,13 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>A&M Streaming</title>
+    <title>A&amp;M Streaming</title>
     
     <!-- Otimização de Performance e Fontes -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdn.tailwindcss.com">
     <link rel="preconnect" href="https://unpkg.com">
+    
+    <!-- PRECONNECT PARA O SERVIDOR DE VÍDEOS (CLOUDFLARE R2) PARA ACELERAR DOWNLOADS -->
+    <link rel="preconnect" href="https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev" crossorigin>
+    <link rel="dns-prefetch" href="https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev">
     
     <!-- Tailwind CSS & Icons -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -40,11 +44,33 @@
         :root {
             --brand-gold: #D6B778;
             --brand-gold-hover: #e8c989;
+            --prime-blue: #00A8E1;
         }
 
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         
-        body { background-color: #0B0D12; color: white; overflow-x: hidden; }
+        body { background-color: #000000; color: white; overflow-x: hidden; }
+
+        /* NOVA LANDING PAGE - MÁSCARA E ANIMAÇÃO GRID */
+        .landing-mask {
+            position: absolute;
+            top: -20%;
+            left: -60%; /* Puxado mais para a esquerda para revelar mais capas */
+            width: 120%;
+            height: 140%;
+            background: #000000;
+            border-radius: 0 55% 55% 0 / 0 50% 50% 0;
+            z-index: 10;
+            box-shadow: 80px 0 120px rgba(0,0,0,1);
+        }
+        @media (max-width: 768px) {
+            .landing-mask { left: -50%; width: 130%; }
+        }
+        @keyframes scrollUp {
+            0% { transform: translateY(0) rotate(-4deg) scale(1.1); }
+            100% { transform: translateY(-50%) rotate(-4deg) scale(1.1); }
+        }
+        .animate-grid-vertical { animation: scrollUp 40s linear infinite; }
 
         /* MOTOR DE PROCESSAMENTO DE INSTALAÇÃO */
         #install-processing-overlay {
@@ -106,11 +132,12 @@
         .nav-link.active { color: var(--brand-gold); border-bottom: 2px solid var(--brand-gold); }
         .hidden { display: none !important; }
 
-        /* Intro Cinemática */
+        /* Intro Cinemática Otimizada */
         #intro-container {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            position: fixed; inset: 0;
             display: none; justify-content: center; align-items: center;
             perspective: 1000px; overflow: hidden; background-color: #000; z-index: 9999;
+            will-change: opacity;
         }
         .am-logo-wrapper {
             position: absolute; width: 400px; height: 180px; z-index: 10;
@@ -123,13 +150,6 @@
             50% { transform: scale3d(1.12, 1.12, 1); opacity: 1; }
             75%, 100% { transform: scale3d(40, 40, 1); opacity: 0; }
         }
-        #start-overlay {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            display: flex; justify-content: center; align-items: center;
-            z-index: 10000; cursor: pointer; color: rgba(255, 255, 255, 0.4);
-            font-size: 13px; letter-spacing: 4px; text-transform: uppercase;
-            background-color: #000; transition: opacity 0.3s ease;
-        }
     </style>
 
     <script>
@@ -138,13 +158,16 @@
          */
         window.deferredPrompt = null;
         window.brandingConfig = {}; 
+        window.lastManifestString = "";
 
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 const swCode = `
                     self.addEventListener('install', (e) => self.skipWaiting());
                     self.addEventListener('activate', (e) => self.clients.claim());
-                    self.addEventListener('fetch', (e) => {}); 
+                    self.addEventListener('fetch', (e) => {
+                        e.respondWith(fetch(e.request).catch(() => new Response('Offline')));
+                    }); 
                 `;
                 const blob = new Blob([swCode], { type: 'application/javascript' });
                 navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(err => console.log('SW Error:', err));
@@ -175,38 +198,43 @@
                     setTimeout(() => { overlay.style.display = 'none'; targetAction(); }, 500);
                 }
                 bar.style.width = progress + '%';
-                if(progress < 30) text.innerText = "Preparando manifestos...";
-                else if(progress < 70) text.innerText = "Compilando pacotes nativos...";
-                else text.innerText = "Gerando instalador final...";
+                if(progress < 30) text.innerText = "A preparar manifestos...";
+                else if(progress < 70) text.innerText = "A compilar pacotes nativos...";
+                else text.innerText = "A gerar instalador final...";
             }, 200);
         };
 
         window.installAsPWA = async () => {
-            // Verifica logo se a prompt está disponível, se não redireciona conforme o sistema
             if (!window.deferredPrompt) {
                 window.closeInstallModal();
-                if (/iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase())) {
+                const isStandalone = ('standalone' in window.navigator && window.navigator.standalone) || window.matchMedia('(display-mode: standalone)').matches;
+                
+                if (isStandalone) {
+                    if(typeof window.showToast === 'function') window.showToast("A aplicação já está instalada no seu dispositivo.", true);
+                } else if (/iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase())) {
                     window.installAsIos();
                 } else {
-                    window.showToast("App já instalado ou vá ao menu do navegador e clique em 'Adicionar à Tela Inicial'.", true);
+                    window.installAsAndroidManual();
                 }
                 return;
             }
 
-            // O prompt nativo do navegador DEVE ser chamado de forma síncrona com o clique do utilizador
-            window.deferredPrompt.prompt();
-            const { outcome } = await window.deferredPrompt.userChoice;
-            
-            if (outcome === 'accepted') {
-                window.deferredPrompt = null;
-                // Animação de sucesso PÓS-aceitação
-                runProcessingAnimation(() => {
+            try {
+                const promptEvent = window.deferredPrompt;
+                promptEvent.prompt();
+                window.closeInstallModal();
+
+                const { outcome } = await promptEvent.userChoice;
+                if (outcome === 'accepted') {
+                    window.deferredPrompt = null;
                     const btnHeader = document.getElementById('btn-install-header');
                     if(btnHeader) btnHeader.classList.add('hidden');
-                    window.showToast("Instalação concluída com sucesso!");
-                });
-            } else {
+                    if(typeof window.showToast === 'function') window.showToast("Instalação iniciada com sucesso!");
+                }
+            } catch (error) {
+                console.error('PWA prompt error:', error);
                 window.closeInstallModal();
+                window.installAsAndroidManual();
             }
         };
 
@@ -216,7 +244,7 @@
                     ? window.brandingConfig.apkUrl 
                     : "https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev/aem%20streaming.apk";
 
-                if(typeof window.showToast === 'function') window.showToast("Iniciando download direto do instalador...");
+                if(typeof window.showToast === 'function') window.showToast("A iniciar transferência do instalador...");
                 
                 const link = document.createElement('a');
                 link.href = apkUrl;
@@ -230,32 +258,89 @@
 
         window.installAsIos = () => { closeInstallModal(); document.getElementById('ios-instructions-modal').classList.remove('hidden'); };
         window.closeIosInstructions = () => { document.getElementById('ios-instructions-modal').classList.add('hidden'); };
+        
+        window.installAsAndroidManual = () => { closeInstallModal(); document.getElementById('android-instructions-modal').classList.remove('hidden'); };
+        window.closeAndroidInstructions = () => { document.getElementById('android-instructions-modal').classList.add('hidden'); };
+
         window.addEventListener('appinstalled', () => {
             const btnHeader = document.getElementById('btn-install-header');
             if(btnHeader) btnHeader.classList.add('hidden');
-            if(typeof window.showToast === 'function') window.showToast("App instalado com sucesso!");
+            if(typeof window.showToast === 'function') window.showToast("Aplicação instalada com sucesso!");
             window.deferredPrompt = null;
         });
+
+        // ========================================================
+        // BANNER FIXO AUTOMÁTICO PARA IOS
+        // ========================================================
+        const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase()); 
+        const isStandalone = () => ('standalone' in window.navigator && window.navigator.standalone) || window.matchMedia('(display-mode: standalone)').matches; 
+        
+        if (isIos() && !isStandalone()) { 
+            const ib = document.createElement('div'); 
+            ib.innerHTML = `Para instalar a App: toque em <b class="text-brand-gold">Partilhar</b> <svg class="inline-block align-middle mx-1 w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg> e depois <b class="text-brand-gold">Adicionar ao Ecrã Principal</b> <svg class="inline-block align-middle mx-1 w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg><button style="position:absolute;right:15px;top:50%;transform:translateY(-50%);background:none;border:none;color:#A1A1AA;font-size:18px;cursor:pointer;" onclick="this.parentElement.remove()">✕</button>`; 
+            ib.style.cssText = 'position:fixed;bottom:0;left:0;width:100%;background:#15171C;color:#fff;padding:15px 45px 15px 15px;font-family:sans-serif;font-size:13px;text-align:center;z-index:99999;border-top:1px solid #2A2C33;box-shadow:0 -5px 20px rgba(0,0,0,0.5);'; 
+            setTimeout(() => document.body.appendChild(ib), 2500); 
+        }
     </script>
 
-<link rel="manifest" href="data:application/json;charset=utf-8,%7B%22name%22%3A%22index.stream%20aem.html%22%2C%22short_name%22%3A%22index.stream%20aem.html%22%2C%22display%22%3A%22standalone%22%2C%22start_url%22%3A%22.%22%2C%22background_color%22%3A%22%230f111a%22%2C%22theme_color%22%3A%22%233b82f6%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Fapi.dicebear.com%2F7.x%2Fbottts%2Fsvg%3Fseed%3Dindex.stream%2520aem.html%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%2C%7B%22src%22%3A%22https%3A%2F%2Fapi.dicebear.com%2F7.x%2Fbottts%2Fsvg%3Fseed%3Dindex.stream%2520aem.html%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
-<meta name="theme-color" content="#3b82f6">
+<link rel="manifest" href="data:application/json;charset=utf-8,%7B%22name%22%3A%22Streaming%20App%22%2C%22short_name%22%3A%22Streaming%22%2C%22display%22%3A%22standalone%22%2C%22start_url%22%3A%22.%22%2C%22background_color%22%3A%22%230B0D12%22%2C%22theme_color%22%3A%22%23D6B778%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Fui-avatars.com%2Fapi%2F%3Fname%3DAM%26background%3D000%26color%3Dfff%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fpng%22%7D%2C%7B%22src%22%3A%22https%3A%2F%2Fui-avatars.com%2Fapi%2F%3Fname%3DAM%26background%3D000%26color%3Dfff%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fpng%22%7D%5D%7D">
+<meta name="theme-color" content="#D6B778">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<script>
-const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase()); const isStandalone = () => ('standalone' in window.navigator) && window.navigator.standalone; if (isIos() && !isStandalone()) { const ib = document.createElement('div'); ib.innerHTML = 'Para instalar como App: toque em <b>Compartilhar</b> e depois <b>Adicionar ao Ecrã Principal</b><button style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:#a1a1aa;font-size:16px;" onclick="this.parentElement.remove()">✕</button>'; ib.style.cssText = 'position:fixed;bottom:0;left:0;width:100%;background:#1c1e2b;color:#fff;padding:15px 30px 15px 15px;font-family:sans-serif;font-size:12px;text-align:center;z-index:99999;border-top:1px solid #2b2d3a;box-shadow:0 -5px 15px rgba(0,0,0,0.2);'; setTimeout(() => document.body.appendChild(ib), 2000); }
-</script>
 </head>
 <body class="antialiased flex flex-col min-h-screen" id="app-body">
 
-    <div id="start-overlay">Clique na tela para iniciar</div>
-    <video id="hidden-intro-video" src="https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev/0416.mp4" playsinline style="position: fixed; left: -9999px; top: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; z-index: -9999;"></video>
+    <!-- NOVA LANDING PAGE (PRIME VIDEO STYLE) -->
+    <div id="landing-page" class="fixed inset-0 z-[100000] bg-black overflow-hidden transition-opacity duration-500 flex items-center">
+        <!-- O Grid de Imagens de Fundo - h-fit para permitir o scroll infinito -->
+        <div class="absolute top-0 right-0 w-[140%] md:w-[85%] h-[200%] -translate-y-10 translate-x-10 opacity-60 z-0 overflow-hidden">
+            <div id="landing-grid" class="w-full h-fit grid grid-cols-4 md:grid-cols-8 lg:grid-cols-10 gap-2 md:gap-3 animate-grid-vertical p-4">
+                <!-- Capas inseridas via JS -->
+            </div>
+            <div class="absolute inset-0 bg-gradient-to-l from-black/10 to-black pointer-events-none"></div>
+        </div>
+
+        <!-- A Máscara Preta em Curva (Estilo Prime Video) -->
+        <div class="landing-mask"></div>
+
+        <!-- O Conteúdo Interativo - Nome do Site com Fonte Estilo Prime Video -->
+        <div class="relative z-20 w-full max-w-7xl mx-auto px-8 md:px-16 flex flex-col justify-center items-start h-full">
+            <div id="landing-logo-text" class="flex flex-col mb-10 relative group">
+                <h1 class="text-5xl md:text-7xl font-sans text-white tracking-tighter leading-none drop-shadow-2xl flex items-baseline gap-2">
+                    <span class="font-black italic">A&amp;M</span>
+                    <span class="font-light text-[var(--prime-blue)]">streaming</span>
+                </h1>
+                <!-- O "Sorriso" icónico estilizado -->
+                <svg class="w-24 md:w-36 h-auto -mt-2 md:-mt-3 ml-1 text-[var(--prime-blue)] opacity-90 drop-shadow-lg" viewBox="0 0 100 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5 8C25 18 75 18 95 8" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
+                    <path d="M91 4L97 8L92 14" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            
+            <!-- Botão Seta Mais Largo e Arredondado -->
+            <button onclick="startAppFromLanding()" class="focusable px-12 h-12 bg-[var(--prime-blue)] text-black rounded-full flex items-center justify-center hover:scale-105 transition-all group shadow-[0_0_25px_rgba(0,168,225,0.4)] font-black text-xs uppercase tracking-[0.2em] gap-3" tabindex="0">
+                <span>Entrar</span> <i class="ph-bold ph-arrow-right text-lg"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- VIDEO DE INTRODUÇÃO OTIMIZADO PARA PRÉ-CARREGAMENTO DE METADADOS -->
+    <video id="hidden-intro-video" src="https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev/0416.mp4" playsinline preload="metadata" style="position: fixed; left: -9999px; top: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; z-index: -9999;"></video>
 
     <!-- INTRO CINEMÁTICA -->
     <div id="intro-container">
         <div id="red-flash"></div>
         <div class="am-logo-wrapper flex items-center justify-center" id="am-logo">
-            <img id="am-logo-img" src="" class="hidden w-full h-full object-contain drop-shadow-2xl">
+            <!-- NOME ESTILIZADO EM INTRO -->
+            <div id="am-intro-text" class="flex flex-col items-center">
+                <h1 class="text-6xl md:text-8xl font-sans text-white tracking-tighter font-black italic leading-none flex items-baseline gap-3">
+                    A&amp;M <span class="text-[var(--prime-blue)] font-light not-italic">streaming</span>
+                </h1>
+                <svg class="w-32 md:w-48 h-auto -mt-3 text-[var(--prime-blue)]" viewBox="0 0 100 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5 8C25 18 75 18 95 8" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
+                    <path d="M91 4L97 8L92 14" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
         </div>
         <div id="spectrum-container"></div>
     </div>
@@ -267,13 +352,17 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
     </div>
 
     <!-- HEADER / NAVBAR -->
-    <header id="main-header" class="opacity-0 pointer-events-none fixed w-full top-0 z-40 bg-[#0B0D12]/90 backdrop-blur-md border-b border-white/5 transition-all py-3 px-4 md:px-8 flex justify-between items-center">
+    <header id="main-header" class="opacity-0 pointer-events-none fixed w-full top-0 z-40 bg-black/90 backdrop-blur-md border-b border-white/5 transition-all py-3 px-4 md:px-8 flex justify-between items-center">
         <div class="flex items-center gap-6 md:gap-10 overflow-x-auto scrollbar-hide">
-            <div class="flex flex-col cursor-pointer shrink-0 items-center" onclick="navigate('home')">
-                <img id="main-logo-img" src="" class="hidden h-7 md:h-9 object-contain mb-1">
-                <div id="main-logo-text" class="flex flex-col items-center">
-                    <h1 class="text-xl md:text-2xl font-serif text-brand-gold tracking-widest font-bold leading-none">A&M</h1>
-                    <span class="text-[0.5rem] md:text-[0.6rem] tracking-[0.2em] text-brand-text">STREAMING</span>
+            <div class="flex flex-col cursor-pointer shrink-0 items-start" onclick="navigate('home')">
+                <div id="main-logo-text" class="flex flex-col items-start scale-90 origin-left">
+                    <h1 class="text-xl md:text-2xl font-sans text-white tracking-tighter font-black italic leading-none flex items-baseline gap-1">
+                        A&amp;M <span class="text-[var(--prime-blue)] font-light not-italic text-sm md:text-base">streaming</span>
+                    </h1>
+                    <svg class="w-12 md:w-16 h-auto -mt-1 text-[var(--prime-blue)]" viewBox="0 0 100 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M5 8C25 18 75 18 95 8" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
+                        <path d="M91 4L97 8L92 14" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
                 </div>
             </div>
             <nav class="flex gap-4 md:gap-6 text-xs md:text-sm font-medium text-brand-text whitespace-nowrap">
@@ -287,8 +376,8 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 </button>
             </nav>
         </div>
-        <div class="flex items-center gap-3 md:gap-5 text-lg md:text-xl text-brand-text shrink-0 pl-4 bg-[#0B0D12]/90">
-            <i class="ph ph-magnifying-glass cursor-pointer hover:text-white transition"></i>
+        <div class="flex items-center gap-3 md:gap-5 text-lg md:text-xl text-brand-text shrink-0 pl-4 bg-black/90">
+            <i onclick="openSearch()" class="ph ph-magnifying-glass cursor-pointer hover:text-white transition"></i>
             <button onclick="openRegistrationModal()" class="focusable p-1.5 md:p-2 border border-brand-gold/30 rounded-lg text-brand-gold hover:bg-brand-gold/10 transition" tabindex="0">
                 <i class="ph ph-user"></i>
             </button>
@@ -300,11 +389,13 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
         
         <!-- VIEW 1: HOME PRINCIPAL -->
         <section id="view-home" class="block w-full">
-            <div class="relative w-full h-[65vh] md:h-[85vh] bg-[#0B0D12] overflow-hidden group cursor-pointer" onclick="abrirDetalhesViaHero()">
-                <img src="https://images.unsplash.com/photo-1518773553398-650c184e0bb3?q=80&w=2070" id="hero-img" class="absolute inset-0 w-full h-full object-cover opacity-70 transition-opacity duration-1000 z-0">
-                <video id="hero-video" class="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-1000 z-0 pointer-events-none" muted playsinline></video>
-                <div class="absolute inset-0 bg-gradient-to-t from-[#0B0D12] via-[#0B0D12]/40 to-transparent z-10 pointer-events-none"></div>
-                <div class="absolute inset-0 bg-gradient-to-r from-[#0B0D12] via-[#0B0D12]/60 to-transparent z-10 pointer-events-none"></div>
+            <div class="relative w-full h-[65vh] md:h-[85vh] bg-black overflow-hidden group cursor-pointer" onclick="abrirDetalhesViaHero()">
+                <!-- IMAGEM HERO COM PRIORIDADE MÁXIMA E CARREGAMENTO IMEDIATO -->
+                <img src="https://images.unsplash.com/photo-1518773553398-650c184e0bb3?q=80&w=2070" id="hero-img" decoding="async" fetchpriority="high" loading="eager" class="absolute inset-0 w-full h-full object-cover opacity-100 brightness-110 saturate-[1.1] transition-opacity duration-1000 z-0">
+                <!-- VÍDEO HERO COM PRELOAD DE METADADOS PARA EVITAR TRAVAMENTO INICIAL -->
+                <video id="hero-video" class="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-1000 z-0 pointer-events-none" muted playsinline preload="metadata"></video>
+                <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10 pointer-events-none"></div>
+                <div class="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-transparent z-10 pointer-events-none"></div>
                 
                 <button id="btn-mute-hero" onclick="event.stopPropagation(); toggleMuteHero()" class="hidden focusable absolute bottom-16 md:bottom-1/4 right-4 md:right-16 w-10 h-10 bg-black/20 text-white rounded-full border border-white/40 flex items-center justify-center hover:bg-white/10 transition z-30" tabindex="0">
                     <i id="icon-mute-hero" class="ph ph-speaker-slash text-xl"></i>
@@ -312,17 +403,17 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
 
                 <div class="absolute bottom-12 md:bottom-1/4 left-4 md:left-16 max-w-3xl z-20 px-4 md:px-0">
                     <h2 id="hero-title" class="text-4xl md:text-[5rem] leading-none font-bold mb-3 md:mb-6 font-serif text-white tracking-wide drop-shadow-lg transition-all duration-500">O MISTÉRIO DE VERÃO</h2>
-                    <p class="text-white text-sm md:text-lg mb-1 leading-relaxed font-light drop-shadow-md"><span id="hero-selo" class="font-bold text-brand-gold uppercase">A&M ORIGINALS</span> | Selecione um conteúdo abaixo.</p>
+                    <p class="text-white text-sm md:text-lg mb-1 leading-relaxed font-light drop-shadow-md"><span id="hero-selo" class="font-bold text-brand-gold uppercase">A&amp;M ORIGINALS</span> | Selecione um conteúdo abaixo.</p>
                     <p id="hero-subtitulo" class="text-brand-text text-xs md:text-sm mb-6 md:mb-8 font-medium">Classificação: 14+ | Estreia Exclusiva</p>
                     
                     <div class="flex flex-wrap items-center gap-3 md:gap-5">
-                        <button id="btn-hero-assistir" onclick="event.stopPropagation(); abrirPlayerFull()" class="focusable bg-white hover:bg-gray-200 text-black px-6 md:px-10 py-2.5 md:py-3 rounded flex items-center gap-2 font-bold transition text-xs md:text-sm shadow-lg" tabindex="0">
+                        <button id="btn-hero-assistir" onclick="event.stopPropagation(); abrirPlayerFull()" class="focusable bg-white hover:bg-gray-200 text-black px-8 md:px-12 py-2.5 md:py-3.5 rounded-full flex items-center gap-2 font-bold transition text-xs md:text-sm shadow-lg" tabindex="0">
                             <i class="ph-fill ph-play text-xl"></i> Assistir
                         </button>
-                        <button id="btn-hero-login" onclick="event.stopPropagation(); openLoginPrompt()" class="hidden focusable bg-brand-gold/10 border border-brand-gold/30 text-brand-gold hover:bg-brand-gold/20 px-6 md:px-8 py-2.5 md:py-3 rounded font-bold transition text-xs md:text-sm flex items-center gap-2" tabindex="0">
+                        <button id="btn-hero-login" onclick="event.stopPropagation(); openLoginPrompt()" class="hidden focusable bg-brand-gold/10 border border-brand-gold/30 text-brand-gold hover:bg-brand-gold/20 px-8 md:px-10 py-2.5 md:py-3.5 rounded-full font-bold transition text-xs md:text-sm flex items-center gap-2" tabindex="0">
                             <i class="ph ph-sign-in text-xl"></i> Entrar para Assistir
                         </button>
-                        <button onclick="event.stopPropagation(); abrirDetalhesViaHero()" class="focusable bg-gray-500/50 backdrop-blur-md border border-white/20 hover:bg-gray-500/80 text-white px-6 md:px-8 py-2.5 md:py-3 rounded font-bold transition text-xs md:text-sm flex items-center gap-2" tabindex="0">
+                        <button onclick="event.stopPropagation(); abrirDetalhesViaHero()" class="focusable bg-gray-500/50 backdrop-blur-md border border-white/20 hover:bg-gray-500/80 text-white px-8 md:px-10 py-2.5 md:py-3.5 rounded-full font-bold transition text-xs md:text-sm flex items-center gap-2" tabindex="0">
                             <i class="ph ph-info text-xl"></i> Mais Informações
                         </button>
                     </div>
@@ -352,8 +443,10 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
 
             <!-- Hero da Tela de Detalhes -->
             <div class="relative w-full h-[70vh] md:h-[80vh] bg-[#0B0D12] overflow-hidden border-b border-white/10">
-                <img id="details-img" src="" class="absolute inset-0 w-full h-full object-cover opacity-60 transition-opacity duration-1000 z-0 mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 100%);">
-                <video id="details-video" class="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-1000 z-0 pointer-events-none" muted playsinline></video>
+                <!-- IMAGEM DE DETALHES OTIMIZADA PARA CARREGAMENTO ASSÍNCRONO -->
+                <img id="details-img" src="" decoding="async" fetchpriority="high" class="absolute inset-0 w-full h-full object-cover opacity-60 transition-opacity duration-1000 z-0" style="mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 100%); -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 100%);">
+                <!-- VÍDEO DE DETALHES OTIMIZADO - CARREGAMENTO SOB DEMANDA -->
+                <video id="details-video" class="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-1000 z-0 pointer-events-none" muted playsinline preload="none"></video>
                 <div class="absolute inset-0 bg-gradient-to-t from-[#0B0D12] via-[#0B0D12]/70 to-transparent z-10 pointer-events-none"></div>
                 <div class="absolute inset-0 bg-gradient-to-r from-[#0B0D12] via-[#0B0D12]/80 to-transparent z-10 pointer-events-none w-full md:w-3/4"></div>
                 
@@ -375,15 +468,15 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                             <button title="Transferir para Ver Offline" class="prime-btn focusable" tabindex="0"><i class="ph ph-download-simple text-xl text-white"></i></button>
                         </div>
 
-                        <button onclick="abrirPlayerFull()" class="focusable w-full md:w-80 bg-white text-black px-8 py-3.5 rounded flex items-center justify-center gap-2 font-bold transition hover:bg-gray-200 text-sm shadow-xl" tabindex="0">
+                        <button onclick="abrirPlayerFull()" class="focusable w-full md:w-80 bg-white text-black px-8 py-4 rounded-full flex items-center justify-center gap-2 font-black transition hover:bg-gray-200 text-sm shadow-xl" tabindex="0">
                             <i class="ph-fill ph-play text-xl"></i> <span id="details-cta-text">Retomar</span>
                         </button>
 
-                        <button id="btn-details-login" onclick="openLoginPrompt()" class="hidden focusable mt-3 w-full md:w-80 bg-brand-gold/10 border border-brand-gold/30 text-brand-gold px-8 py-3.5 rounded flex items-center justify-center gap-2 font-bold transition hover:bg-brand-gold/20 text-sm" tabindex="0">
+                        <button id="btn-details-login" onclick="openLoginPrompt()" class="hidden focusable mt-3 w-full md:w-80 bg-brand-gold/10 border border-brand-gold/30 text-brand-gold px-8 py-4 rounded-full flex items-center justify-center gap-2 font-black transition hover:bg-brand-gold/20 text-sm" tabindex="0">
                             <i class="ph ph-sign-in text-xl"></i> Entrar para Assistir
                         </button>
                         
-                        <button id="btn-remover-propaganda" onclick="window.openAdsRemovalModal()" class="focusable mt-3 w-full md:w-80 bg-white/5 border border-white/10 text-white px-8 py-2 rounded flex items-center justify-center gap-2 font-bold transition hover:bg-white/10 text-[10px] uppercase tracking-widest" tabindex="0">
+                        <button id="btn-remover-propaganda" onclick="window.openAdsRemovalModal()" class="focusable mt-3 w-full md:w-80 bg-white/5 border border-white/10 text-white px-8 py-3 rounded-full flex items-center justify-center gap-2 font-bold transition hover:bg-white/10 text-[10px] uppercase tracking-widest" tabindex="0">
                             <i class="ph ph-megaphone-slash"></i> Assistir sem propaganda
                         </button>
                         
@@ -487,12 +580,48 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             </div>
         </section>
 
+        <!-- VIEW 3: PESQUISA (OVERLAY DINÂMICO) -->
+        <section id="view-search" class="hidden fixed inset-0 z-[60] bg-black/95 backdrop-blur-xl pt-24 px-6 md:px-16 overflow-y-auto">
+            <div class="max-w-7xl mx-auto">
+                <div class="flex items-center gap-4 border-b-2 border-white/20 pb-4 mb-10 focus-within:border-brand-gold transition-colors">
+                    <i class="ph ph-magnifying-glass text-2xl md:text-4xl text-brand-text"></i>
+                    <input type="text" id="search-input" oninput="handleSearch(this.value)" placeholder="Pesquisar por títulos, categorias ou elenco..." class="w-full bg-transparent text-white text-xl md:text-3xl font-bold outline-none placeholder:text-brand-text/50">
+                    <button onclick="closeSearch()" class="text-brand-text hover:text-white transition p-2"><i class="ph ph-x text-2xl md:text-3xl"></i></button>
+                </div>
+
+                <div id="search-results-container">
+                    <div id="search-initial-msg" class="flex flex-col items-center justify-center py-20 text-center">
+                        <i class="ph ph-film-strip text-6xl text-white/10 mb-4"></i>
+                        <p class="text-brand-text text-lg">Encontre o seu próximo conteúdo favorito...</p>
+                    </div>
+                    
+                    <div id="search-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
+                        <!-- Resultados aqui -->
+                    </div>
+
+                    <div id="search-empty-msg" class="hidden flex flex-col items-center justify-center py-20 text-center">
+                        <i class="ph ph-detective text-6xl text-brand-gold/20 mb-4"></i>
+                        <p class="text-white text-xl font-bold mb-2">Nenhum resultado encontrado</p>
+                        <p class="text-brand-text text-sm">Tente palavras-chave diferentes ou navegue pelas categorias.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
     </main>
 
     <!-- FOOTER -->
-    <footer id="main-footer" class="opacity-0 pointer-events-none border-t border-white/10 bg-[#0B0D12] py-6 md:py-8 px-4 md:px-8 mt-auto text-brand-text text-xs flex flex-col md:flex-row justify-between items-center gap-4 text-center z-20 relative">
-        <h1 class="text-xl font-serif text-brand-gold tracking-widest font-bold">A&M</h1>
-        <div class="text-[10px] md:text-xs">&copy; 2024 Streaming App. Todos os direitos reservados.</div>
+    <footer id="main-footer" class="opacity-0 pointer-events-none border-t border-white/10 bg-[#0B0D12] py-6 md:py-8 px-4 md:px-8 mt-auto text-brand-text text-xs flex flex-col md:flex-row justify-between items-center gap-6 text-center z-20 relative">
+        <div id="footer-logo" class="flex flex-col items-center md:items-start scale-75 origin-center md:origin-left">
+            <h1 class="text-xl font-sans text-white tracking-tighter font-black italic leading-none flex items-baseline gap-1">
+                A&amp;M <span class="text-[var(--prime-blue)] font-light not-italic text-sm">streaming</span>
+            </h1>
+            <svg class="w-12 h-auto -mt-1 text-[var(--prime-blue)]" viewBox="0 0 100 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M5 8C25 18 75 18 95 8" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
+                <path d="M91 4L97 8L92 14" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <div class="text-[10px] md:text-xs opacity-50">&copy; 2024 A&amp;M Produções. Todos os direitos reservados.</div>
     </footer>
 
     <!-- MODAL DE LOGIN/REGISTRO -->
@@ -513,7 +642,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                     </button>
                 </div>
                 
-                <button onclick="handleEmailAuth()" id="btn-login-action" class="w-full bg-brand-gold text-black py-3 rounded-xl font-bold hover:scale-105 transition shadow-lg text-sm">ENTRAR</button>
+                <button onclick="handleEmailAuth()" id="btn-login-action" class="w-full bg-brand-gold text-black py-3.5 rounded-full font-black hover:scale-105 transition shadow-lg text-sm">ENTRAR</button>
                 
                 <div class="flex items-center gap-2 py-2">
                     <div class="flex-grow h-px bg-white/10"></div>
@@ -521,7 +650,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                     <div class="flex-grow h-px bg-white/10"></div>
                 </div>
                 
-                <button onclick="handleGoogleLogin()" class="w-full bg-white text-black py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-gray-200 transition text-sm">
+                <button onclick="handleGoogleLogin()" class="w-full bg-white text-black py-3.5 rounded-full font-bold flex items-center justify-center gap-2 hover:bg-gray-200 transition text-sm">
                     <i class="ph-fill ph-google-logo text-lg"></i> ENTRAR COM GOOGLE
                 </button>
                 
@@ -567,8 +696,8 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                     <label class="block text-white text-[10px] font-bold uppercase mb-1 ml-1 opacity-50">Telefone / WhatsApp</label>
                     <input type="tel" id="reg-telefone" placeholder="(00) 00000-0000" required class="w-full px-4 py-3 rounded-xl bg-[#2A2C33] border-2 border-transparent text-white outline-none focus:border-brand-gold transition text-sm">
                 </div>
-                <button type="submit" id="btn-submit-reg" class="focusable w-full bg-brand-gold text-black py-4 rounded-xl font-black mt-2 hover:bg-brand-gold-hover transition shadow-lg text-sm" tabindex="0">SALVAR DADOS</button>
-                <button type="button" onclick="handleLogout()" class="focusable w-full bg-red-600/10 text-red-500 py-3 rounded-xl font-bold mt-2 hover:bg-red-600/20 transition text-[10px] uppercase tracking-widest" tabindex="0">Sair da Conta</button>
+                <button type="submit" id="btn-submit-reg" class="focusable w-full bg-brand-gold text-black py-4 rounded-full font-black mt-2 hover:bg-brand-gold-hover transition shadow-lg text-sm" tabindex="0">SALVAR DADOS</button>
+                <button type="button" onclick="handleLogout()" class="focusable w-full bg-red-600/10 text-red-500 py-3.5 rounded-full font-bold mt-2 hover:bg-red-600/20 transition text-[10px] uppercase tracking-widest" tabindex="0">Sair da Conta</button>
                 <button type="button" onclick="closeRegistrationModal()" class="focusable w-full bg-transparent text-brand-text py-2 rounded-full font-bold text-[10px] uppercase hover:text-white transition tracking-widest" tabindex="0">FECHAR</button>
             </form>
         </div>
@@ -585,7 +714,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 </div>
                 <h2 class="text-white text-2xl font-black uppercase tracking-tighter">Experiência de Cinema</h2>
                 <div class="text-brand-text text-xs mt-3 leading-relaxed space-y-3">
-                    <p>Olá! Nós da <b>A&M Produções</b> agradecemos muito por você estar aqui. Nosso objetivo é que você assista a todas as nossas obras como em um verdadeiro cinema.</p>
+                    <p>Olá! Nós da <b>A&amp;M Produções</b> agradecemos muito por você estar aqui. Nosso objetivo é que você assista a todas as nossas obras como em um verdadeiro cinema.</p>
                     <p>Mais do que isso: <b>queremos colocar a sua produção dentro da nossa plataforma também!</b></p>
                     <p>Para que possamos liberar o seu acesso totalmente sem propagandas, precisamos fechar um serviço de parceria. Deixe as suas informações abaixo e a nossa equipe entrará em contato. Assim que fecharmos o serviço, o seu sinal premium será liberado imediatamente.</p>
                 </div>
@@ -613,7 +742,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                     <textarea id="ads-descricao" placeholder="Descreva brevemente a sua necessidade..." class="w-full px-4 py-3 rounded-xl bg-[#2A2C33] border-2 border-transparent text-white outline-none focus:border-brand-gold transition text-sm h-24 resize-none"></textarea>
                 </div>
 
-                <button type="submit" id="btn-submit-ads" class="focusable w-full bg-brand-gold text-black py-4 rounded-xl font-black mt-4 hover:scale-105 transition shadow-lg text-sm uppercase">SOLICITAR PROPOSTA E REMOVER ANÚNCIOS</button>
+                <button type="submit" id="btn-submit-ads" class="focusable w-full bg-brand-gold text-black py-4.5 rounded-full font-black mt-4 hover:scale-105 transition shadow-lg text-sm uppercase">SOLICITAR PROPOSTA E REMOVER ANÚNCIOS</button>
             </form>
         </div>
     </div>
@@ -666,14 +795,37 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 </div>
                 <div class="flex items-center gap-4">
                     <div class="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-brand-gold font-bold">2</div>
-                    <p class="text-sm text-brand-text">Toque no ícone de <span class="text-white font-bold">Compartilhar</span> <i class="ph ph-export text-blue-400"></i> na barra inferior.</p>
+                    <p class="text-sm text-brand-text">Toque no ícone de <span class="text-white font-bold">Partilhar</span> <i class="ph ph-export text-blue-400"></i> na barra inferior.</p>
                 </div>
                 <div class="flex items-center gap-4">
                     <div class="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-brand-gold font-bold">3</div>
-                    <p class="text-sm text-brand-text">Desça e toque em <span class="text-white font-bold">Adicionar à Tela de Início</span>.</p>
+                    <p class="text-sm text-brand-text">Desça e toque em <span class="text-white font-bold">Adicionar ao Ecrã Principal</span>.</p>
                 </div>
             </div>
-            <button onclick="closeIosInstructions()" class="focusable w-full bg-brand-gold text-black py-4 rounded-2xl font-bold mt-10 hover:bg-brand-gold-hover transition" tabindex="0">ENTENDI</button>
+            <button onclick="closeIosInstructions()" class="focusable w-full bg-brand-gold text-black py-4 rounded-full font-bold mt-10 hover:bg-brand-gold-hover transition" tabindex="0">ENTENDI</button>
+        </div>
+    </div>
+
+    <!-- MODAL INSTRUÇÕES ANDROID -->
+    <div id="android-instructions-modal" class="hidden fixed inset-0 z-[110] flex items-center justify-center bg-black/95 p-4">
+        <div class="bg-brand-panel border border-white/5 rounded-[32px] w-full max-w-sm p-8 shadow-2xl relative">
+            <button onclick="closeAndroidInstructions()" class="focusable absolute top-6 right-6 text-brand-text hover:text-white" tabindex="0"><i class="ph ph-x text-2xl"></i></button>
+            <h2 class="text-white text-lg font-bold mb-6 text-center">Instalar no Android</h2>
+            <div class="space-y-6">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-brand-gold font-bold">1</div>
+                    <p class="text-sm text-brand-text">Toque nos <span class="text-white font-bold">3 pontinhos</span> no canto superior direito do navegador.</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-brand-gold font-bold">2</div>
+                    <p class="text-sm text-brand-text">Selecione <span class="text-white font-bold">Adicionar à Tela Inicial</span> ou <span class="text-white font-bold">Instalar Aplicativo</span>.</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-brand-gold font-bold">3</div>
+                    <p class="text-sm text-brand-text">Confirme a instalação na janela que aparecer.</p>
+                </div>
+            </div>
+            <button onclick="closeAndroidInstructions()" class="focusable w-full bg-brand-gold text-black py-4 rounded-full font-bold mt-10 hover:bg-brand-gold-hover transition" tabindex="0">ENTENDI</button>
         </div>
     </div>
 
@@ -681,7 +833,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
     <div id="install-processing-overlay">
         <div class="flex flex-col items-center">
             <div class="w-20 h-20 border-4 border-brand-gold/20 border-t-[var(--brand-gold)] rounded-full animate-spin mb-6"></div>
-            <p id="install-processing-text" class="text-white font-bold tracking-widest uppercase text-xs">Preparando arquivos...</p>
+            <p id="install-processing-text" class="text-white font-bold tracking-widest uppercase text-xs">A preparar ficheiros...</p>
             <div class="processing-bar-container">
                 <div id="install-processing-bar" class="processing-bar-fill"></div>
             </div>
@@ -690,6 +842,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
 
     <!-- PLAYER DE VÍDEO FULLSCREEN ESTILO NETFLIX -->
     <div id="netflix-player" class="hidden fixed inset-0 z-[100] bg-black flex flex-col justify-center items-center">
+        <!-- VÍDEO PRINCIPAL COM PRELOAD AUTOMÁTICO E POSTER DINÂMICO PARA EVITAR ECRÃS PRETOS -->
         <video id="main-full-video" class="w-full h-full object-contain absolute inset-0 cursor-pointer transition-opacity duration-1000" playsinline preload="auto"></video>
 
         <!-- Overlay de Trailer Obrigatório (Propaganda) -->
@@ -982,6 +1135,58 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
         };
 
         // ==========================================
+        // NOVA LÓGICA DE INTRODUÇÃO / LANDING PAGE
+        // ==========================================
+        const introAudioSetup = new Audio("https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev/Cinematic%20logo%20intro%20sound%20effect%20(no%20copyright)%20%23logointro%20%23soundeffects%20%23cinematic%20-%20Vfx%20Secrets%20(youtube).mp3");
+        document.body.style.overflow = 'hidden';
+        
+        window.renderLandingGrid = function(catalog) {
+            const grid = document.getElementById('landing-grid');
+            if (!grid || grid.children.length > 0) return; 
+            let html = '';
+            const baseItems = [...catalog, ...catalog, ...catalog].slice(0, 50).sort(() => Math.random() - 0.5);
+            const loopItems = [...baseItems, ...baseItems];
+            loopItems.forEach(item => {
+                // Adicionado decoding async para não bloquear a thread principal
+                html += `<img src="${item.capaUrl}" fetchpriority="high" loading="eager" decoding="async" class="w-full h-32 md:h-48 object-cover rounded-lg shadow-2xl opacity-100 brightness-110 saturate-[1.25] transition-transform duration-700">`;
+            });
+            grid.innerHTML = html;
+        };
+
+        window.startAppFromLanding = function() {
+            const landing = document.getElementById('landing-page');
+            const introContainer = document.getElementById('intro-container');
+            const hiddenVideo = document.getElementById('hidden-intro-video');
+            
+            // Prioridade de rede para o vídeo de intro e logo
+            if(hiddenVideo) hiddenVideo.preload = "auto";
+            
+            landing.style.opacity = '0';
+            landing.style.pointerEvents = 'none';
+            
+            setTimeout(() => {
+                landing.style.display = 'none';
+                document.getElementById('intro-container').style.display = 'flex';
+                document.getElementById('am-logo').classList.add('animate-logo');
+                const audioPlay = introAudioSetup.play();
+                if (audioPlay !== undefined) {
+                    audioPlay.catch(err => {});
+                }
+                setTimeout(() => {
+                    document.getElementById('intro-container').style.opacity = '0';
+                    setTimeout(() => {
+                        document.getElementById('intro-container').style.display = 'none';
+                        document.body.style.overflow = '';
+                        ['main-header', 'main-content', 'main-footer'].forEach(id => {
+                            document.getElementById(id).classList.remove('opacity-0', 'pointer-events-none');
+                            document.getElementById(id).classList.add('opacity-100');
+                        });
+                    }, 500);
+                }, 6500);
+            }, 500);
+        };
+
+        // ==========================================
         // NAVEGAÇÃO SPA E MENUS
         // ==========================================
         window.currentActiveMenu = 'home';
@@ -1105,23 +1310,11 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                     window.brandingConfig = dados; // Salva config globalmente para o APK
                     
                     if (dados.logoUrl) {
-                        const logoHeader = document.getElementById('main-logo-img');
-                        const textHeader = document.getElementById('main-logo-text');
-                        if(logoHeader && textHeader) {
-                            logoHeader.src = dados.logoUrl; logoHeader.classList.remove('hidden'); textHeader.classList.add('hidden');
-                        }
-                        
-                        // Atualiza logo do header da view-details (Prime style)
+                        // Mantemos a logo apenas na tela de detalhes como uma marca d'água discreta se desejar
                         const detailsLogo = document.getElementById('details-brand-logo');
                         if (detailsLogo) {
                             detailsLogo.src = dados.logoUrl;
                             detailsLogo.classList.remove('hidden');
-                        }
-                        
-                        const introLogo = document.getElementById('am-logo-img');
-                        if(introLogo) {
-                            introLogo.src = dados.logoUrl; 
-                            introLogo.classList.remove('hidden');
                         }
 
                         let linkIcon = document.querySelector("link[rel~='icon']");
@@ -1132,7 +1325,8 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                         if (!appleIcon) { appleIcon = document.createElement('link'); appleIcon.rel = 'apple-touch-icon'; document.head.appendChild(appleIcon); }
                         appleIcon.href = dados.logoUrl;
 
-                        const manifestBlob = new Blob([JSON.stringify({
+                        // Apenas atualizar o Manifest se ele for realmente diferente para evitar reset do Prompt PWA
+                        const newManifestObj = {
                             "name": "Streaming App",
                             "short_name": "Streaming",
                             "display": "standalone",
@@ -1140,9 +1334,15 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                             "background_color": "#0B0D12",
                             "theme_color": dados.corPrincipal || "#D6B778",
                             "icons": [{ "src": dados.logoUrl, "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }]
-                        })], {type: 'application/json'});
-                        let manifestLink = document.querySelector("link[rel='manifest']");
-                        if (manifestLink) manifestLink.href = URL.createObjectURL(manifestBlob);
+                        };
+                        const newManifestStr = JSON.stringify(newManifestObj);
+                        
+                        if (window.lastManifestString !== newManifestStr) {
+                            window.lastManifestString = newManifestStr;
+                            const manifestBlob = new Blob([newManifestStr], {type: 'application/json'});
+                            let manifestLink = document.querySelector("link[rel='manifest']");
+                            if (manifestLink) manifestLink.href = URL.createObjectURL(manifestBlob);
+                        }
                     }
                     
                     if (dados.corPrincipal) {
@@ -1202,6 +1402,10 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
         window.carregarCatalogoRealtime = function() {
             onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'catalog'), (snap) => {
                 cacheCatalogo = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => a.createdAt - b.createdAt);
+                
+                // Preenche a Landing Page na primeira vez que os dados chegam
+                window.renderLandingGrid(cacheCatalogo);
+                
                 if(cacheCatalogo.length > 0 && !window.currentDestaqueData) {
                     window.mudarDestaque(btoa(encodeURIComponent(JSON.stringify(cacheCatalogo[0]))));
                     setTimeout(() => { window.startHeroAutoCycle(); window.startRailsAutoScroll(); }, 1000);
@@ -1266,20 +1470,22 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
 
         function renderCardRetrato(data) {
             const dataStr = btoa(encodeURIComponent(JSON.stringify(data)));
-            return `<div onclick="window.abrirDetalhes('${dataStr}')" onfocus="window.mudarDestaque('${dataStr}')" class="focusable min-w-[130px] md:min-w-[170px] h-[190px] md:h-[250px] bg-[#1A1C23] rounded-xl overflow-hidden border border-white/5 relative group cursor-pointer snap-start transition-all shadow-lg" tabindex="0">
-                <img src="${data.capaUrl}" loading="lazy" class="w-full h-full object-cover">
-                <div class="absolute top-0 w-full p-2 bg-gradient-to-b from-black/80 to-transparent"><p class="text-[8px] text-[var(--brand-gold)] font-bold tracking-widest uppercase">${data.selo}</p></div>
-                <div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity z-20"><div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/40 shadow-xl"><i class="ph-bold ph-info text-white text-2xl"></i></div></div>
-                <div class="absolute bottom-0 w-full p-4 bg-gradient-to-t from-black via-black/90 to-transparent text-center opacity-90 group-hover:opacity-100"><p class="text-xs font-bold uppercase text-white">${data.titulo}</p></div>
+            // Imagens com brilho ultra reforçado e sem camadas de sombra padrão
+            return `<div onclick="window.abrirDetalhes('${dataStr}')" onfocus="window.mudarDestaque('${dataStr}')" class="focusable min-w-[130px] md:min-w-[170px] h-[190px] md:h-[250px] bg-black rounded-xl overflow-hidden border border-white/10 relative group cursor-pointer snap-start transition-all shadow-lg" tabindex="0">
+                <img src="${data.capaUrl}" loading="lazy" decoding="async" class="w-full h-full object-cover opacity-100 brightness-[1.2] saturate-[1.25]">
+                <div class="absolute top-0 w-full p-2 bg-gradient-to-b from-black/60 to-transparent"><p class="text-[8px] text-[var(--brand-gold)] font-bold tracking-widest uppercase">${data.selo}</p></div>
+                <div class="absolute inset-0 flex items-center justify-center bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity z-20"><div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/40 shadow-xl"><i class="ph-bold ph-info text-white text-2xl"></i></div></div>
+                <div class="absolute bottom-0 w-full p-4 bg-gradient-to-t from-black/80 to-transparent text-center group-hover:from-black transition-all"><p class="text-xs font-bold uppercase text-white drop-shadow-md">${data.titulo}</p></div>
             </div>`;
         }
 
         function renderCardPaisagem(data, colorClass) {
             const dataStr = btoa(encodeURIComponent(JSON.stringify(data)));
-            return `<div onclick="window.abrirDetalhes('${dataStr}')" onfocus="window.mudarDestaque('${dataStr}')" class="focusable min-w-[220px] md:min-w-[280px] h-[120px] md:h-[150px] bg-[#1A1C23] rounded-xl overflow-hidden border border-white/5 relative group cursor-pointer snap-start transition-all shadow-lg" tabindex="0">
-                <img src="${data.capaUrl}" loading="lazy" class="w-full h-full object-cover">
-                <div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity z-20"><div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/40 shadow-xl"><i class="ph-bold ph-info text-white text-2xl"></i></div></div>
-                <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex items-end p-4"><p class="text-sm font-bold ${colorClass} tracking-wider uppercase">${data.titulo}</p></div>
+            // Imagens com brilho ultra reforçado e sem camadas de sombra padrão
+            return `<div onclick="window.abrirDetalhes('${dataStr}')" onfocus="window.mudarDestaque('${dataStr}')" class="focusable min-w-[220px] md:min-w-[280px] h-[120px] md:h-[150px] bg-black rounded-xl overflow-hidden border border-white/10 relative group cursor-pointer snap-start transition-all shadow-lg" tabindex="0">
+                <img src="${data.capaUrl}" loading="lazy" decoding="async" class="w-full h-full object-cover opacity-100 brightness-[1.2] saturate-[1.25]">
+                <div class="absolute inset-0 flex items-center justify-center bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity z-20"><div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/40 shadow-xl"><i class="ph-bold ph-info text-white text-2xl"></i></div></div>
+                <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex items-end p-4"><p class="text-sm font-bold ${colorClass} tracking-wider uppercase drop-shadow-md">${data.titulo}</p></div>
             </div>`;
         }
 
@@ -1287,11 +1493,14 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
         window.mudarDestaque = function(dataStr, isAuto = false) {
             if(!isAuto) window.startHeroAutoCycle();
             const data = JSON.parse(decodeURIComponent(atob(dataStr)));
+            // Evita re-processamento se for o mesmo item
+            if (window.currentDestaqueData?.id === data.id) return;
             window.currentDestaqueData = data; 
             
-            document.querySelectorAll('.focusable').forEach(card => {
-                if (card.getAttribute('onclick') && card.getAttribute('onclick').includes(dataStr)) card.focus({ preventScroll: isAuto }); 
-            });
+            if (!isAuto) {
+                const activeCard = document.querySelector(`[onclick*="${dataStr}"]`);
+                if (activeCard) activeCard.focus({ preventScroll: true });
+            }
 
             document.getElementById('hero-title').innerText = data.titulo;
             document.getElementById('hero-selo').innerText = data.selo || 'A&M ORIGINALS';
@@ -1303,6 +1512,9 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             const btnMute = document.getElementById('btn-mute-hero');
             
             heroVideo.pause(); heroVideo.removeAttribute('src'); heroVideo.load();
+            
+            // Poster e Imagem definidos dinamicamente para load mais rápido
+            heroVideo.poster = data.capaUrl;
             heroImg.src = data.capaUrl; 
             heroImg.style.opacity = '0.7'; 
             heroVideo.style.opacity = '0'; 
@@ -1328,7 +1540,8 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             if (urlDoTrailerParaTocar && urlDoTrailerParaTocar.trim() !== "" && !isPlayerOpen && !isDetailsOpen) {
                 window.heroTimeout = setTimeout(() => {
                     heroVideo.src = urlDoTrailerParaTocar; 
-                    heroVideo.muted = true; // Por padrão na home é mutado
+                    heroVideo.preload = "auto";
+                    heroVideo.muted = true;
                     heroVideo.volume = 0; // Prepara para fade in caso desmute
                     
                     heroVideo.onloadedmetadata = () => {
@@ -1522,6 +1735,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             
             vid.pause();
             img.src = data.capaUrl;
+            vid.poster = data.capaUrl; // Poster adicionado para preview rápido
             img.style.opacity = '0.6';
             vid.style.opacity = '0';
             
@@ -1538,8 +1752,9 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
 
             if (urlDoTrailerParaTocar) {
                 vid.src = urlDoTrailerParaTocar;
+                vid.preload = "metadata"; // Ativa o carregamento apenas quando necessário
                 vid.muted = true;
-                vid.volume = 0; // Prepara para fade in
+                vid.volume = 0; 
                 
                 vid.onloadedmetadata = () => {
                     let mid = 0;
@@ -1647,8 +1862,8 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 containerSimilares.innerHTML = relacionados.map(item => {
                     const dataStr = btoa(encodeURIComponent(JSON.stringify(item)));
                     return `<div onclick="window.abrirDetalhes('${dataStr}')" class="focusable bg-[#1A1C23] rounded-lg overflow-hidden border border-white/5 relative cursor-pointer transition-transform hover:scale-105 shadow-md aspect-video group">
-                        <img src="${item.capaUrl}" loading="lazy" class="w-full h-full object-cover">
-                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition"><i class="ph-fill ph-play text-white text-3xl drop-shadow-md"></i></div>
+                        <img src="${item.capaUrl}" loading="lazy" decoding="async" class="w-full h-full object-cover opacity-100 brightness-110 saturate-110">
+                        <div class="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 flex items-center justify-center transition"><i class="ph-fill ph-play text-white text-3xl drop-shadow-md"></i></div>
                     </div>`;
                 }).join('');
             } else {
@@ -1667,7 +1882,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                     let cardsHtml = itens.map(item => {
                         const dataStr = btoa(encodeURIComponent(JSON.stringify(item)));
                         return `<div onclick="window.abrirDetalhes('${dataStr}')" class="focusable min-w-[200px] h-[110px] bg-[#1A1C23] rounded-lg overflow-hidden border border-white/5 relative cursor-pointer snap-start shadow-md group">
-                            <img src="${item.capaUrl}" loading="lazy" class="w-full h-full object-cover">
+                            <img src="${item.capaUrl}" loading="lazy" decoding="async" class="w-full h-full object-cover">
                             <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition"><i class="ph-fill ph-play text-white text-3xl drop-shadow-md"></i></div>
                         </div>`;
                     }).join('');
@@ -1726,6 +1941,8 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             // Performance TV: Reinicialização total do buffer
             mainVid.pause();
             mainVid.src = "";
+            // POSTER do Main Video para carregamento instantâneo
+            mainVid.poster = window.currentDestaqueData.capaUrl;
             mainVid.load();
 
             clearInterval(window.autoCycleInterval);
@@ -1940,9 +2157,11 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             if (isFinite(mainVid.currentTime)) mainVid.currentTime += sec; 
         }
 
-        // Tempo e Barra de Progresso
+        // Tempo e Barra de Progresso (Otimizado para menor uso de CPU)
         mainVid.addEventListener('timeupdate', () => {
             if(!mainVid.duration || window.isTransitioningToNext || isDraggingProgress) return;
+            // Atualiza a cada 200ms aproximadamente para suavidade sem sobrecarga
+            if (Math.floor(mainVid.currentTime * 5) % 1 !== 0) return;
 
             const pct = (mainVid.currentTime / mainVid.duration) * 100;
             document.getElementById('progress-bar').style.width = pct + '%';
@@ -2119,6 +2338,7 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                 
                 // Marca se tivemos que puxar o filme grande por não ter um trailer
                 isFallbackLongVideo = !randomVideo.trailerUrl && (randomVideo.videoUrl === adVideoUrl);
+                mainVid.poster = randomVideo.capaUrl || '';
             }
 
             controlsUI.classList.add('hidden');
@@ -2227,12 +2447,12 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             }
         };
 
-        // Monitoramento Offline (Para usuários que não tem conta de Email/Senha)
+        // Monitoramento Offline Otimizado
         window.checkAdsStatus = function() {
             const requestedId = localStorage.getItem('am_ad_requested');
-            if(!requestedId) return;
+            if(!requestedId || window.adsStatusUnsubscribe) return;
 
-            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'leads', requestedId), (snap) => {
+            window.adsStatusUnsubscribe = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'leads', requestedId), (snap) => {
                 if(snap.exists() && snap.data().status === 'aprovado') {
                     window.isAdsApproved = true;
                     localStorage.setItem('am_adfree', 'true');
@@ -2288,7 +2508,12 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
         };
 
         window.toggleMuteHero = function() {
-            const v = document.getElementById('hero-video'); v.muted = !v.muted;
+            const v = document.getElementById('hero-video'); 
+            v.muted = !v.muted;
+            // Ao desmutar, forçamos o volume para 1 pois a prévia inicia em 0 para o fade
+            if (!v.muted) {
+                v.volume = 1;
+            }
             document.getElementById('icon-mute-hero').classList.replace(v.muted ? 'ph-speaker-high' : 'ph-speaker-slash', v.muted ? 'ph-speaker-slash' : 'ph-speaker-high');
         };
 
@@ -2314,6 +2539,71 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
                     if(list[(currIdx + 1) % list.length]) window.mudarDestaque(btoa(encodeURIComponent(JSON.stringify(list[(currIdx + 1) % list.length]))), true);
                 }
             }, 15000);
+        };
+
+        // ==========================================
+        // SISTEMA DE PESQUISA GLOBAL
+        // ==========================================
+        window.openSearch = function() {
+            document.getElementById('view-search').classList.remove('hidden');
+            document.getElementById('search-input').focus();
+            document.body.style.overflow = 'hidden';
+            history.pushState({ searchOpen: true }, null);
+        };
+
+        window.closeSearch = function(fromPopstate = false) {
+            document.getElementById('view-search').classList.add('hidden');
+            document.getElementById('search-input').value = '';
+            document.getElementById('search-grid').innerHTML = '';
+            document.getElementById('search-initial-msg').classList.remove('hidden');
+            document.getElementById('search-empty-msg').classList.add('hidden');
+            document.body.style.overflow = '';
+            
+            if (fromPopstate !== true && history.state && history.state.searchOpen) {
+                window.ignoreNextPopState = true;
+                history.back();
+            }
+        };
+
+        window.handleSearch = function(query) {
+            const grid = document.getElementById('search-grid');
+            const initialMsg = document.getElementById('search-initial-msg');
+            const emptyMsg = document.getElementById('search-empty-msg');
+            
+            if (!query || query.trim().length < 2) {
+                grid.innerHTML = '';
+                initialMsg.classList.remove('hidden');
+                emptyMsg.classList.add('hidden');
+                return;
+            }
+
+            initialMsg.classList.add('hidden');
+            const term = query.toLowerCase().trim();
+            
+            const results = cacheCatalogo.filter(item => 
+                item.titulo.toLowerCase().includes(term) || 
+                (item.trilho && item.trilho.toLowerCase().includes(term)) ||
+                (item.elenco && item.elenco.toLowerCase().includes(term)) ||
+                (item.descricao && item.descricao.toLowerCase().includes(term))
+            );
+
+            if (results.length > 0) {
+                emptyMsg.classList.add('hidden');
+                grid.innerHTML = results.map(item => {
+                    const dataStr = btoa(encodeURIComponent(JSON.stringify(item)));
+                    return `
+                    <div onclick="closeSearch(); window.abrirDetalhes('${dataStr}')" class="focusable bg-[#1A1C23] rounded-xl overflow-hidden border border-white/5 relative cursor-pointer transition-all hover:scale-105 shadow-xl aspect-[2/3] group" tabindex="0">
+                        <img src="${item.capaUrl}" loading="lazy" decoding="async" class="w-full h-full object-cover brightness-110">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
+                            <p class="text-white font-bold text-xs uppercase drop-shadow-md">${item.titulo}</p>
+                            <p class="text-[var(--brand-gold)] text-[10px] font-black uppercase mt-1">${item.trilho || ''}</p>
+                        </div>
+                    </div>`;
+                }).join('');
+            } else {
+                grid.innerHTML = '';
+                emptyMsg.classList.remove('hidden');
+            }
         };
 
         window.railsScrollInterval = null;
@@ -2423,33 +2713,6 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             }
         });
 
-        // LÓGICA DE INTRODUÇÃO
-        const introAudioSetup = new Audio("https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev/Cinematic%20logo%20intro%20sound%20effect%20(no%20copyright)%20%23logointro%20%23soundeffects%20%23cinematic%20-%20Vfx%20Secrets%20(youtube).mp3");
-        document.body.style.overflow = 'hidden';
-        document.getElementById('start-overlay').addEventListener('click', function() {
-            this.style.opacity = '0';
-            setTimeout(() => {
-                this.style.display = 'none';
-                document.getElementById('intro-container').style.display = 'flex';
-                document.getElementById('am-logo').classList.add('animate-logo');
-                const audioPlay = introAudioSetup.play();
-                if (audioPlay !== undefined) {
-                    audioPlay.catch(err => {});
-                }
-                setTimeout(() => {
-                    document.getElementById('intro-container').style.opacity = '0';
-                    setTimeout(() => {
-                        document.getElementById('intro-container').style.display = 'none';
-                        document.body.style.overflow = '';
-                        ['main-header', 'main-content', 'main-footer'].forEach(id => {
-                            document.getElementById(id).classList.remove('opacity-0', 'pointer-events-none');
-                            document.getElementById(id).classList.add('opacity-100');
-                        });
-                    }, 500);
-                }, 6500);
-            }, 300);
-        });
-
         // Proteção do Botão Voltar do Android e controle de Histórico
         window.addEventListener('popstate', (e) => {
             if (window.ignoreNextPopState) {
@@ -2462,12 +2725,18 @@ const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCa
             const auth = document.getElementById('registration-modal');
             const install = document.getElementById('install-modal');
             const adsRemoval = document.getElementById('ads-removal-modal');
+            const searchView = document.getElementById('view-search');
+            const iosInst = document.getElementById('ios-instructions-modal');
+            const andInst = document.getElementById('android-instructions-modal');
 
             if (!player.classList.contains('hidden')) { window.fecharPlayerFull(true); } 
             else if (!details.classList.contains('hidden')) { window.fecharDetalhes(true); }
+            else if (searchView && !searchView.classList.contains('hidden')) { window.closeSearch(true); }
             else if (adsRemoval && !adsRemoval.classList.contains('hidden')) { window.closeAdsRemovalModal(); history.pushState(null, null); }
             else if (!auth.classList.contains('hidden')) { window.closeRegistrationModal(); history.pushState(null, null); } 
             else if (!install.classList.contains('hidden')) { window.closeInstallModal(); history.pushState(null, null); } 
+            else if (iosInst && !iosInst.classList.contains('hidden')) { window.closeIosInstructions(); history.pushState(null, null); }
+            else if (andInst && !andInst.classList.contains('hidden')) { window.closeAndroidInstructions(); history.pushState(null, null); }
             else { history.pushState(null, null); window.showToast("Pressione Início no controle para sair."); }
         });
         history.pushState(null, null);
