@@ -138,7 +138,7 @@
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
         
-        .auto-scroll-rail { cursor: grab; user-select: none; contain: content; }
+        .auto-scroll-rail { cursor: grab; user-select: none; contain: content; content-visibility: auto; }
         .auto-scroll-rail:active { cursor: grabbing; }
 
         .focusable {
@@ -147,14 +147,20 @@
             transform: translateZ(0);
         }
         .focusable:focus {
-            transform: scale(1.05); z-index: 50;
-            border: 3px solid var(--brand-gold) !important;
-            box-shadow: none !important; /* LEDs removidos para performance TV */
+            transform: scale(1.07); z-index: 50;
+            border: 3px solid #FFFFFF !important; /* Branco Puro estilo Prime Video */
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.4) !important;
+            outline: none !important;
             filter: none !important;
         }
+        .focusable:active {
+            transform: scale(0.98);
+            border-color: #FFFFFF !important;
+        }
         #player-controls .focusable:focus {
-            box-shadow: none !important; border-color: transparent !important;
-            filter: none !important; transform: scale(1.1);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.5) !important; 
+            border-color: #FFFFFF !important;
+            filter: none !important; transform: scale(1.15);
         }
         
         /* Estilos para os botões redondos do Prime */
@@ -192,6 +198,89 @@
             50% { transform: scale3d(1.12, 1.12, 1); opacity: 1; }
             75%, 100% { transform: scale3d(40, 40, 1); opacity: 0; }
         }
+
+        /* Netflix Style Loader */
+        #netflix-loader {
+            position: absolute;
+            inset: 0;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.85);
+            z-index: 105;
+            backdrop-filter: blur(12px);
+        }
+        .netflix-spinner {
+            width: 80px;
+            height: 80px;
+            border: 5px solid rgba(255, 255, 255, 0.05);
+            border-top: 5px solid #E50914;
+            border-radius: 50%;
+            animation: n-spin 1.1s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+            filter: drop-shadow(0 0 12px rgba(229, 9, 20, 0.4));
+        }
+        @keyframes n-spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* TikTok Style Layout - Total Imersion */
+        #view-tiktok {
+            position: fixed;
+            inset: 0;
+            z-index: 500; /* Sobrepõe tudo quando ativo */
+            background: #000;
+            scroll-snap-type: y mandatory;
+            overflow-y: scroll;
+            scrollbar-width: none;
+            overscroll-behavior-y: contain;
+        }
+        #view-tiktok::-webkit-scrollbar { display: none; }
+        
+        .tiktok-video-container {
+            width: 100vw;
+            height: 100dvh; /* Dynamic viewport height para mobile */
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            position: relative;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .tiktok-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .tiktok-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 20%, transparent 80%, rgba(0,0,0,0.3) 100%);
+            pointer-events: none;
+            z-index: 10;
+        }
+        .tiktok-actions {
+            position: absolute;
+            right: 12px;
+            bottom: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+            pointer-events: auto;
+            z-index: 20;
+        }
+        .tiktok-info {
+            position: absolute;
+            left: 16px;
+            bottom: 30px;
+            right: 80px;
+            pointer-events: auto;
+            z-index: 20;
+        }
     </style>
 
     <script>
@@ -205,37 +294,13 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 const swCode = `
-                    const CACHE_NAME = 'aem-offline-v1';
-                    const ASSETS_TO_CACHE = ['/', './index.html', location.href];
+`                            <span class="bg-brand-gold text-black text-[9px] font-black px-2 py-0.5 rounded uppercase">${item.selo || 'A&amp;M ORIGINALS'}</span>`
 
-                    self.addEventListener('install', (event) => {
-                        event.waitUntil(
-                            caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
-                        );
-                        self.skipWaiting();
-                    });
+Ah, I see. I've been fixing them, but maybe the user's local version still has some errors.
 
-                    self.addEventListener('activate', (event) => {
-                        event.waitUntil(self.clients.claim());
-                    });
+Let's stick to the main request: **Menu-based filtering**.
 
-                    self.addEventListener('fetch', (event) => {
-                        // Navegação: Se falhar a rede, entrega o HTML em cache
-                        if (event.request.mode === 'navigate') {
-                            event.respondWith(
-                                fetch(event.request).catch(() => caches.match('/'))
-                            );
-                            return;
-                        }
-
-                        // Mídia e Ativos: Cache-First para performance máxima offline
-                        event.respondWith(
-                            caches.match(event.request).then((response) => {
-                                return response || fetch(event.request).catch(() => null);
-                            })
-                        );
-                    }); 
-                `;
+1.  Update `renderizarTrilhosNaHome` to filter the 'home;
                 const blob = new Blob([swCode], { type: 'application/javascript' });
                 navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(err => console.log('SW Error:', err));
             });
@@ -412,6 +477,15 @@
         <div id="spectrum-container"></div>
     </div>
 
+    <!-- VIEW TIKTOK (FEED VERTICAL) -->
+    <div id="view-tiktok" class="hidden">
+        <!-- Botão Voltar do TikTok -->
+        <button onclick="navigate('home')" class="fixed top-6 left-6 z-[100] w-10 h-10 bg-black/40 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition">
+            <i class="ph ph-arrow-left text-2xl"></i>
+        </button>
+        <div id="tiktok-feed-container"></div>
+    </div>
+
     <!-- Toast de Notificação -->
     <div id="toast" class="fixed top-20 right-5 z-[200] transform transition-all duration-300 translate-x-full opacity-0 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3">
         <i class="ph ph-check-circle text-2xl"></i>
@@ -423,9 +497,9 @@
         <div class="flex items-center gap-6 md:gap-10 overflow-x-auto scrollbar-hide">
             <div class="flex flex-col cursor-pointer shrink-0 items-start max-w-[140px] md:max-w-none" onclick="navigate('home')">
                 <div id="main-logo-text" class="flex flex-col items-start scale-75 md:scale-90 origin-left">
-                    <h1 class="text-xl md:text-2xl font-sans text-white tracking-tighter font-black italic leading-none flex items-baseline gap-1">
-                        A&amp;M <span class="text-[var(--prime-blue)] font-light not-italic text-sm md:text-base">streaming</span>
-                    </h1>
+                    <h1 class="text-xl md:text-2xl font-sans text-white tracking-tighter font-black italic leading-none flex items-baseline gap-1" fetchpriority="high">
+                    A&amp;M <span class="text-[var(--prime-blue)] font-light not-italic text-sm md:text-base">streaming</span>
+                </h1>
                     <svg class="w-12 md:w-16 h-auto -mt-1 text-[var(--prime-blue)]" viewBox="0 0 100 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M5 8C25 18 75 18 95 8" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
                         <path d="M91 4L97 8L92 14" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -433,11 +507,12 @@
                 </div>
             </div>
             <nav class="flex gap-4 md:gap-6 text-xs md:text-sm font-medium text-brand-text whitespace-nowrap">
-                <button onclick="navigate('home')" id="nav-home" class="nav-link focusable active pb-1 hover:text-white transition" tabindex="0">INÍCIO</button>
-                <button onclick="navigate('menu1')" id="menu-1-label" class="focusable pb-1 hover:text-white transition" tabindex="0">SÉRIES</button>
-                <button onclick="navigate('menu2')" id="menu-2-label" class="focusable pb-1 hover:text-white transition" tabindex="0">FILMES</button>
-                <button onclick="navigate('menu3')" id="menu-3-label" class="focusable pb-1 hover:text-white transition" tabindex="0">ORIGINAIS</button>
-                <button onclick="navigate('minhaLista')" id="nav-minhaLista" class="nav-link focusable pb-1 hover:text-white transition" tabindex="0">MINHA LISTA</button>
+                <button onclick="navigate('home')" id="nav-home" class="nav-link focusable active border-transparent pb-1 hover:text-white transition" tabindex="0">INÍCIO</button>
+                <button onclick="navigate('menu1')" id="menu-1-label" class="focusable border-transparent pb-1 hover:text-white transition" tabindex="0">SÉRIES</button>
+                <button onclick="navigate('menu2')" id="menu-2-label" class="focusable border-transparent pb-1 hover:text-white transition" tabindex="0">FILMES</button>
+                <button onclick="navigate('menu3')" id="menu-3-label" class="focusable border-transparent pb-1 hover:text-white transition" tabindex="0">ORIGINAIS</button>
+                <button onclick="navigate('minhaLista')" id="nav-minhaLista" class="nav-link focusable border-transparent pb-1 hover:text-white transition" tabindex="0">MINHA LISTA</button>
+                <button onclick="navigate('meusDownloads')" id="nav-meusDownloads" class="nav-link focusable border-transparent pb-1 hover:text-white transition" tabindex="0">MEUS DOWNLOADS</button>
                 <button id="btn-install-header" onclick="triggerInstall()" class="focusable pb-1 hover:text-brand-gold transition flex items-center gap-1 text-brand-gold font-bold" tabindex="0">
                     <i class="ph ph-download-simple"></i> BAIXAR APP
                 </button>
@@ -492,6 +567,12 @@
 
             <!-- Trilhos da Home -->
             <div class="px-4 md:px-16 -mt-8 md:-mt-12 relative z-30 space-y-10 md:space-y-14 pb-12 md:pb-24">
+                <div id="section-continuar-assistindo" class="hidden">
+                    <h3 class="text-lg md:text-xl font-bold mb-3 md:mb-5 text-white tracking-wide flex items-center gap-2">
+                        <i class="ph ph-play-circle text-brand-gold"></i> Continuar Assistindo
+                    </h3>
+                    <div id="container-continuar-assistindo" class="auto-scroll-rail flex gap-3 md:gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory min-h-[120px] md:min-h-[150px]"></div>
+                </div>
                 <div id="section-minha-lista" class="hidden">
                     <h3 class="text-lg md:text-xl font-bold mb-3 md:mb-5 text-white tracking-wide">Minha Lista</h3>
                     <div id="container-minha-lista" class="auto-scroll-rail flex gap-3 md:gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory min-h-[120px] md:min-h-[150px]"></div>
@@ -536,9 +617,14 @@
                             <button title="Não Gostei" class="prime-btn focusable hidden sm:flex" tabindex="0"><i class="ph ph-thumbs-down text-xl text-white"></i></button>
                             <button title="Partilhar" class="prime-btn focusable hidden sm:flex" tabindex="0"><i class="ph ph-share-network text-xl text-white"></i></button>
                             <button id="btn-download-details" onclick="toggleDownloadDetails()" title="Transferir para Ver Offline" class="prime-btn focusable" tabindex="0"><i id="details-icon-download" class="ph ph-download-simple text-xl text-white"></i></button>
-                        </div>
+                    </div>
 
-                        <!-- Mini Barra de Progresso de Download -->
+                    <!-- Progresso de Reprodução (Continuar Assistindo) -->
+                    <div id="details-progress-container" class="hidden w-full md:w-80 mb-4 bg-white/10 rounded-full h-1.5 overflow-hidden border border-white/5">
+                        <div id="details-progress-fill" class="h-full bg-red-600 shadow-[0_0_10px_#ef4444] transition-all duration-500" style="width: 0%"></div>
+                    </div>
+
+                    <!-- Mini Barra de Progresso de Download -->
                         <div id="download-progress-container" class="hidden w-full md:w-80 mb-4 bg-white/5 border border-white/10 p-3 rounded-2xl">
                             <div class="flex justify-between items-center mb-2">
                                 <span class="text-[9px] text-brand-gold font-black uppercase tracking-widest">A Descarregar...</span>
@@ -949,6 +1035,15 @@
         <!-- VÍDEO PRINCIPAL COM PRELOAD AUTOMÁTICO E POSTER DINÂMICO PARA EVITAR ECRÃS PRETOS -->
         <video id="main-full-video" class="w-full h-full object-contain absolute inset-0 cursor-pointer transition-opacity duration-1000" playsinline preload="auto"></video>
 
+        <!-- Netflix Style Loader -->
+        <div id="netflix-loader">
+            <div class="relative flex items-center justify-center">
+                <div class="netflix-spinner"></div>
+                <div id="load-percentage" class="absolute text-white font-mono text-[11px] font-black tracking-tight translate-y-0.5">0%</div>
+            </div>
+            <p class="text-white text-[10px] font-black uppercase tracking-[0.4em] mt-8 animate-pulse opacity-50">Conectando</p>
+        </div>
+
         <!-- Vinheta de Abertura/Fechamento (A&amp;M Streaming) -->
         <div id="vignette-overlay" class="hidden absolute inset-0 z-[110] bg-black flex flex-col items-center justify-center pointer-events-auto transition-opacity duration-700">
             <div id="vignette-content" class="flex flex-col items-center opacity-0 transition-all duration-700 ease-out transform scale-90">
@@ -1037,6 +1132,7 @@
                         <button onclick="togglePlayerPlay()" onpointerdown="event.stopPropagation(); togglePlayerPlay()" class="focusable hover:text-gray-300 active:scale-90 transition-transform" tabindex="0"><i id="control-play-icon" class="ph-fill ph-pause text-3xl md:text-4xl"></i></button>
                         <button onclick="seekPlayer(-10)" onpointerdown="event.stopPropagation(); seekPlayer(-10)" class="focusable hover:text-gray-300 active:scale-90 transition-transform" tabindex="0"><i class="ph ph-arrow-counter-clockwise text-2xl md:text-3xl"></i></button>
                         <button onclick="seekPlayer(10)" onpointerdown="event.stopPropagation(); seekPlayer(10)" class="focusable hover:text-gray-300 active:scale-90 transition-transform" tabindex="0"><i class="ph ph-arrow-clockwise text-2xl md:text-3xl"></i></button>
+                        <button onclick="skipToNextVideo()" onpointerdown="event.stopPropagation(); skipToNextVideo()" class="focusable hover:text-gray-300 active:scale-90 transition-transform ml-2" title="Próximo Vídeo" tabindex="0"><i class="ph-fill ph-skip-forward text-2xl md:text-3xl"></i></button>
                         <div class="flex items-center group/vol relative">
                             <button onclick="toggleVolumeBar()" onpointerdown="event.stopPropagation(); toggleVolumeBar()" class="focusable hover:text-gray-300 active:scale-90 transition-transform ml-2" tabindex="0"><i id="control-volume-icon" class="ph-fill ph-speaker-high text-2xl md:text-3xl"></i></button>
                             <div id="volume-slider-container" class="w-0 overflow-hidden transition-all duration-300 ease-in-out flex items-center ml-0 group-hover/vol:w-24 group-hover/vol:ml-2">
@@ -1058,8 +1154,8 @@
     <!-- SCRIPTS CORE E FIREBASE -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, setDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, setDoc, getDoc, updateDoc, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyC9mGKW38Dh8xIIphde_V41dit52CRctgo",
@@ -1094,6 +1190,7 @@
         let curtidasDocs = [];
         let curtidasCategoriasIds = [];
         let curtidasCategoriasDocs = [];
+        let continuarAssistindoDocs = [];
         let downloadsIds = [];
         let searchHistory = [];
         window.currentDestaqueData = null;
@@ -1127,6 +1224,9 @@
         };
 
         // AUTH & INITS
+        // Força a persistência local para que o login não expire ao fechar o navegador
+        setPersistence(auth, browserLocalPersistence);
+
         onAuthStateChanged(auth, (user) => {
             currentUser = user;
             if (user) {
@@ -1179,6 +1279,7 @@
                 window.carregarDownloadsRealtime();
                 window.carregarHistoricoPesquisaRealtime();
                 window.carregarConfigAnunciosRealtime();
+                window.carregarContinuarAssistindoRealtime();
             } else {
                 signInAnonymously(auth);
             }
@@ -1336,19 +1437,38 @@
         // ==========================================
         window.currentActiveMenu = 'home';
         window.navigate = function(viewId) {
-            if(['home', 'menu1', 'menu2', 'menu3', 'minhaLista'].includes(viewId)) {
+            if(['home', 'menu1', 'menu2', 'menu3', 'minhaLista', 'meusDownloads'].includes(viewId)) {
                 window.currentActiveMenu = viewId;
                 document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
                 
+                const isTikTokMode = (viewId === 'menu3');
+                const tiktokView = document.getElementById('view-tiktok');
+                const mainHeader = document.getElementById('main-header');
+                const mainFooter = document.getElementById('main-footer');
+
                 if(viewId === 'home') document.getElementById('nav-home').classList.add('active');
                 else if(viewId === 'menu1') document.getElementById('menu-1-label').classList.add('active');
                 else if(viewId === 'menu2') document.getElementById('menu-2-label').classList.add('active');
                 else if(viewId === 'menu3') document.getElementById('menu-3-label').classList.add('active');
                 else if(viewId === 'minhaLista') document.getElementById('nav-minhaLista').classList.add('active');
+                else if(viewId === 'meusDownloads') document.getElementById('nav-meusDownloads').classList.add('active');
                 
+                if (isTikTokMode) {
+                    tiktokView.classList.remove('hidden');
+                    mainHeader.classList.add('hidden');
+                    if (mainFooter) mainFooter.classList.add('hidden');
+                    window.renderTikTokFeed();
+                } else {
+                    tiktokView.classList.add('hidden');
+                    mainHeader.classList.remove('hidden');
+                    if (mainFooter) mainFooter.classList.remove('hidden');
+                    // Para qualquer vídeo do tiktok que esteja a tocar
+                    document.querySelectorAll('.tiktok-video').forEach(v => v.pause());
+                }
+
                 // Sempre que navegar pelo topo, volta pra home (fecha detalhes se tiver aberto)
                 document.getElementById('view-details').classList.add('hidden');
-                document.getElementById('view-home').classList.remove('hidden');
+                if (!isTikTokMode) document.getElementById('view-home').classList.remove('hidden');
                 
                 window.renderizarTrilhosNaHome();
                 window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1526,10 +1646,13 @@
                         let themeMeta = document.querySelector("meta[name='theme-color']");
                         if(themeMeta) themeMeta.content = dados.corPrincipal;
                         
-                        // Atualiza os estilos de foco para Smart TV (Sem LEDs/Glow para maior performance)
+                        // Garante que o foco seja sempre branco (Estilo Prime Video) mesmo mudando a cor do tema
                         let styleEl = document.getElementById('brand-custom-styles');
                         if (!styleEl) { styleEl = document.createElement('style'); styleEl.id = 'brand-custom-styles'; document.head.appendChild(styleEl); }
-                        styleEl.innerHTML = `.focusable:focus { border: 4px solid ${dados.corPrincipal} !important; box-shadow: none !important; outline: none !important; } #toast.bg-green-600 { background-color: ${dados.corPrincipal} !important; color: #000 !important; font-weight: bold; }`;
+                        styleEl.innerHTML = `
+                            .focusable:focus { border: 3px solid #FFFFFF !important; box-shadow: 0 0 20px rgba(255,255,255,0.4) !important; outline: none !important; } 
+                            #toast.bg-green-600 { background-color: ${dados.corPrincipal} !important; color: #000 !important; font-weight: bold; }
+                        `;
                     }
                 }
             });
@@ -1597,6 +1720,15 @@
             });
         }
 
+        window.carregarContinuarAssistindoRealtime = function() {
+            if(!currentUser || currentUser.isAnonymous) return;
+            const q = query(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'continuar_assistindo'), orderBy('updatedAt', 'desc'), limit(10));
+            onSnapshot(q, (snap) => {
+                continuarAssistindoDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                window.renderizarTrilhosNaHome();
+            });
+        }
+
         // ==========================================
         // CATÁLOGO E TRILHOS
         // ==========================================
@@ -1623,6 +1755,7 @@
 
         window.renderizarTrilhosNaHome = function() {
             let listaHTML = "";
+            let continuarHTML = "";
             const categories = {}; const itemsByCategory = {};
             
             let catalogoFiltrado = [];
@@ -1630,6 +1763,9 @@
                 catalogoFiltrado = cacheCatalogo;
             } else if (window.currentActiveMenu === 'minhaLista') {
                 catalogoFiltrado = cacheCatalogo.filter(item => minhaListaIds.includes(item.id));
+            } else if (window.currentActiveMenu === 'meusDownloads') {
+                // Puxa do armazenamento offline (localStorage + Cache)
+                catalogoFiltrado = JSON.parse(localStorage.getItem('am_offline_metadata') || '[]');
             } else {
                 catalogoFiltrado = cacheCatalogo.filter(item => (item.menuIds && item.menuIds.includes(window.currentActiveMenu)) || item.menuId === window.currentActiveMenu);
             }
@@ -1637,15 +1773,34 @@
             window.masterPlayOrder = []; 
 
             catalogoFiltrado.forEach((item) => {
-                const cat = window.currentActiveMenu === 'minhaLista' ? "Sua Seleção" : (item.trilho || "Outros");
+                let cat = item.trilho || "Outros";
+                if (window.currentActiveMenu === 'minhaLista') cat = "Sua Seleção";
+                if (window.currentActiveMenu === 'meusDownloads') cat = "Vídeos Disponíveis Offline";
+
                 if (!categories[cat]) { categories[cat] = ""; itemsByCategory[cat] = []; }
                 itemsByCategory[cat].push(item);
 
                 if (minhaListaIds.includes(item.id)) listaHTML += renderCardPaisagem(item, "text-[#2563EB]");
                 
+                // Se o item estiver no continuar assistindo, renderiza com barra de progresso
+                const progressData = continuarAssistindoDocs.find(d => d.itemId === item.id);
+                if (progressData && window.currentActiveMenu === 'home') {
+                    continuarHTML += renderCardContinuar(item, progressData);
+                }
+
                 if (cat.toLowerCase().includes('recente') || cat.toLowerCase().includes('retrato')) categories[cat] += renderCardRetrato(item);
                 else categories[cat] += renderCardPaisagem(item, "text-[var(--brand-gold)]");
             });
+
+            const sectionContinuar = document.getElementById('section-continuar-assistindo');
+            if (sectionContinuar) {
+                if (window.currentActiveMenu === 'home' && continuarHTML) {
+                    sectionContinuar.classList.remove('hidden');
+                    document.getElementById('container-continuar-assistindo').innerHTML = continuarHTML;
+                } else {
+                    sectionContinuar.classList.add('hidden');
+                }
+            }
 
             const sectionListaFixa = document.getElementById('section-minha-lista');
             if (sectionListaFixa) {
@@ -1753,6 +1908,27 @@
                              <div onclick="event.stopPropagation(); toggleJoinhaById('${data.id}')" class="w-6 h-6 rounded-full bg-white/10 border border-white/30 flex items-center justify-center"><i class="${heartClass} ph-heart text-[10px]"></i></div>
                              <div class="w-6 h-6 rounded-full bg-white/10 border border-white/30 flex items-center justify-center text-white"><i class="ph ph-plus text-[10px]"></i></div>
                         </div>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function renderCardContinuar(data, progressData) {
+            const dataStr = btoa(encodeURIComponent(JSON.stringify(data)));
+            const pct = (progressData.currentTime / progressData.duration) * 100;
+
+            return `
+            <div class="card-container relative transition-all duration-300">
+                <div onclick="window.handleCardAction('${dataStr}', this)" onfocus="window.handleCardFocus('${dataStr}')" class="focusable min-w-[220px] md:min-w-[280px] h-[120px] md:h-[150px] relative group cursor-pointer snap-start transition-all" tabindex="0">
+                    <div class="absolute inset-0 bg-black rounded-xl overflow-hidden border border-white/10 shadow-lg">
+                        <img src="${data.capaUrl}" loading="lazy" decoding="async" class="w-full h-full object-cover opacity-80 brightness-[1.1]">
+                        <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <i class="ph-fill ph-play text-white text-4xl drop-shadow-lg"></i>
+                        </div>
+                        <div class="absolute bottom-0 left-0 w-full h-1 bg-white/20">
+                            <div class="h-full bg-red-600" style="width: ${pct}%"></div>
+                        </div>
+                        <div class="absolute top-2 left-2 bg-black/60 px-2 py-0.5 rounded text-[8px] text-white font-bold backdrop-blur-sm border border-white/10 uppercase tracking-widest">Continuar</div>
                     </div>
                 </div>
             </div>`;
@@ -1996,13 +2172,31 @@
             const btnHeroLogin = document.getElementById('btn-hero-login');
             const btnDetailsLogin = document.getElementById('btn-details-login');
             
+            const progressData = continuarAssistindoDocs.find(d => d.itemId === itemId);
+            const progressCont = document.getElementById('details-progress-container');
+            const progressFill = document.getElementById('details-progress-fill');
+
             if (isAnon) {
                 if(ctaTextDet) ctaTextDet.innerText = "Ver Trailer";
                 if(ctaBtnHero) ctaBtnHero.innerHTML = `<i class="ph-fill ph-play text-xl"></i> Ver Trailer`;
                 if(btnHeroLogin) btnHeroLogin.classList.remove('hidden');
                 if(btnDetailsLogin) btnDetailsLogin.classList.remove('hidden');
+                if(progressCont) progressCont.classList.add('hidden');
             } else {
-                const text = (minhaListaIds.includes(itemId) || curtidasIds.includes(itemId)) ? "RETOMAR" : "FILME";
+                let text = (minhaListaIds.includes(itemId) || curtidasIds.includes(itemId)) ? "RETOMAR" : "FILME";
+                
+                // Se houver progresso salvo, o botão vira "CONTINUAR" e a barra aparece
+                if (progressData) {
+                    text = "CONTINUAR";
+                    if (progressCont && progressFill) {
+                        const pct = (progressData.currentTime / progressData.duration) * 100;
+                        progressCont.classList.remove('hidden');
+                        progressFill.style.width = pct + '%';
+                    }
+                } else {
+                    if (progressCont) progressCont.classList.add('hidden');
+                }
+
                 if(ctaTextDet) ctaTextDet.innerText = text;
                 if(ctaBtnHero) ctaBtnHero.innerHTML = `<i class="ph-fill ph-play text-xl"></i> ${text}`;
                 if(btnHeroLogin) btnHeroLogin.classList.add('hidden');
@@ -2313,9 +2507,34 @@
             }, 50);
         };
 
+        window.saveProgress = async (itemId, currentTime, duration) => {
+            if (!currentUser || currentUser.isAnonymous || !itemId || isNaN(duration) || duration < 30) return;
+            const progress = (currentTime / duration) * 100;
+            
+            // Se já assistiu mais de 95%, remove do "Continuar Assistindo" pois considera-se finalizado
+            if (progress > 95) {
+                await deleteDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'continuar_assistindo', itemId)).catch(()=>{});
+                return;
+            }
+            
+            // Só salva se tiver assistido pelo menos 1% e menos de 95%
+            if (progress < 1) return;
+
+            await setDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'continuar_assistindo', itemId), {
+                itemId,
+                currentTime,
+                duration,
+                updatedAt: new Date().getTime()
+            }, { merge: true }).catch(()=>{});
+        };
+
         window.abrirPlayerFull = function(isTrailer = false, specificUrl = null) {
             const isAnon = (!currentUser || currentUser.isAnonymous);
             const isOffline = !navigator.onLine;
+
+            // Mostra o carregamento Netflix ao abrir o player
+            const loader = document.getElementById('netflix-loader');
+            if(loader) loader.style.display = 'flex';
             
             // Se estiver offline, força a reprodução do vídeo completo que está em cache
             if (isOffline) isTrailer = false;
@@ -2391,6 +2610,13 @@
             // Lógica de Tempo e Fade Suave para Trailer Aberto
             mainVid.onloadedmetadata = () => {
                 if (!isTrailer) {
+                    // Verifica se existe progresso salvo para este vídeo
+                    const progressData = continuarAssistindoDocs.find(d => d.itemId === window.currentDestaqueData.id);
+                    if (progressData && progressData.currentTime > 0) {
+                        mainVid.currentTime = progressData.currentTime;
+                        window.showToast("Retomando de onde você parou...");
+                    }
+
                     // Removida vinheta de abertura
                     mainVid.style.opacity = '1';
                     mainVid.muted = false; // Garante que o som não comece mudo
@@ -2501,6 +2727,11 @@
         window.fecharPlayerFull = function(fromPopstate = false) {
             if(window.isMandatoryTrailer) return; // Impede fechar durante o anúncio
             
+            // Salva progresso ao fechar o player
+            if (!window.isWatchingTrailer && mainVid.duration > 0) {
+                window.saveProgress(window.currentDestaqueData.id, mainVid.currentTime, mainVid.duration);
+            }
+
             // Removida vinheta no fechamento manual (voltar para informações)
             clearInterval(window.mandatoryInterval);
             mainVid.removeEventListener('timeupdate', window.currentTrailerListener);
@@ -2551,6 +2782,8 @@
                 centerIcon.classList.add('hidden');
             } else { 
                 mainVid.pause(); 
+                // Salva progresso ao pausar
+                if (!window.isWatchingTrailer) window.saveProgress(window.currentDestaqueData.id, mainVid.currentTime, mainVid.duration);
                 icon.classList.replace('ph-pause', 'ph-play');
                 centerIcon.classList.remove('hidden');
             }
@@ -2561,10 +2794,85 @@
             if (isFinite(mainVid.currentTime)) mainVid.currentTime += sec; 
         }
 
+        // MONITORAMENTO DE BUFFERING E REDE (CARREGAMENTO ESTILO NETFLIX COM PERCENTAGEM)
+        mainVid.addEventListener('waiting', () => {
+            const loader = document.getElementById('netflix-loader');
+            if(loader) loader.style.display = 'flex';
+        });
+
+        mainVid.addEventListener('playing', () => {
+            const loader = document.getElementById('netflix-loader');
+            if(loader) loader.style.display = 'none';
+        });
+
+        mainVid.addEventListener('canplay', () => {
+            const loader = document.getElementById('netflix-loader');
+            if(loader) loader.style.display = 'none';
+        });
+
+        // MOTOR DE RESOLUÇÃO ADAPTATIVA (ESTILO NETFLIX)
+        window.optimizeVideoQuality = function() {
+            const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+            const qualityBadge = document.getElementById('badge-hd');
+            
+            if (connection) {
+                const type = connection.effectiveType; // '4g', '3g', '2g', 'slow-2g'
+                const downlink = connection.downlink; // Mb/s estimulado
+
+                if (type === '4g' && downlink > 5) {
+                    // ALTA QUALIDADE (4K / 1080p)
+                    mainVid.setAttribute('importance', 'high');
+                    if(qualityBadge) { qualityBadge.innerText = '4K HDR'; qualityBadge.className = 'quality-badge bg-black/50 border border-brand-gold/50 text-brand-gold px-2 py-0.5 rounded text-[10px] font-black shadow-[0_0_5px_rgba(214,183,120,0.3)]'; }
+                } else if (type === '3g' || downlink < 2) {
+                    // QUALIDADE PADRÃO (720p / 480p) - Otimiza buffer para internet lenta
+                    mainVid.setAttribute('importance', 'low');
+                    if(qualityBadge) { qualityBadge.innerText = 'SD'; qualityBadge.className = 'quality-badge bg-black/50 border border-white/20 text-gray-400 px-2 py-0.5 rounded text-[10px] font-black'; }
+                }
+            }
+        };
+
+        mainVid.addEventListener('progress', () => {
+            const loader = document.getElementById('netflix-loader');
+            if(loader && loader.style.display === 'flex' && mainVid.duration > 0) {
+                // Cálculo de Buffer Inteligente: Netflix usa o progresso do carregamento imediato
+                if (mainVid.buffered.length > 0) {
+                    const lastBuffer = mainVid.buffered.end(mainVid.buffered.length - 1);
+                    const currentBuffer = mainVid.buffered.end(0);
+                    
+                    // Se estivermos perto do tempo atual, calculamos a percentagem do próximo bloco
+                    let targetBuffer = currentBuffer;
+                    for (let i = 0; i < mainVid.buffered.length; i++) {
+                        if (mainVid.currentTime >= mainVid.buffered.start(i) && mainVid.currentTime <= mainVid.buffered.end(i)) {
+                            targetBuffer = mainVid.buffered.end(i);
+                            break;
+                        }
+                    }
+
+                    const pct = Math.min(100, Math.round((targetBuffer / mainVid.duration) * 100));
+                    const pctEl = document.getElementById('load-percentage');
+                    if(pctEl) pctEl.innerText = pct + '%';
+                    
+                    // Se o buffer for suficiente para 10 segundos à frente, a resolução se mantém estável
+                    if (targetBuffer - mainVid.currentTime > 10) window.optimizeVideoQuality();
+                }
+            }
+        });
+
+        // Resetar percentagem ao iniciar um novo carregamento
+        mainVid.addEventListener('loadstart', () => {
+            const pctEl = document.getElementById('load-percentage');
+            if(pctEl) pctEl.innerText = '0%';
+        });
+
         // Tempo e Barra de Progresso (Otimizado para menor uso de CPU)
         mainVid.addEventListener('timeupdate', () => {
             if(!mainVid.duration || window.isTransitioningToNext || isDraggingProgress || window.isMandatoryTrailer) return;
             
+            // Salva o progresso a cada ~10 segundos de reprodução se não for trailer
+            if (!window.isWatchingTrailer && Math.floor(mainVid.currentTime) % 10 === 0) {
+                window.saveProgress(window.currentDestaqueData.id, mainVid.currentTime, mainVid.duration);
+            }
+
             if (Math.floor(mainVid.currentTime * 5) % 1 !== 0) return;
 
             const pct = (mainVid.currentTime / mainVid.duration) * 100;
@@ -2723,6 +3031,12 @@
             }, 600);
         };
 
+        window.skipToNextVideo = function() {
+            if (window.isMandatoryTrailer) return;
+            window.showToast("A saltar para o próximo vídeo...");
+            window.playNextVideo();
+        };
+
         // FUNÇÃO PARA CANCELAR PRÓXIMO VÍDEO E REPETIR ATUAL
         window.cancelNextVideo = function(e) {
             if(e) e.stopPropagation();
@@ -2734,6 +3048,10 @@
 
         window.iniciarTrailerObrigatorio = function(proximoDestino) {
             window.isMandatoryTrailer = true;
+
+            // Mostra o carregamento ao iniciar anúncio
+            const loader = document.getElementById('netflix-loader');
+            if(loader) loader.style.display = 'flex';
             
             let adVideoUrl = "";
             let adTitle = "Sugestão A&amp;M";
@@ -2750,7 +3068,7 @@
                 const randomVideo = outrosVideos.length > 0 ? outrosVideos[Math.floor(Math.random() * outrosVideos.length)] : window.currentDestaqueData;
                 
                 adVideoUrl = randomVideo.trailerUrl || randomVideo.videoUrl || "";
-                adTitle = `Sugestão: ${randomVideo.titulo || 'A&amp;M'}`;
+                    adTitle = `Sugestão: ${randomVideo.titulo || 'A&amp;M'}`;
                 
                 // Marca se tivemos que puxar o filme grande por não ter um trailer
                 isFallbackLongVideo = !randomVideo.trailerUrl && (randomVideo.videoUrl === adVideoUrl);
@@ -2811,6 +3129,9 @@
                     
                     const countText = document.getElementById('mandatory-countdown-text');
                     if(countText) countText.innerText = `Publicidade • O vídeo começa em ${min}:${sec < 10 ? '0' + sec : sec}`;
+
+                    // Verifica qualidade durante o anúncio também
+                    if (remaining % 5 === 0) window.optimizeVideoQuality();
 
                     // Fade Out visual e sonoro apenas no último segundo
                     if (remaining === 1) {
@@ -3122,6 +3443,94 @@
                     }
                 });
             }, 8000);
+        };
+
+        // MOTOR DE RENDERIZAÇÃO TIKTOK (FEED VERTICAL) - OTIMIZADO PARA VELOCIDADE
+        window.renderTikTokFeed = function() {
+            const container = document.getElementById('tiktok-feed-container');
+            const items = cacheCatalogo.filter(i => (i.menuIds && i.menuIds.includes('menu3')) || i.menuId === 'menu3');
+            
+            if (items.length === 0) {
+                container.innerHTML = `<div class="h-screen flex items-center justify-center text-brand-text font-bold">NENHUM CONTEÚDO VERTICAL.</div>`;
+                return;
+            }
+
+            // Removido o atributo 'poster' (capa) e alterado preload para 'auto' para início imediato
+            container.innerHTML = items.map(item => {
+                const isLiked = curtidasIds.includes(item.id);
+                const isListed = minhaListaIds.includes(item.id);
+                
+                return `
+                <div class="tiktok-video-container" data-id="${item.id}">
+                    <video class="tiktok-video" src="${item.videoUrl}" loop playsinline preload="auto" muted fetchpriority="high"></video>
+                    <div class="tiktok-overlay" onclick="window.toggleTikTokPlay(this)"></div>
+                    
+                    <div class="tiktok-actions">
+                        <button onclick="toggleJoinhaById('${item.id}')" class="flex flex-col items-center gap-1 group">
+                            <div class="w-12 h-12 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center border border-white/10 group-active:scale-90 transition">
+                                <i class="${isLiked ? 'ph-fill text-red-500' : 'ph text-white'} ph-heart text-2xl"></i>
+                            </div>
+                            <span class="text-[10px] font-bold text-white shadow-sm">Gostar</span>
+                        </button>
+                        <button onclick="window.currentDestaqueData={id:'${item.id}'}; toggleMinhaLista()" class="flex flex-col items-center gap-1 group">
+                            <div class="w-12 h-12 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center border border-white/10 group-active:scale-90 transition">
+                                <i class="${isListed ? 'ph-fill text-brand-gold' : 'ph text-white'} ph-plus text-2xl"></i>
+                            </div>
+                            <span class="text-[10px] font-bold text-white shadow-sm">Lista</span>
+                        </button>
+                        <button onclick="window.abrirDetalhes('${btoa(encodeURIComponent(JSON.stringify(item)))}')" class="flex flex-col items-center gap-1 group">
+                            <div class="w-12 h-12 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center border border-white/10 group-active:scale-90 transition">
+                                <i class="ph ph-info text-2xl text-white"></i>
+                            </div>
+                            <span class="text-[10px] font-bold text-white shadow-sm">Info</span>
+                        </button>
+                    </div>
+
+                    <div class="tiktok-info">
+                        <h3 class="text-white font-black text-lg uppercase tracking-tight drop-shadow-lg">${item.titulo}</h3>
+                        <p class="text-white/80 text-xs mt-1 line-clamp-2 drop-shadow-md">${item.descricao || ''}</p>
+                        <div class="flex items-center gap-2 mt-3">
+                            <span class="bg-brand-gold text-black text-[9px] font-black px-2 py-0.5 rounded uppercase">${item.selo || 'A&amp;M ORIGINALS'}</span>
+                            <span class="text-[10px] text-white/60 font-bold">#amstreaming #original</span>
+                        </div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+
+            // Inicia Observer para Auto-Play (Garante que o vídeo no centro toca sozinho)
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    const video = entry.target.querySelector('video');
+                    if (entry.isIntersecting) {
+                        // Tenta tocar o vídeo assim que entrar no centro da tela
+                        const playPromise = video.play();
+                        if (playPromise !== undefined) {
+                            playPromise.catch(() => {
+                                video.muted = true; // Força mudo se o navegador bloquear autoplay com som
+                                video.play();
+                            });
+                        }
+                    } else {
+                        video.pause();
+                        video.currentTime = 0; // Reinicia para economia de memória
+                    }
+                });
+            }, { threshold: 0.6 }); // Sensibilidade aumentada para Smart TVs e Mobile
+
+            document.querySelectorAll('.tiktok-video-container').forEach(container => observer.observe(container));
+            
+            // Força a reprodução imediata do primeiro vídeo renderizado
+            setTimeout(() => {
+                const firstVideo = document.querySelector('.tiktok-video');
+                if(firstVideo) firstVideo.play().catch(() => { firstVideo.muted = true; firstVideo.play(); });
+            }, 100);
+        };
+
+        window.toggleTikTokPlay = function(overlay) {
+            const video = overlay.parentElement.querySelector('video');
+            if (video.paused) video.play();
+            else video.pause();
         };
 
         // LÓGICA DE NAVEGAÇÃO ESPACIAL DE TV
