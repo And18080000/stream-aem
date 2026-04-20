@@ -1172,8 +1172,8 @@
 
     <!-- PLAYER DE VÍDEO FULLSCREEN ESTILO NETFLIX -->
     <div id="netflix-player" class="hidden fixed inset-0 z-[100] bg-black flex flex-col justify-center items-center">
-        <!-- VÍDEO PRINCIPAL COM PRELOAD AUTOMÁTICO E POSTER DINÂMICO PARA EVITAR ECRÃS PRETOS -->
-        <video id="main-full-video" class="w-full h-full object-contain absolute inset-0 cursor-pointer transition-opacity duration-1000" playsinline preload="auto"></video>
+        <!-- VÍDEO PRINCIPAL COM PRELOAD ULTRA-AGRESSIVO E PRIORIDADE DE REDE MÁXIMA -->
+        <video id="main-full-video" class="w-full h-full object-contain absolute inset-0 cursor-pointer transition-opacity duration-1000" playsinline preload="auto" fetchpriority="high" x-webkit-airplay="allow"></video>
 
         <!-- Netflix Style Loader -->
         <div id="netflix-loader">
@@ -1184,11 +1184,11 @@
             <p class="text-white text-[10px] font-black uppercase tracking-[0.4em] mt-8 animate-pulse opacity-50">Conectando</p>
         </div>
 
-        <!-- Vinheta de Abertura/Fechamento (A&amp;M Streaming) -->
+        <!-- Vinheta de Abertura/Fechamento (A&M Streaming) -->
         <div id="vignette-overlay" class="hidden absolute inset-0 z-[110] bg-black flex flex-col items-center justify-center pointer-events-auto transition-opacity duration-700">
             <div id="vignette-content" class="flex flex-col items-center opacity-0 transition-all duration-700 ease-out transform scale-90">
                 <h1 class="text-4xl md:text-7xl font-sans text-white tracking-tighter font-black italic leading-none flex items-baseline gap-2">
-                    A&amp;amp;M <span class="text-[var(--prime-blue)] font-light not-italic">streaming</span>
+                    A&M <span class="text-[var(--prime-blue)] font-light not-italic">streaming</span>
                 </h1>
                 <svg class="w-32 md:w-48 h-auto -mt-3 text-[var(--prime-blue)]" viewBox="0 0 100 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M5 8C25 18 75 18 95 8" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
@@ -1867,6 +1867,26 @@
             }
         };
 
+        window.removerDeContinuarAssistindo = async function(itemId) {
+            if(!currentUser || currentUser.isAnonymous) return;
+            try {
+                await deleteDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'continuar_assistindo', itemId));
+                
+                // Remove localmente para atualização visual instantânea (reset de progresso)
+                continuarAssistindoDocs = continuarAssistindoDocs.filter(d => d.itemId !== itemId);
+                window.renderizarTrilhosNaHome();
+                
+                // Se o utilizador estiver nos detalhes desse item, reseta o botão de CONTINUAR para FILME
+                if (window.currentDestaqueData && window.currentDestaqueData.id === itemId) {
+                    window.verificarStatusBotoes();
+                }
+
+                window.showToast("Progresso limpo. O vídeo voltará ao início.");
+            } catch(e) {
+                console.error("Erro ao remover progresso:", e);
+            }
+        };
+
         window.toggleJoinhaById = async function(itemId) {
             if(!currentUser) return window.openLoginPrompt();
             const isLiked = curtidasIds.includes(itemId);
@@ -2285,8 +2305,8 @@
             });
         }
 
-        // ==========================================
-        // CATÁLOGO E TRILHOS
+       // ==========================================
+        // CATÁLOGO E TRILHOS (Sincronização Ao Vivo de Textos e Vídeos)
         // ==========================================
         window.carregarCatalogoRealtime = function() {
             onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'catalog'), (snap) => {
@@ -2306,10 +2326,156 @@
                     setTimeout(() => { window.startHeroAutoCycle(); window.startRailsAutoScroll(); }, 1000);
                 }
                 window.renderizarTrilhosNaHome();
+                
                 // Sincronização forçada para o Modo Conteúdos (TikTok) quando o catálogo mudar
                 if (window.currentActiveMenu === 'menu2') window.renderTikTokMode();
+
+                // Chama a sincronização para atualizar a tela do usuário ao vivo
+                window.sincronizarInterfaceAoVivo(cacheCatalogo);
             });
         }
+
+        // Função responsável por atualizar textos, CAPAS e VÍDEOS ao vivo sem recarregar a página
+        window.sincronizarInterfaceAoVivo = function(catalogoRecente) {
+            if (!window.currentDestaqueData) return;
+
+            // Busca a versão mais atualizada do item no Firebase
+            const itemAtualizado = catalogoRecente.find(item => item.id === window.currentDestaqueData.id);
+            
+            // Se o Admin deletou o filme, fecha a tela
+            if (!itemAtualizado) {
+                if (!document.getElementById('view-details').classList.contains('hidden')) {
+                    window.fecharDetalhes();
+                    window.showToast("Este conteúdo foi removido pelo administrador.", true);
+                }
+                return;
+            }
+
+            // DETECTORES DE MUDANÇA DE ARQUIVOS DE MÍDIA
+            const videoMudou = window.currentDestaqueData.videoUrl !== itemAtualizado.videoUrl || window.currentDestaqueData.trailerUrl !== itemAtualizado.trailerUrl;
+            const capaMudou = window.currentDestaqueData.capaUrl !== itemAtualizado.capaUrl;
+
+            // Atualiza a memória global para os dados frescos
+            window.currentDestaqueData = itemAtualizado;
+
+            // =======================================================
+            // 1. ATUALIZA O BANNER PRINCIPAL (HERO DA HOME)
+            // =======================================================
+            const viewHome = document.getElementById('view-home');
+            if (viewHome && !viewHome.classList.contains('hidden')) {
+                // Atualiza Textos
+                const heroTitle = document.getElementById('hero-title');
+                if (heroTitle) heroTitle.innerText = itemAtualizado.titulo;
+                const heroSelo = document.getElementById('hero-selo');
+                if (heroSelo) heroSelo.innerText = itemAtualizado.selo || 'A&M ORIGINALS';
+                const heroSub = document.getElementById('hero-subtitulo');
+                if (heroSub) heroSub.innerText = itemAtualizado.subtitulo || 'Classificação: 14+ | Estreia Exclusiva';
+                
+                // Atualiza Imagens (Capa)
+                if (capaMudou) {
+                    const heroImg = document.getElementById('hero-img');
+                    if (heroImg) heroImg.src = itemAtualizado.capaUrl;
+                    const heroVideo = document.getElementById('hero-video');
+                    if (heroVideo) heroVideo.poster = itemAtualizado.capaUrl;
+                }
+                
+                // Troca o Vídeo Preview ao vivo (se mudou)
+                if (videoMudou) {
+                    let heroTrailer = itemAtualizado.videoUrl;
+                    if (itemAtualizado.trailers && itemAtualizado.trailers.length > 0) heroTrailer = itemAtualizado.trailers[0].url;
+                    else if (itemAtualizado.trailerUrl) heroTrailer = itemAtualizado.trailerUrl;
+                    
+                    const heroVideo = document.getElementById('hero-video');
+                    if (heroVideo && heroTrailer) {
+                        const wasPlaying = !heroVideo.paused && heroVideo.currentTime > 0;
+                        heroVideo.src = heroTrailer;
+                        heroVideo.load();
+                        if (wasPlaying) heroVideo.play().catch(()=>{});
+                    }
+                }
+            }
+
+            // =======================================================
+            // 2. ATUALIZA A TELA DE DETALHES (Se estiver aberta)
+            // =======================================================
+            const viewDetails = document.getElementById('view-details');
+            if (viewDetails && !viewDetails.classList.contains('hidden')) {
+                // Textos e Metadados
+                document.getElementById('details-title').innerText = itemAtualizado.titulo || '';
+                document.getElementById('details-desc').innerText = itemAtualizado.descricao || "Sem descrição disponível no momento.";
+                document.getElementById('details-trilho').innerText = itemAtualizado.trilho || "Geral";
+                document.getElementById('details-genero1').innerText = itemAtualizado.genero1 || "Filmes";
+                document.getElementById('details-genero2').innerText = itemAtualizado.genero2 || "Aventura";
+                document.getElementById('details-imdb').innerText = itemAtualizado.imdb ? `IMDb ${itemAtualizado.imdb}` : "IMDb 8.5/10";
+                document.getElementById('details-ano').innerText = itemAtualizado.ano || "2024";
+                document.getElementById('details-tempo').innerText = itemAtualizado.tempo || "1 h 48 min";
+                document.getElementById('details-resolucao').innerText = itemAtualizado.resolucao || "4K HDR";
+                document.getElementById('details-elenco').innerText = itemAtualizado.elenco || "A&M Studios, Convidados Especiais";
+                document.getElementById('details-info-title').innerText = itemAtualizado.titulo || '';
+                document.getElementById('details-info-trilho').innerText = itemAtualizado.trilho || "Geral";
+                document.getElementById('details-info-desc').innerText = itemAtualizado.descricao || "Sem descrição disponível no momento.";
+
+                // Atualiza Capa de Fundo
+                if (capaMudou) {
+                    const detailsImg = document.getElementById('details-img');
+                    if (detailsImg) detailsImg.src = itemAtualizado.capaUrl;
+                    const detailsVideo = document.getElementById('details-video');
+                    if (detailsVideo) detailsVideo.poster = itemAtualizado.capaUrl;
+                }
+
+                // Troca o Trailer de Fundo
+                if (videoMudou) {
+                    let detTrailer = itemAtualizado.videoUrl;
+                    if (itemAtualizado.trailers && itemAtualizado.trailers.length > 0) detTrailer = itemAtualizado.trailers[0].url;
+                    else if (itemAtualizado.trailerUrl) detTrailer = itemAtualizado.trailerUrl;
+                    
+                    const detailsVideo = document.getElementById('details-video');
+                    if (detailsVideo && detTrailer) {
+                        const isPlaying = !detailsVideo.paused && detailsVideo.style.opacity !== '0';
+                        detailsVideo.src = detTrailer;
+                        detailsVideo.load();
+                        if (isPlaying) detailsVideo.play().catch(()=>{});
+                    }
+                }
+            }
+
+            // =======================================================
+            // 3. ATUALIZA O PLAYER FULLSCREEN (Se o usuário estiver assistindo)
+            // =======================================================
+            const playerFull = document.getElementById('netflix-player');
+            if (playerFull && !playerFull.classList.contains('hidden')) {
+                const playerTitle = document.getElementById('player-full-title');
+                if (playerTitle) {
+                    playerTitle.innerText = window.isWatchingTrailer ? `Trailer: ${itemAtualizado.titulo}` : itemAtualizado.titulo;
+                }
+
+                // A MÁGICA AQUI: Hot-swap do arquivo de vídeo!
+                if (videoMudou) {
+                    const mainVid = document.getElementById('main-full-video');
+                    let novaUrl = itemAtualizado.videoUrl;
+                    if (window.isWatchingTrailer) {
+                        if (itemAtualizado.trailers && itemAtualizado.trailers.length > 0) novaUrl = itemAtualizado.trailers[0].url;
+                        else if (itemAtualizado.trailerUrl) novaUrl = itemAtualizado.trailerUrl;
+                    }
+
+                    // Se a URL mudou de verdade, o player dá um 'refresh' interno
+                    if (mainVid && mainVid.src !== novaUrl && novaUrl) {
+                        const currTime = mainVid.currentTime; // Salva o tempo atual
+                        const isPaused = mainVid.paused;
+                        
+                        mainVid.src = novaUrl;
+                        mainVid.load(); // Injeta o novo arquivo instantaneamente
+                        
+                        // Tenta continuar de onde parou no vídeo anterior
+                        mainVid.onloadedmetadata = () => {
+                            if (currTime < mainVid.duration) mainVid.currentTime = currTime;
+                            if (!isPaused) mainVid.play().catch(()=>{});
+                        };
+                        window.showToast("O arquivo deste vídeo foi atualizado.");
+                    }
+                }
+            }
+        };
 
         window.scrollRail = function(btn, direction) {
             const rail = btn.parentElement.querySelector('.auto-scroll-rail');
@@ -2359,10 +2525,26 @@
                     top10HTML = ""; // Reset para reconstruir na ordem certa abaixo
                 }
 
-                // Se o item estiver no continuar assistindo, renderiza com barra de progresso
+             // Se o item estiver no continuar assistindo, renderiza com barra de progresso
                 const progressData = continuarAssistindoDocs.find(d => d.itemId === item.id);
                 if (progressData && window.currentActiveMenu === 'home') {
-                    continuarHTML += renderCardContinuar(item, progressData);
+                    
+                    // O "fantasma": se o filme foi salvo ANTES da nossa atualização, ele não tem esses dados. Vamos deletá-lo.
+                    const dadosAntigos = !progressData.updatedAt || !progressData.videoUrlRef;
+                    
+                    // Verifica se a URL do vídeo mudou ou se o Admin editou o catálogo APÓS o cliente assistir
+                    const videoMudou = progressData.videoUrlRef && progressData.videoUrlRef !== item.videoUrl;
+                    const adminEditouDepois = item.updatedAt && progressData.updatedAt && (item.updatedAt > progressData.updatedAt);
+
+                    if (dadosAntigos || videoMudou || adminEditouDepois) {
+                        // O arquivo foi trocado ou o registro é antigo! Remove do banco de dados para destravar o cliente
+                        if (currentUser) {
+                            deleteDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'continuar_assistindo', item.id)).catch(()=>{});
+                        }
+                    } else {
+                        // Tudo certo, exibe o filme no "Continuar Assistindo"
+                        continuarHTML += renderCardContinuar(item, progressData);
+                    }
                 }
 
                 if (cat.toLowerCase().includes('recente') || cat.toLowerCase().includes('retrato')) categories[cat] += renderCardRetrato(item);
@@ -2555,6 +2737,12 @@
                 <div onclick="window.handleCardAction('${dataStr}', this)" onfocus="window.handleCardFocus('${dataStr}')" class="focusable min-w-[220px] md:min-w-[280px] h-[120px] md:h-[150px] relative group cursor-pointer snap-start transition-all" tabindex="0">
                     <div class="absolute inset-0 bg-black rounded-xl overflow-hidden border border-white/10 shadow-lg">
                         <img src="${data.capaUrl}" loading="lazy" decoding="async" class="w-full h-full object-cover opacity-80 brightness-[1.1]">
+                        
+                        <!-- BOTÃO REMOVER (X) -->
+                        <button onclick="event.stopPropagation(); window.removerDeContinuarAssistindo('${data.id}')" class="absolute top-2 right-2 z-50 w-8 h-8 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/10 hover:bg-red-600 hover:border-red-600 transition-all opacity-0 group-hover:opacity-100 focus:opacity-100" title="Remover da lista">
+                            <i class="ph ph-x font-bold"></i>
+                        </button>
+
                         <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                             <i class="ph-fill ph-play text-white text-4xl drop-shadow-lg"></i>
                         </div>
@@ -2618,7 +2806,8 @@
             if (urlDoTrailerParaTocar && urlDoTrailerParaTocar.trim() !== "" && !isPlayerOpen && !isDetailsOpen) {
                 window.heroTimeout = setTimeout(() => {
                     heroVideo.src = urlDoTrailerParaTocar; 
-                    heroVideo.preload = "metadata"; // Alterado para metadata para não engolir a banda antes do play
+                    heroVideo.preload = "auto"; // Preload auto para preview instantâneo na home
+                    heroVideo.setAttribute('fetchpriority', 'low'); // Prioridade baixa para não competir com a UI
                     heroVideo.muted = true;
                     heroVideo.volume = 0; // Prepara para fade in caso desmute
                     
@@ -2786,7 +2975,7 @@
                 if(btnDetailsLogin) btnDetailsLogin.classList.remove('hidden');
                 if(progressCont) progressCont.classList.add('hidden');
             } else {
-                let text = (minhaListaIds.includes(itemId) || curtidasIds.includes(itemId)) ? "RETOMAR" : "FILME";
+                let text = "FILME";
                 
                 // Se houver progresso salvo, o botão vira "CONTINUAR" e a barra aparece
                 if (progressData) {
@@ -2897,9 +3086,9 @@
             if (urlDoTrailerParaTocar) {
                 vid.src = urlDoTrailerParaTocar;
                 vid.preload = "auto"; // Carregamento agressivo para exibição imediata
+                vid.setAttribute('fetchpriority', 'high'); 
                 vid.muted = true;
-                vid.volume = 0; 
-                vid.setAttribute('fetchpriority', 'high');
+                vid.volume = 0;
                 
                 vid.onloadedmetadata = () => {
                     let mid = 0;
@@ -3112,7 +3301,7 @@
             }, 50);
         };
 
-        window.saveProgress = async (itemId, currentTime, duration) => {
+       window.saveProgress = async (itemId, currentTime, duration) => {
             if (!currentUser || currentUser.isAnonymous || !itemId || isNaN(duration) || duration < 30) return;
             const progress = (currentTime / duration) * 100;
             
@@ -3129,7 +3318,10 @@
                 itemId,
                 currentTime,
                 duration,
-                updatedAt: new Date().getTime()
+                updatedAt: new Date().getTime(),
+                // SALVA A URL EXATA DO VÍDEO PARA COMPARAR SE FOI TROCADA DEPOIS
+                videoUrlRef: window.currentDestaqueData?.videoUrl || "",
+                trailerUrlRef: window.currentDestaqueData?.trailerUrl || ""
             }, { merge: true }).catch(()=>{});
         };
 
@@ -3163,12 +3355,13 @@
             
             window.isWatchingTrailer = isTrailer;
 
-            // Performance TV: Reinicialização total do buffer
+            // Performance Turbo: Limpeza total de memória e priorização de requisição
             mainVid.pause();
-            mainVid.src = "";
+            mainVid.removeAttribute('src'); // Força o browser a descartar buffers antigos
+            mainVid.load();
+            
             // POSTER do Main Video para carregamento instantâneo
             mainVid.poster = window.currentDestaqueData.capaUrl;
-            mainVid.load();
 
             clearInterval(window.autoCycleInterval);
             
@@ -3200,6 +3393,12 @@
             }
             
             mainVid.src = urlParaTocar;
+            
+            // Força o play imediato antes da renderização da interface para ganhar milissegundos
+            mainVid.play().catch(() => {
+                mainVid.muted = true; 
+                mainVid.play().catch(()=>{});
+            });
             
             playerDiv.classList.remove('hidden');
             
@@ -3250,6 +3449,11 @@
 
             // Lógica de Tempo e Fade Suave para Trailer Aberto
             mainVid.onloadedmetadata = () => {
+                // PRIORIZAÇÃO DE VÍDEOS LONGOS (>40 min): Reduz latência de buffer de rede
+                if (mainVid.duration > 2400) {
+                    mainVid.setAttribute('importance', 'high');
+                }
+
                 if (!isTrailer) {
                     // Verifica se existe progresso salvo para este vídeo
                     const progressData = continuarAssistindoDocs.find(d => d.itemId === window.currentDestaqueData.id);
@@ -3520,8 +3724,11 @@
                     const pctEl = document.getElementById('load-percentage');
                     if(pctEl) pctEl.innerText = pct + '%';
                     
-                    // ACELERAÇÃO DE REPRODUÇÃO: Se já tiver 3 segundos em cache, tenta dar play logo
-                    if (targetBuffer - mainVid.currentTime > 3 && mainVid.paused && !window.isMandatoryTrailer) {
+                    // ACELERAÇÃO DE REPRODUÇÃO TURBO ADAPTATIVA:
+                    // Se o vídeo for > 60min, iniciamos com apenas 0.7s de cache para evitar espera.
+                    const threshold = (mainVid.duration > 3600) ? 0.7 : 1.2;
+
+                    if (targetBuffer - mainVid.currentTime > threshold && mainVid.paused && !window.isMandatoryTrailer) {
                         mainVid.play().catch(()=>{});
                     }
 
@@ -3757,7 +3964,7 @@
                 const randomVideo = outrosVideos.length > 0 ? outrosVideos[Math.floor(Math.random() * outrosVideos.length)] : window.currentDestaqueData;
                 
                 adVideoUrl = randomVideo.trailerUrl || randomVideo.videoUrl || "";
-                adTitle = `Sugestão: ${randomVideo.titulo || 'A&amp;M'}`;
+                adTitle = `Sugestão: ${randomVideo.titulo || 'A&M'}`;
                 
                 // Marca se tivemos que puxar o filme grande por não ter um trailer
                 isFallbackLongVideo = !randomVideo.trailerUrl && (randomVideo.videoUrl === adVideoUrl);
@@ -4022,9 +4229,11 @@
                         !(item.menuIds && item.menuIds.includes('menu2'))
                       ) 
                     : cacheCatalogo.filter(i => (i.menuIds && i.menuIds.includes(window.currentActiveMenu)) || i.menuId === window.currentActiveMenu);
-                if (list.length > 1) {
+                
+                if (list && list.length > 1) {
                     const currIdx = list.findIndex(v => v.id === window.currentDestaqueData?.id);
-                    if(list[(currIdx + 1) % list.length]) window.mudarDestaque(btoa(encodeURIComponent(JSON.stringify(list[(currIdx + 1) % list.length]))), true);
+                    const nextItem = list[(currIdx + 1) % list.length];
+                    if(nextItem) window.mudarDestaque(btoa(encodeURIComponent(JSON.stringify(nextItem))), true);
                 }
             }, 15000);
         };
