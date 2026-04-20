@@ -14,6 +14,8 @@
     <!-- PRECONNECT PARA O SERVIDOR DE VÍDEOS (CLOUDFLARE R2) PARA ACELERAR DOWNLOADS -->
     <link rel="preconnect" href="https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev" crossorigin>
     <link rel="dns-prefetch" href="https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev">
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     
     <!-- Tailwind CSS & Icons -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -82,13 +84,15 @@
         .card-container:hover, 
         .card-container:focus-within {
             z-index: 500;
-            /* Levantamos o card significativamente no hover para que a aba inferior não cubra o texto das linhas abaixo */
-            transform: scale(1.1) translateY(-50px);
+            /* Levantamos o card no hover para dar espaço à info expandida sem cobrir o trilho de cima */
+            transform: scale(1.08) translateY(0);
         }
-        /* Ajuste para não cortar o card expandido no trilho inferior e evitar cobrir títulos abaixo */
+        /* Ajuste de profundidade: Garante que a expansão de info não seja cortada e não abafe o título seguinte */
         .auto-scroll-rail { 
-            padding-bottom: 110px !important; 
-            margin-bottom: -110px !important; 
+            padding-top: 20px !important;
+            padding-bottom: 90px !important; 
+            margin-bottom: -70px !important;
+            overflow-y: visible !important;
         }
         
         body { background-color: #000000; color: white; overflow-x: hidden; }
@@ -97,7 +101,7 @@
         .landing-mask {
             position: absolute;
             top: -20%;
-            left: -60%; /* Puxado mais para a esquerda para revelar mais capas */
+            left: -60%; 
             width: 120%;
             height: 140%;
             background: #000000;
@@ -106,13 +110,18 @@
             box-shadow: 80px 0 120px rgba(0,0,0,1);
         }
         @media (max-width: 768px) {
-            .landing-mask { left: -50%; width: 130%; }
+            /* Máscara desativada no mobile para que as capas preencham todo o ecrã sem espaços pretos */
+            .landing-mask { display: none; }
         }
         @keyframes scrollUp {
             0% { transform: translateY(0) rotate(-4deg) scale(1.1); }
-            100% { transform: translateY(-50%) rotate(-4deg) scale(1.1); }
+            100% { transform: translateY(-33.33%) rotate(-4deg) scale(1.1); }
         }
-        .animate-grid-vertical { animation: scrollUp 40s linear infinite; }
+        .animate-grid-vertical { 
+            animation: scrollUp 35s linear infinite; 
+            will-change: transform;
+            content-visibility: auto; /* Otimização de renderização de grelha */
+        }
 
         /* MOTOR DE PROCESSAMENTO DE INSTALAÇÃO */
         #install-processing-overlay {
@@ -133,12 +142,78 @@
 
         /* Estilos Netflix/Prime & Scroll */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #0B0D12; }
+
+        /* MODO TIKTOK (SNAP SCROLL) */
+        .tiktok-container {
+            height: calc(100vh - 64px);
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            scrollbar-width: none;
+            background: #000;
+        }
+        .tiktok-container::-webkit-scrollbar { display: none; }
+        .tiktok-item {
+            height: calc(100vh - 64px);
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            position: relative;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .tiktok-video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 0;
+        }
+        @media (min-width: 768px) {
+            .tiktok-video {
+                border-radius: 24px;
+                box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            }
+        }
+        .tiktok-progress-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+            z-index: 50;
+        }
+
+        /* Gavetas TikTok (Comentários e Info) */
+        .tiktok-comments-drawer, .tiktok-details-drawer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: #121212;
+            z-index: 100;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            pointer-events: auto;
+        }
+        .tiktok-comments-drawer { height: 75%; border-radius: 24px 24px 0 0; }
+        .tiktok-details-drawer { height: 50%; padding: 24px; border-radius: 24px 24px 0 0; }
+        .tiktok-comments-drawer.active, .tiktok-details-drawer.active { transform: translateY(0); }
+
         ::-webkit-scrollbar-thumb { background: #2A2C33; border-radius: 4px; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
         
-        .auto-scroll-rail { cursor: grab; user-select: none; contain: content; content-visibility: auto; }
+        .auto-scroll-rail { 
+            cursor: grab; 
+            user-select: none; 
+            contain: content; 
+            content-visibility: auto; 
+            contain-intrinsic-size: 1px 150px; /* Previne pulos de scroll ao carregar trilhos */
+        }
         .auto-scroll-rail:active { cursor: grabbing; }
 
         .focusable {
@@ -147,20 +222,52 @@
             transform: translateZ(0);
         }
         .focusable:focus {
-            transform: scale(1.07); z-index: 50;
-            border: 3px solid #FFFFFF !important; /* Branco Puro estilo Prime Video */
-            box-shadow: 0 0 20px rgba(255, 255, 255, 0.4) !important;
-            outline: none !important;
+            transform: scale(1.05); z-index: 50;
+            border: 3px solid var(--brand-gold) !important;
+            box-shadow: none !important; /* LEDs removidos para performance TV */
             filter: none !important;
-        }
-        .focusable:active {
-            transform: scale(0.98);
-            border-color: #FFFFFF !important;
         }
         #player-controls .focusable:focus {
             box-shadow: 0 0 15px rgba(255, 255, 255, 0.5) !important; 
             border-color: #FFFFFF !important;
             filter: none !important; transform: scale(1.15);
+        }
+
+        /* Top 10 Ranking Design (Prime Style) */
+        .top10-container {
+            position: relative;
+            min-width: 280px;
+            height: 180px;
+            display: flex;
+            align-items: flex-end;
+            padding-left: 55px;
+            margin-right: 20px;
+            padding-bottom: 10px;
+        }
+        .top10-number {
+            position: absolute;
+            left: -15px;
+            bottom: -10px;
+            font-size: 160px;
+            font-weight: 900;
+            line-height: 0.8;
+            color: #000;
+            -webkit-text-stroke: 3px rgba(255,255,255,0.4);
+            z-index: 0;
+            pointer-events: none;
+            font-family: 'Inter', sans-serif;
+            letter-spacing: -10px;
+            transition: all 0.4s ease;
+        }
+        .card-container:hover .top10-number {
+            -webkit-text-stroke-color: #FFFFFF;
+            transform: scale(1.05);
+        }
+        .top10-card-body {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            height: 100%;
         }
         
         /* Estilos para os botões redondos do Prime */
@@ -224,63 +331,6 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-
-        /* TikTok Style Layout - Total Imersion */
-        #view-tiktok {
-            position: fixed;
-            inset: 0;
-            z-index: 500; /* Sobrepõe tudo quando ativo */
-            background: #000;
-            scroll-snap-type: y mandatory;
-            overflow-y: scroll;
-            scrollbar-width: none;
-            overscroll-behavior-y: contain;
-        }
-        #view-tiktok::-webkit-scrollbar { display: none; }
-        
-        .tiktok-video-container {
-            width: 100vw;
-            height: 100dvh; /* Dynamic viewport height para mobile */
-            scroll-snap-align: start;
-            scroll-snap-stop: always;
-            position: relative;
-            background: #000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-        }
-        .tiktok-video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        .tiktok-overlay {
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 20%, transparent 80%, rgba(0,0,0,0.3) 100%);
-            pointer-events: none;
-            z-index: 10;
-        }
-        .tiktok-actions {
-            position: absolute;
-            right: 12px;
-            bottom: 100px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            align-items: center;
-            pointer-events: auto;
-            z-index: 20;
-        }
-        .tiktok-info {
-            position: absolute;
-            left: 16px;
-            bottom: 30px;
-            right: 80px;
-            pointer-events: auto;
-            z-index: 20;
-        }
     </style>
 
     <script>
@@ -294,13 +344,37 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 const swCode = `
-`                            <span class="bg-brand-gold text-black text-[9px] font-black px-2 py-0.5 rounded uppercase">${item.selo || 'A&amp;M ORIGINALS'}</span>`
+                    const CACHE_NAME = 'aem-offline-v1';
+                    const ASSETS_TO_CACHE = ['/', './index.html', location.href];
 
-Ah, I see. I've been fixing them, but maybe the user's local version still has some errors.
+                    self.addEventListener('install', (event) => {
+                        event.waitUntil(
+                            caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
+                        );
+                        self.skipWaiting();
+                    });
 
-Let's stick to the main request: **Menu-based filtering**.
+                    self.addEventListener('activate', (event) => {
+                        event.waitUntil(self.clients.claim());
+                    });
 
-1.  Update `renderizarTrilhosNaHome` to filter the 'home;
+                    self.addEventListener('fetch', (event) => {
+                        // Navegação: Se falhar a rede, entrega o HTML em cache
+                        if (event.request.mode === 'navigate') {
+                            event.respondWith(
+                                fetch(event.request).catch(() => caches.match('/'))
+                            );
+                            return;
+                        }
+
+                        // Mídia e Ativos: Cache-First para performance máxima offline
+                        event.respondWith(
+                            caches.match(event.request).then((response) => {
+                                return response || fetch(event.request).catch(() => null);
+                            })
+                        );
+                    }); 
+                `;
                 const blob = new Blob([swCode], { type: 'application/javascript' });
                 navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(err => console.log('SW Error:', err));
             });
@@ -424,26 +498,27 @@ Let's stick to the main request: **Menu-based filtering**.
 
     <!-- NOVA LANDING PAGE (PRIME VIDEO STYLE) -->
     <div id="landing-page" class="fixed inset-0 z-[100000] bg-black overflow-hidden transition-opacity duration-500 flex items-center">
-        <!-- O Grid de Imagens de Fundo - h-fit para permitir o scroll infinito -->
-        <div class="absolute top-0 right-0 w-[140%] md:w-[85%] h-[200%] -translate-y-10 translate-x-10 opacity-60 z-0 overflow-hidden">
-            <div id="landing-grid" class="w-full h-fit grid grid-cols-4 md:grid-cols-8 lg:grid-cols-10 gap-2 md:gap-3 animate-grid-vertical p-4">
+        <!-- Grid de Capas: Expandido lateralmente no mobile (w-[140%]) para que a rotação da animação não revele o fundo preto -->
+        <div class="absolute inset-0 w-full h-[300%] opacity-100 md:opacity-70 z-0 overflow-hidden flex justify-center">
+            <div id="landing-grid" class="w-[145%] md:w-full h-fit grid grid-cols-5 md:grid-cols-8 lg:grid-cols-10 gap-1 md:gap-3 animate-grid-vertical">
                 <!-- Capas inseridas via JS -->
             </div>
-            <div class="absolute inset-0 bg-gradient-to-l from-black/10 to-black pointer-events-none"></div>
+            <!-- Overlay Cinema: Proteção de legibilidade que unifica o design mobile ao desktop -->
+            <div class="absolute inset-0 bg-black/60 md:bg-gradient-to-l md:from-black/10 md:to-black pointer-events-none"></div>
         </div>
 
         <!-- A Máscara Preta em Curva (Estilo Prime Video) -->
         <div class="landing-mask"></div>
 
-        <!-- O Conteúdo Interativo - Nome do Site com Fonte Estilo Prime Video -->
+        <!-- Conteúdo: Escala aumentada no mobile para manter o peso visual da versão desktop -->
         <div class="relative z-20 w-full max-w-7xl mx-auto px-8 md:px-16 flex flex-col justify-center items-start h-full">
-            <div id="landing-logo-text" class="flex flex-col mb-10 relative group">
-                <h1 class="text-5xl md:text-7xl font-sans text-white tracking-tighter leading-none drop-shadow-2xl flex items-baseline gap-2">
+            <div id="landing-logo-text" class="flex flex-col mb-12 relative group scale-110 md:scale-100 origin-left">
+                <h1 class="text-6xl md:text-7xl font-sans text-white tracking-tighter leading-none drop-shadow-2xl flex items-baseline gap-2">
                     <span class="font-black italic">A&amp;M</span>
                     <span class="font-light text-[var(--prime-blue)]">streaming</span>
                 </h1>
                 <!-- O "Sorriso" icónico estilizado -->
-                <svg class="w-24 md:w-36 h-auto -mt-2 md:-mt-3 ml-1 text-[var(--prime-blue)] opacity-90 drop-shadow-lg" viewBox="0 0 100 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg class="w-28 md:w-36 h-auto -mt-2 md:-mt-3 ml-1 text-[var(--prime-blue)] opacity-90 drop-shadow-lg" viewBox="0 0 100 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M5 8C25 18 75 18 95 8" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
                     <path d="M91 4L97 8L92 14" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
@@ -477,15 +552,6 @@ Let's stick to the main request: **Menu-based filtering**.
         <div id="spectrum-container"></div>
     </div>
 
-    <!-- VIEW TIKTOK (FEED VERTICAL) -->
-    <div id="view-tiktok" class="hidden">
-        <!-- Botão Voltar do TikTok -->
-        <button onclick="navigate('home')" class="fixed top-6 left-6 z-[100] w-10 h-10 bg-black/40 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition">
-            <i class="ph ph-arrow-left text-2xl"></i>
-        </button>
-        <div id="tiktok-feed-container"></div>
-    </div>
-
     <!-- Toast de Notificação -->
     <div id="toast" class="fixed top-20 right-5 z-[200] transform transition-all duration-300 translate-x-full opacity-0 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3">
         <i class="ph ph-check-circle text-2xl"></i>
@@ -507,12 +573,12 @@ Let's stick to the main request: **Menu-based filtering**.
                 </div>
             </div>
             <nav class="flex gap-4 md:gap-6 text-xs md:text-sm font-medium text-brand-text whitespace-nowrap">
-                <button onclick="navigate('home')" id="nav-home" class="nav-link focusable active border-transparent pb-1 hover:text-white transition" tabindex="0">INÍCIO</button>
-                <button onclick="navigate('menu1')" id="menu-1-label" class="focusable border-transparent pb-1 hover:text-white transition" tabindex="0">SÉRIES</button>
-                <button onclick="navigate('menu2')" id="menu-2-label" class="focusable border-transparent pb-1 hover:text-white transition" tabindex="0">FILMES</button>
-                <button onclick="navigate('menu3')" id="menu-3-label" class="focusable border-transparent pb-1 hover:text-white transition" tabindex="0">ORIGINAIS</button>
-                <button onclick="navigate('minhaLista')" id="nav-minhaLista" class="nav-link focusable border-transparent pb-1 hover:text-white transition" tabindex="0">MINHA LISTA</button>
-                <button onclick="navigate('meusDownloads')" id="nav-meusDownloads" class="nav-link focusable border-transparent pb-1 hover:text-white transition" tabindex="0">MEUS DOWNLOADS</button>
+                <button onclick="navigate('home')" id="nav-home" class="nav-link focusable active pb-1 hover:text-white transition" tabindex="0">INÍCIO</button>
+                <button onclick="navigate('menu1')" id="menu-1-label" class="focusable pb-1 hover:text-white transition" tabindex="0">SÉRIES</button>
+                <button onclick="navigate('menu2')" id="menu-2-label" class="focusable pb-1 hover:text-white transition" tabindex="0">FILMES</button>
+                <button onclick="navigate('menu3')" id="menu-3-label" class="focusable pb-1 hover:text-white transition" tabindex="0">ORIGINAIS</button>
+                <button onclick="navigate('minhaLista')" id="nav-minhaLista" class="nav-link focusable pb-1 hover:text-white transition" tabindex="0">MINHA LISTA</button>
+                <button onclick="navigate('meusDownloads')" id="nav-meusDownloads" class="nav-link focusable pb-1 hover:text-white transition" tabindex="0">MEUS DOWNLOADS</button>
                 <button id="btn-install-header" onclick="triggerInstall()" class="focusable pb-1 hover:text-brand-gold transition flex items-center gap-1 text-brand-gold font-bold" tabindex="0">
                     <i class="ph ph-download-simple"></i> BAIXAR APP
                 </button>
@@ -532,6 +598,13 @@ Let's stick to the main request: **Menu-based filtering**.
     <!-- CONTEÚDO PRINCIPAL -->
     <main id="main-content" class="opacity-0 pointer-events-none flex-grow pt-16 md:pt-20">
         
+        <!-- VIEW: TIKTOK (CONTEÚDOS) -->
+        <section id="view-tiktok" class="hidden w-full bg-black">
+            <div id="tiktok-feed" class="tiktok-container">
+                <!-- Vídeos injetados via JS -->
+            </div>
+        </section>
+
         <!-- VIEW 1: HOME PRINCIPAL -->
         <section id="view-home" class="block w-full">
             <div class="relative w-full h-[65vh] md:h-[85vh] bg-black overflow-hidden group cursor-pointer" onclick="abrirDetalhesViaHero()">
@@ -565,8 +638,8 @@ Let's stick to the main request: **Menu-based filtering**.
                 </div>
             </div>
 
-            <!-- Trilhos da Home -->
-            <div class="px-4 md:px-16 -mt-8 md:-mt-12 relative z-30 space-y-10 md:space-y-14 pb-12 md:pb-24">
+            <!-- Trilhos da Home (Margem negativa removida para não cobrir botões do Hero) -->
+            <div class="px-4 md:px-16 mt-4 relative z-30 space-y-12 md:space-y-20 pb-12 md:pb-24">
                 <div id="section-continuar-assistindo" class="hidden">
                     <h3 class="text-lg md:text-xl font-bold mb-3 md:mb-5 text-white tracking-wide flex items-center gap-2">
                         <i class="ph ph-play-circle text-brand-gold"></i> Continuar Assistindo
@@ -577,6 +650,15 @@ Let's stick to the main request: **Menu-based filtering**.
                     <h3 class="text-lg md:text-xl font-bold mb-3 md:mb-5 text-white tracking-wide">Minha Lista</h3>
                     <div id="container-minha-lista" class="auto-scroll-rail flex gap-3 md:gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory min-h-[120px] md:min-h-[150px]"></div>
                 </div>
+
+                <!-- TOP 10 RANKING -->
+                <div id="section-top10" class="hidden">
+                    <h3 class="text-lg md:text-xl font-bold mb-3 md:mb-5 text-white tracking-wide flex items-center gap-2">
+                        Top 10 mais assistidos da plataforma <i class="ph ph-chart-line-up text-brand-gold"></i>
+                    </h3>
+                    <div id="container-top10" class="auto-scroll-rail flex gap-2 overflow-x-auto pb-8 scrollbar-hide snap-x snap-mandatory min-h-[180px]"></div>
+                </div>
+
                 <div id="dynamic-rails-container" class="space-y-10 md:space-y-14"></div>
             </div>
         </section>
@@ -585,9 +667,9 @@ Let's stick to the main request: **Menu-based filtering**.
         <!-- VIEW 2: DETALHES DO TÍTULO (ESTILO PRIME) -->
         <!-- ========================================== -->
         <section id="view-details" class="hidden w-full min-h-screen bg-[#0B0D12] pb-20">
-            <!-- Botão Voltar Global -->
-            <div class="absolute top-24 md:top-28 left-6 md:left-12 z-50">
-                <button onclick="fecharDetalhes()" class="focusable w-10 h-10 bg-black/60 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center hover:bg-white/20 hover:border-white transition text-white" tabindex="0">
+            <!-- Botão Voltar Global (Fixo para facilitar navegação em conteúdos longos) -->
+            <div class="fixed top-24 md:top-28 left-6 md:left-12 z-50">
+                <button onclick="fecharDetalhes()" class="focusable w-10 h-10 bg-black/60 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center hover:bg-white/20 hover:border-white transition text-white shadow-xl" tabindex="0">
                     <i class="ph ph-arrow-left text-xl"></i>
                 </button>
             </div>
@@ -615,7 +697,7 @@ Let's stick to the main request: **Menu-based filtering**.
                             <button onclick="toggleMinhaListaDetails()" title="Adicionar à Lista" class="prime-btn focusable" tabindex="0"><i id="details-icon-add" class="ph ph-plus text-xl text-white"></i></button>
                             <button onclick="toggleJoinhaDetails()" title="Gostei" class="prime-btn focusable" tabindex="0"><i id="details-icon-like" class="ph ph-heart text-xl text-white"></i></button>
                             <button title="Não Gostei" class="prime-btn focusable hidden sm:flex" tabindex="0"><i class="ph ph-thumbs-down text-xl text-white"></i></button>
-                            <button title="Partilhar" class="prime-btn focusable hidden sm:flex" tabindex="0"><i class="ph ph-share-network text-xl text-white"></i></button>
+                            <button onclick="window.compartilharConteudo()" title="Partilhar" class="prime-btn focusable" tabindex="0"><i class="ph ph-share-network text-xl text-white"></i></button>
                             <button id="btn-download-details" onclick="toggleDownloadDetails()" title="Transferir para Ver Offline" class="prime-btn focusable" tabindex="0"><i id="details-icon-download" class="ph ph-download-simple text-xl text-white"></i></button>
                     </div>
 
@@ -1107,7 +1189,7 @@ Let's stick to the main request: **Menu-based filtering**.
         </div>
 
         <div id="player-controls" class="absolute inset-0 flex flex-col justify-between opacity-0 z-50">
-            <div class="w-full p-6 md:p-8 bg-gradient-to-b from-black/90 via-black/40 to-transparent flex items-center gap-4">
+            <div id="player-top-bar" class="w-full p-6 md:p-8 bg-gradient-to-b from-black/90 via-black/40 to-transparent flex items-center gap-4">
                 <button onclick="fecharPlayerFull()" class="focusable text-white hover:text-brand-gold transition p-2" tabindex="0"><i class="ph ph-arrow-left text-3xl md:text-4xl drop-shadow-lg"></i></button>
                 <div class="flex flex-col">
                     <h2 id="player-full-title" class="text-white text-lg md:text-xl font-bold uppercase drop-shadow-lg leading-none"></h2>
@@ -1127,7 +1209,7 @@ Let's stick to the main request: **Menu-based filtering**.
                         <div id="preview-time-text" class="absolute bottom-1 left-1/2 -translate-x-1/2 bg-black/80 px-2 py-0.5 rounded text-[10px] md:text-xs text-white font-mono font-bold border border-white/10">00:00</div>
                     </div>
                 </div>
-                <div class="flex justify-between items-center text-white">
+                <div id="player-buttons-bar" class="flex justify-between items-center text-white">
                     <div class="flex items-center gap-4 md:gap-6">
                         <button onclick="togglePlayerPlay()" onpointerdown="event.stopPropagation(); togglePlayerPlay()" class="focusable hover:text-gray-300 active:scale-90 transition-transform" tabindex="0"><i id="control-play-icon" class="ph-fill ph-pause text-3xl md:text-4xl"></i></button>
                         <button onclick="seekPlayer(-10)" onpointerdown="event.stopPropagation(); seekPlayer(-10)" class="focusable hover:text-gray-300 active:scale-90 transition-transform" tabindex="0"><i class="ph ph-arrow-counter-clockwise text-2xl md:text-3xl"></i></button>
@@ -1155,7 +1237,7 @@ Let's stick to the main request: **Menu-based filtering**.
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, setDoc, getDoc, updateDoc, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, setDoc, getDoc, updateDoc, query, orderBy, limit, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyC9mGKW38Dh8xIIphde_V41dit52CRctgo",
@@ -1232,6 +1314,15 @@ Let's stick to the main request: **Menu-based filtering**.
             if (user) {
                 if (!user.isAnonymous) {
                     document.getElementById('profile-email-display').innerText = user.email;
+
+
+                    // NOVO: SALVA O USUÁRIO AUTOMATICAMENTE NO BANCO AO FAZER LOGIN (GOOGLE/EMAIL)
+            setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_registrations', user.uid), {
+                email: user.email || "",
+                nome: user.displayName || user.email?.split('@')[0] || "Cliente",
+                photoUrl: user.photoURL || "",
+                ultimoLogin: new Date().getTime()
+            }, { merge: true }).catch(e => console.log("Erro sync:", e));
                     
                     // ESCUTA EM TEMPO REAL OS DADOS E STATUS DE AD DO USUÁRIO LOGADO
                     if (userProfileUnsubscribe) userProfileUnsubscribe();
@@ -1388,15 +1479,35 @@ Let's stick to the main request: **Menu-based filtering**.
         
         window.renderLandingGrid = function(catalog) {
             const grid = document.getElementById('landing-grid');
-            if (!grid || grid.children.length > 0) return; 
-            let html = '';
-            const baseItems = [...catalog, ...catalog, ...catalog].slice(0, 50).sort(() => Math.random() - 0.5);
-            const loopItems = [...baseItems, ...baseItems];
-            loopItems.forEach(item => {
-                // Adicionado decoding async para não bloquear a thread principal
-                html += `<img src="${item.capaUrl}" fetchpriority="high" loading="eager" decoding="async" class="w-full h-32 md:h-48 object-cover rounded-lg shadow-2xl opacity-100 brightness-110 saturate-[1.25] transition-transform duration-700">`;
+            if (!grid || grid.children.length > 0 || !catalog.length) return; 
+            
+            const fragment = document.createDocumentFragment();
+            const itemsCount = 30; // Reduzido de 42 para 30 para acelerar a iniciação sem perder o efeito visual
+            
+            // Criar pool de itens para preencher a grelha
+            let pool = [];
+            while(pool.length < itemsCount) pool = [...pool, ...catalog];
+            pool = pool.slice(0, itemsCount).sort(() => Math.random() - 0.5);
+
+            // Triplicamos para animação infinita suave
+            const finalPool = [...pool, ...pool, ...pool];
+
+            finalPool.forEach((item, index) => {
+                const img = document.createElement('img');
+                img.src = item.capaUrl;
+                // Apenas as primeiras 10 imagens recebem prioridade máxima de rede, as outras são postergadas
+                if (index < 10) {
+                    img.setAttribute('fetchpriority', 'high');
+                    img.setAttribute('loading', 'eager');
+                } else {
+                    img.setAttribute('loading', 'lazy');
+                }
+                img.setAttribute('decoding', 'async');
+                img.className = "w-full aspect-[2/3] md:h-48 object-cover rounded-none md:rounded-md shadow-2xl opacity-100 brightness-[1.15] saturate-[1.15]";
+                fragment.appendChild(img);
             });
-            grid.innerHTML = html;
+            
+            grid.appendChild(fragment);
         };
 
         window.startAppFromLanding = function() {
@@ -1441,42 +1552,401 @@ Let's stick to the main request: **Menu-based filtering**.
                 window.currentActiveMenu = viewId;
                 document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
                 
-                const isTikTokMode = (viewId === 'menu3');
-                const tiktokView = document.getElementById('view-tiktok');
-                const mainHeader = document.getElementById('main-header');
-                const mainFooter = document.getElementById('main-footer');
-
-                if(viewId === 'home') document.getElementById('nav-home').classList.add('active');
-                else if(viewId === 'menu1') document.getElementById('menu-1-label').classList.add('active');
-                else if(viewId === 'menu2') document.getElementById('menu-2-label').classList.add('active');
-                else if(viewId === 'menu3') document.getElementById('menu-3-label').classList.add('active');
-                else if(viewId === 'minhaLista') document.getElementById('nav-minhaLista').classList.add('active');
-                else if(viewId === 'meusDownloads') document.getElementById('nav-meusDownloads').classList.add('active');
-                
-                if (isTikTokMode) {
-                    tiktokView.classList.remove('hidden');
-                    mainHeader.classList.add('hidden');
-                    if (mainFooter) mainFooter.classList.add('hidden');
-                    window.renderTikTokFeed();
-                } else {
-                    tiktokView.classList.add('hidden');
-                    mainHeader.classList.remove('hidden');
-                    if (mainFooter) mainFooter.classList.remove('hidden');
-                    // Para qualquer vídeo do tiktok que esteja a tocar
-                    document.querySelectorAll('.tiktok-video').forEach(v => v.pause());
-                }
-
-                // Sempre que navegar pelo topo, volta pra home (fecha detalhes se tiver aberto)
+                // Esconde todas as views principais
+                document.getElementById('view-home').classList.add('hidden');
+                document.getElementById('view-tiktok').classList.add('hidden');
                 document.getElementById('view-details').classList.add('hidden');
-                if (!isTikTokMode) document.getElementById('view-home').classList.remove('hidden');
+
+                if(viewId === 'home') {
+                    document.getElementById('nav-home').classList.add('active');
+                    document.getElementById('view-home').classList.remove('hidden');
+                }
+                else if(viewId === 'menu1') {
+                    document.getElementById('menu-1-label').classList.add('active');
+                    document.getElementById('view-home').classList.remove('hidden');
+                }
+                else if(viewId === 'menu2') {
+                    // MODO TIKTOK ATIVO PARA CONTEÚDOS (MENU 2)
+                    document.getElementById('menu-2-label').classList.add('active');
+                    document.getElementById('view-tiktok').classList.remove('hidden');
+                    window.renderTikTokMode();
+                }
+                else if(viewId === 'menu3') {
+                    document.getElementById('menu-3-label').classList.add('active');
+                    document.getElementById('view-home').classList.remove('hidden');
+                }
+                else if(viewId === 'minhaLista') {
+                    document.getElementById('nav-minhaLista').classList.add('active');
+                    document.getElementById('view-home').classList.remove('hidden');
+                }
+                else if(viewId === 'meusDownloads') {
+                    document.getElementById('nav-meusDownloads').classList.add('active');
+                    document.getElementById('view-home').classList.remove('hidden');
+                }
                 
-                window.renderizarTrilhosNaHome();
+                if (viewId !== 'menu2') {
+                    window.renderizarTrilhosNaHome();
+                    window.startHeroAutoCycle();
+                } else {
+                    clearInterval(window.autoCycleInterval);
+                    document.getElementById('hero-video').pause();
+                }
+                
                 window.scrollTo({ top: 0, behavior: 'smooth' });
-                
-                // Reinicia o ciclo do Hero da Home se fechou a aba detalhes
-                window.startHeroAutoCycle();
             }
         }
+
+        // LÓGICA MODO TIKTOK
+        window.tiktokObserver = null;
+        window.renderTikTokMode = function() {
+            const feed = document.getElementById('tiktok-feed');
+            if (!cacheCatalogo || cacheCatalogo.length === 0) return;
+
+            // Filtra itens vinculados ao Menu 2 que possuem pelo menos um vídeo ou trailer
+            const tiktokItems = cacheCatalogo.filter(i => (i.menuIds && i.menuIds.includes('menu2')) && (i.videoUrl || i.trailerUrl));
+            
+            if (tiktokItems.length === 0) {
+                feed.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-brand-text gap-4">
+                    <i class="ph ph-video-camera-slash text-5xl opacity-20"></i>
+                    <p>Nenhum conteúdo disponível no momento.</p>
+                </div>`;
+                return;
+            }
+
+            feed.innerHTML = tiktokItems.map(item => {
+                const dataStr = btoa(encodeURIComponent(JSON.stringify(item)));
+                const isLiked = curtidasIds.includes(item.id);
+                const isSaved = minhaListaIds.includes(item.id);
+                // Prioriza o trailer no feed TikTok para carregamento rápido, fallback para o vídeo principal
+                const videoSrc = item.trailerUrl || item.videoUrl;
+
+                return `
+                <div class="tiktok-item flex flex-col md:flex-row md:items-center md:justify-center md:gap-12 md:px-16" data-id="${item.id}">
+                    
+                    <!-- VÍDEO E SOBREPOSIÇÃO ESTILO TIKTOK -->
+                    <div class="relative w-full h-full md:h-[80vh] md:max-w-[45vh] md:rounded-[24px] overflow-hidden bg-black shadow-2xl">
+                        <video class="tiktok-video" src="${videoSrc}" loop playsinline muted poster="${item.capaUrl}" 
+                               onclick="window.toggleTikTokVideo(this)" 
+                               ontimeupdate="window.updateTikTokProgress(this, '${item.id}')"></video>
+                        
+                        <div class="tiktok-progress-container">
+                            <div class="tiktok-progress-fill" id="tk-progress-${item.id}"></div>
+                        </div>
+
+                        <!-- GRADIENTE FUNDO (Info e Botões) -->
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none"></div>
+
+                        <!-- INFO CANTO INFERIOR ESQUERDO -->
+                        <div class="absolute bottom-6 left-4 right-16 z-20 pointer-events-none">
+                            <div class="flex items-center gap-3 mb-3 pointer-events-auto">
+                                <div class="w-9 h-9 rounded-full border border-white/40 overflow-hidden bg-brand-gold/10">
+                                    <img src="${window.brandingConfig?.logoUrl || 'https://api.dicebear.com/7.x/initials/svg?seed=AM'}" class="w-full h-full object-cover">
+                                </div>
+                                <span class="text-white font-bold text-sm tracking-tight">${item.selo || 'A&M Official'} <i class="ph-fill ph-seal-check text-blue-400"></i></span>
+                            </div>
+                            <h2 class="text-white font-bold text-base mb-1 drop-shadow-lg">${item.titulo}</h2>
+                            <p class="text-gray-300 text-xs line-clamp-2 drop-shadow-md font-medium leading-relaxed">${item.descricao || ''}</p>
+                            <div class="flex items-center gap-2 mt-3 text-[10px] text-white/60">
+                                <i class="ph ph-music-note"></i>
+                                <span class="truncate max-w-[150px] italic">Áudio Original • A&M Streaming</span>
+                            </div>
+                        </div>
+
+                        <!-- BOTÕES LATERAIS (DIREITA) -->
+                        <div class="absolute right-3 bottom-12 flex flex-col items-center gap-5 z-20 pointer-events-auto">
+                            <!-- Curtir -->
+                            <div class="flex flex-col items-center">
+                                <button onclick="window.toggleJoinhaById('${item.id}')" class="w-12 h-12 flex items-center justify-center">
+                                    <i id="btn-like-icon-${item.id}" class="ph ph-heart text-4xl drop-shadow-lg ${isLiked ? 'ph-fill text-red-500' : 'text-white'}"></i>
+                                </button>
+                                <span id="count-likes-${item.id}" class="text-[10px] text-white font-bold mt-[-4px] drop-shadow-md">0</span>
+                            </div>
+                            <!-- Comentários -->
+                            <div class="flex flex-col items-center">
+                                <button onclick="window.abrirComentariosTikTok('${item.id}')" class="w-12 h-12 flex items-center justify-center">
+                                    <i class="ph ph-chat-circle text-4xl drop-shadow-lg text-white"></i>
+                                </button>
+                                <span id="count-comments-${item.id}" class="text-[10px] text-white font-bold mt-[-4px] drop-shadow-md">0</span>
+                            </div>
+                            <!-- Compartilhar -->
+                            <div class="flex flex-col items-center">
+                                <button onclick="window.compartilharConteudo('${item.titulo}', '${item.id}')" class="w-12 h-12 flex items-center justify-center">
+                                    <i class="ph ph-share-network text-4xl drop-shadow-lg text-white"></i>
+                                </button>
+                                <span class="text-[10px] text-white font-bold mt-[-4px] drop-shadow-md">Partilhar</span>
+                            </div>
+                            <!-- Salvar (Minha Lista) -->
+                            <div class="flex flex-col items-center">
+                                <button onclick="window.toggleMinhaListaById('${item.id}')" class="w-12 h-12 flex items-center justify-center">
+                                    <i id="btn-save-icon-${item.id}" class="ph ph-bookmark text-4xl drop-shadow-lg ${isSaved ? 'ph-fill text-yellow-500' : 'text-white'}"></i>
+                                </button>
+                                <span class="text-[10px] text-white font-bold mt-[-4px] drop-shadow-md">Salvar</span>
+                            </div>
+                            <!-- Mais (Três Pontos) -->
+                            <button onclick="window.abrirDetalhesTikTok('${dataStr}', '${item.id}')" class="w-12 h-12 flex items-center justify-center mt-2">
+                                <i class="ph ph-dots-three-bold text-3xl drop-shadow-lg text-white"></i>
+                            </button>
+                        </div>
+
+                        <!-- GAVETA DE COMENTÁRIOS -->
+                        <div id="comments-drawer-${item.id}" class="tiktok-comments-drawer pointer-events-auto">
+                            <div class="p-4 border-b border-white/10 flex justify-between items-center bg-[#181818] rounded-t-2xl">
+                                <span class="text-white text-xs font-black uppercase tracking-widest">Comentários</span>
+                                <button onclick="window.fecharComentariosTikTok('${item.id}')" class="text-white/60 hover:text-white"><i class="ph ph-x text-xl"></i></button>
+                            </div>
+                            <div id="comments-list-${item.id}" class="flex-grow overflow-y-auto p-4 space-y-4 scrollbar-hide">
+                                <p class="text-brand-text text-[10px] text-center italic opacity-50 py-10">Carregando comentários...</p>
+                            </div>
+                            <div class="p-4 bg-[#181818] border-t border-white/5 flex items-center gap-3">
+                                <input type="text" id="input-comment-${item.id}" placeholder="Escreve um comentário..." class="flex-grow bg-white/5 border border-white/10 rounded-full px-4 py-2.5 text-white text-xs outline-none focus:border-brand-gold transition">
+                                <button onclick="window.enviarComentario('${item.id}')" class="w-10 h-10 bg-brand-gold rounded-full flex items-center justify-center text-black shadow-lg"><i class="ph-fill ph-paper-plane-right text-lg"></i></button>
+                            </div>
+                        </div>
+
+                        <!-- GAVETA DE INFORMAÇÕES TÉCNICAS (TRÊS PONTOS) -->
+                        <div id="drawer-${item.id}" class="tiktok-details-drawer pointer-events-auto">
+                            <div class="flex justify-between items-start mb-6">
+                                <div>
+                                    <h3 class="text-white font-black text-2xl uppercase">${item.titulo}</h3>
+                                    <p class="text-brand-gold text-[10px] font-bold uppercase tracking-widest mt-1">${item.trilho || 'Conteúdo'}</p>
+                                </div>
+                                <button onclick="window.fecharDetalhesTikTok('${item.id}')" class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-white"><i class="ph ph-x text-xl"></i></button>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4 text-[10px] text-white font-bold uppercase mb-8">
+                                <div class="bg-white/5 p-4 rounded-xl border border-white/10 flex flex-col gap-1">
+                                    <span class="opacity-50">Lançamento</span>
+                                    <span>${item.ano || '2024'}</span>
+                                </div>
+                                <div class="bg-white/5 p-4 rounded-xl border border-white/10 flex flex-col gap-1">
+                                    <span class="opacity-50">Resolução</span>
+                                    <span>${item.resolucao || '4K HDR'}</span>
+                                </div>
+                                <div class="bg-white/5 p-4 rounded-xl border border-white/10 flex flex-col gap-1">
+                                    <span class="opacity-50">IMDb</span>
+                                    <span class="text-yellow-500">${item.imdb || '8.5/10'}</span>
+                                </div>
+                                <div class="bg-white/5 p-4 rounded-xl border border-white/10 flex flex-col gap-1">
+                                    <span class="opacity-50">Duração</span>
+                                    <span>${item.tempo || '1h 45m'}</span>
+                                </div>
+                                <div class="bg-white/5 p-4 rounded-xl border border-white/10 flex flex-col gap-1 col-span-2">
+                                    <span class="opacity-50">Elenco Principal</span>
+                                    <span class="truncate">${item.elenco || 'A&M Originals'}</span>
+                                </div>
+                            </div>
+                            <button onclick="window.fecharDetalhesTikTok('${item.id}'); window.abrirPlayerFull()" class="w-full bg-white text-black py-4 rounded-full font-black uppercase text-xs tracking-widest hover:bg-gray-200 transition">Assistir em Alta Definição</button>
+                        </div>
+                    </div>
+
+                    <!-- DESKTOP: INFO LATERAL (Apenas se tela larga) -->
+                    <div id="info-main-${item.id}" class="hidden md:flex flex-col max-w-md pointer-events-none md:pointer-events-auto">
+                        <h2 class="text-white font-black text-6xl uppercase tracking-tighter leading-none mb-6">${item.titulo}</h2>
+                        <p class="text-gray-400 text-lg leading-relaxed mb-8 opacity-80">${item.descricao || ''}</p>
+                        <button onclick="window.abrirPlayerFull()" class="w-fit bg-brand-gold text-black px-10 py-4 rounded-full font-black uppercase text-sm tracking-widest hover:scale-105 transition shadow-2xl flex items-center gap-3">
+                            <i class="ph-fill ph-play text-2xl"></i> Reproduzir Agora
+                        </button>
+                    </div>
+                </div>`;
+            }).join('');
+
+            if (window.tiktokObserver) window.tiktokObserver.disconnect();
+            window.tiktokObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    const video = entry.target.querySelector('video');
+                    const itemId = entry.target.dataset.id;
+                    if (entry.isIntersecting) {
+                        video.play().catch(() => { video.muted = true; video.play(); });
+                        video.muted = false;
+                        entry.target.classList.remove('paused');
+                        window.monitorarEstatisticas(itemId);
+                    } else {
+                        video.pause();
+                        video.currentTime = 0;
+                        window.fecharDetalhesTikTok(itemId);
+                        window.fecharComentariosTikTok(itemId);
+                    }
+                });
+            }, { threshold: 0.6 });
+
+            document.querySelectorAll('.tiktok-item').forEach(item => window.tiktokObserver.observe(item));
+        };
+
+        window.compartilharConteudo = function(titulo, id) {
+            const url = window.location.origin;
+            if (navigator.share) {
+                navigator.share({ 
+                    title: "A&M Streaming", 
+                    text: "Confere os melhores conteúdos na A&M Streaming!",
+                    url: url 
+                }).catch(() => {});
+            } else {
+                navigator.clipboard.writeText(url).then(() => window.showToast("Link do site copiado!"));
+            }
+        };
+
+        window.toggleMinhaListaById = async function(itemId) {
+            if(!currentUser) return window.openLoginPrompt();
+            const icon = document.getElementById(`btn-save-icon-${itemId}`);
+            if(minhaListaIds.includes(itemId)) {
+                const docItem = minhaListaDocs.find(d => d.itemId === itemId);
+                if(docItem) { 
+                    await deleteDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'minha_lista', docItem.docId)); 
+                    if(icon) { icon.classList.remove('ph-fill', 'text-yellow-500'); icon.classList.add('text-white'); }
+                    window.showToast("Removido da Minha Lista."); 
+                }
+            } else {
+                await addDoc(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'minha_lista'), { 
+                    itemId: itemId, 
+                    adicionadoEm: new Date().getTime() 
+                });
+                if(icon) { icon.classList.add('ph-fill', 'text-yellow-500'); icon.classList.remove('text-white'); }
+                window.showToast("Salvo na Minha Lista!");
+            }
+        };
+
+        window.toggleJoinhaById = async function(itemId) {
+            if(!currentUser) return window.openLoginPrompt();
+            const isLiked = curtidasIds.includes(itemId);
+            const icon = document.getElementById(`btn-like-icon-${itemId}`);
+            const statsRef = doc(db, 'artifacts', appId, 'public', 'data', 'stats', itemId);
+
+            try {
+                if(isLiked) {
+                    const docItem = curtidasDocs.find(d => d.itemId === itemId);
+                    if(docItem) { 
+                        await deleteDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'curtidas', docItem.docId)); 
+                        await setDoc(statsRef, { likes: increment(-1) }, { merge: true });
+                        if(icon) { icon.classList.remove('ph-fill', 'text-red-500'); icon.classList.add('text-white'); }
+                        window.showToast("Coração removido.");
+                    }
+                } else {
+                    await addDoc(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'curtidas'), { 
+                        itemId: itemId, 
+                        adicionadoEm: new Date().getTime() 
+                    });
+                    await setDoc(statsRef, { likes: increment(1) }, { merge: true });
+                    if(icon) { icon.classList.add('ph-fill', 'text-red-500'); icon.classList.remove('text-white'); }
+                    window.showToast("Você curtiu!");
+                }
+                // Atualiza o estado visual se o item for o que está em destaque no momento
+                if(window.currentDestaqueData && window.currentDestaqueData.id === itemId) {
+                    window.verificarStatusBotoes();
+                }
+            } catch (e) { console.error(e); }
+        };
+
+        window.commentObservers = {};
+        window.statsObservers = {};
+
+        window.abrirComentariosTikTok = function(itemId) {
+            const drawer = document.getElementById(`comments-drawer-${itemId}`);
+            if(drawer) drawer.classList.add('active');
+            if(!window.commentObservers[itemId]) {
+                const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'comments', itemId, 'list'), orderBy('date', 'desc'), limit(50));
+                window.commentObservers[itemId] = onSnapshot(q, (snap) => {
+                    const list = document.getElementById(`comments-list-${itemId}`);
+                    if(!list) return;
+                    if(snap.empty) {
+                        list.innerHTML = `<div class="h-full flex flex-col items-center justify-center opacity-30 py-10"><i class="ph ph-chat-circle-dots text-4xl mb-2"></i><p class="text-[10px] font-bold uppercase">Sê o primeiro a comentar</p></div>`;
+                        return;
+                    }
+                    list.innerHTML = snap.docs.map(d => {
+                        const c = d.data();
+                        return `<div class="comment-item flex gap-3 items-start">
+                            <div class="w-8 h-8 rounded-full bg-white/10 flex-shrink-0 border border-white/5 overflow-hidden">
+                                <img src="${c.userPhoto || 'https://api.dicebear.com/7.x/initials/svg?seed=' + c.userName}" class="w-full h-full object-cover">
+                            </div>
+                            <div class="flex flex-col gap-0.5">
+                                <span class="text-white font-bold text-[11px]">${c.userName || 'Utilizador'}</span>
+                                <p class="text-gray-300 text-xs leading-relaxed">${c.text}</p>
+                                <span class="text-white/30 text-[8px] uppercase font-bold mt-1">${new Date(c.date).toLocaleDateString()}</span>
+                            </div>
+                        </div>`;
+                    }).join('');
+                });
+            }
+        };
+
+        window.fecharComentariosTikTok = function(itemId) {
+            const drawer = document.getElementById(`comments-drawer-${itemId}`);
+            if(drawer) drawer.classList.remove('active');
+        };
+
+        window.enviarComentario = async function(itemId) {
+            if(!currentUser) return window.openLoginPrompt();
+            const input = document.getElementById(`input-comment-${itemId}`);
+            const text = input.value.trim();
+            if(!text) return;
+            const userProfile = JSON.parse(localStorage.getItem('am_offline_user') || '{}');
+            try {
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'comments', itemId, 'list'), {
+                    userId: currentUser.uid,
+                    userName: userProfile.nome || currentUser.email?.split('@')[0] || "Cliente",
+                    userPhoto: userProfile.photoUrl || "",
+                    text: text,
+                    date: new Date().getTime()
+                });
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'stats', itemId), { comments: increment(1) }, { merge: true });
+                input.value = "";
+            } catch (e) { window.showToast("Erro ao comentar.", true); }
+        };
+
+        window.monitorarEstatisticas = function(itemId) {
+            if(window.statsObservers[itemId]) return;
+            window.statsObservers[itemId] = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'stats', itemId), (snap) => {
+                const data = snap.exists() ? snap.data() : { likes: 0, comments: 0 };
+                const likeEl = document.getElementById(`count-likes-${itemId}`);
+                const commEl = document.getElementById(`count-comments-${itemId}`);
+                if(likeEl) likeEl.innerText = window.formatarNumero(data.likes || 0);
+                if(commEl) commEl.innerText = window.formatarNumero(data.comments || 0);
+            });
+        };
+
+        window.formatarNumero = function(num) {
+            if(num >= 1000000) return (num/1000000).toFixed(1) + 'M';
+            if(num >= 1000) return (num/1000).toFixed(1) + 'k';
+            return num < 0 ? 0 : num;
+        };
+
+        window.toggleTikTokVideo = function(video) {
+            const container = video.parentElement;
+            if (video.paused) {
+                video.play();
+                container.classList.remove('paused');
+            } else {
+                video.pause();
+                container.classList.add('paused');
+            }
+        };
+
+        window.updateTikTokProgress = function(video, id) {
+            const bar = document.getElementById(`tk-progress-${id}`);
+            if (bar && video.duration) {
+                const pct = (video.currentTime / video.duration) * 100;
+                bar.style.width = pct + '%';
+            }
+        };
+
+        window.abrirDetalhesTikTok = function(dataStr, id) {
+            const drawer = document.getElementById(`drawer-${id}`);
+            const infoMain = document.getElementById(`info-main-${id}`);
+            if (drawer) {
+                if (drawer.classList.contains('active')) {
+                    drawer.classList.remove('active');
+                } else {
+                    drawer.classList.add('active');
+                }
+            }
+            if (window.innerWidth >= 768 && infoMain) infoMain.classList.add('hidden');
+            window.currentDestaqueData = JSON.parse(decodeURIComponent(atob(dataStr)));
+        };
+
+        window.fecharDetalhesTikTok = function(id) {
+            const drawer = document.getElementById(`drawer-${id}`);
+            const infoMain = document.getElementById(`info-main-${id}`);
+            if (drawer) drawer.classList.remove('active');
+            if (window.innerWidth >= 768 && infoMain) infoMain.classList.remove('hidden');
+        };
 
         // ==========================================
         // MODAL DE CADASTRO DO USUÁRIO
@@ -1646,13 +2116,10 @@ Let's stick to the main request: **Menu-based filtering**.
                         let themeMeta = document.querySelector("meta[name='theme-color']");
                         if(themeMeta) themeMeta.content = dados.corPrincipal;
                         
-                        // Garante que o foco seja sempre branco (Estilo Prime Video) mesmo mudando a cor do tema
+                        // Atualiza os estilos de foco para Smart TV (Sem LEDs/Glow para maior performance)
                         let styleEl = document.getElementById('brand-custom-styles');
                         if (!styleEl) { styleEl = document.createElement('style'); styleEl.id = 'brand-custom-styles'; document.head.appendChild(styleEl); }
-                        styleEl.innerHTML = `
-                            .focusable:focus { border: 3px solid #FFFFFF !important; box-shadow: 0 0 20px rgba(255,255,255,0.4) !important; outline: none !important; } 
-                            #toast.bg-green-600 { background-color: ${dados.corPrincipal} !important; color: #000 !important; font-weight: bold; }
-                        `;
+                        styleEl.innerHTML = `.focusable:focus { border: 4px solid ${dados.corPrincipal} !important; box-shadow: none !important; outline: none !important; } #toast.bg-green-600 { background-color: ${dados.corPrincipal} !important; color: #000 !important; font-weight: bold; }`;
                     }
                 }
             });
@@ -1663,16 +2130,42 @@ Let's stick to the main request: **Menu-based filtering**.
                 if(snap.exists()) {
                     const d = snap.data();
                     ['1','2','3'].forEach(i => {
-                        if(document.getElementById(`menu-${i}-label`)) document.getElementById(`menu-${i}-label`).innerText = d[`menu${i}`].toUpperCase();
+                        const btn = document.getElementById(`menu-${i}-label`);
+                        if(btn) {
+                            const nome = d[`menu${i}`] || '';
+                            const logo = d[`menu${i}Logo`] || '';
+                            const ocultar = d[`menu${i}Ocultar`] || false;
+                            
+                            let html = "";
+                            if(logo) html += `<img src="${logo}" class="h-5 md:h-6 object-contain inline-block">`;
+                            if(!ocultar || !logo) html += `<span class="${logo ? 'ml-2' : ''}">${nome.toUpperCase()}</span>`;
+                            
+                            btn.innerHTML = html;
+                        }
                     });
                 }
             });
         }
 
         window.cacheOrdemCategorias = {};
+        window.cacheLogosCategorias = {};
+        window.cacheOcultarCategorias = {};
+
         window.carregarOrdemCategorias = function() {
+            // Escuta Ordem
             onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'configuracoes', 'ordemCategorias'), (snap) => {
-                if(snap.exists()) { window.cacheOrdemCategorias = snap.data(); window.renderizarTrilhosNaHome(); }
+                if(snap.exists()) { window.cacheOrdemCategorias = snap.data(); }
+                // Escuta Logos de Categorias
+                getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'configuracoes', 'logosCategorias')).then(snapLogos => {
+                    if(snapLogos.exists()) { window.cacheLogosCategorias = snapLogos.data(); }
+                    // Escuta Status de Ocultar Texto
+                    getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'configuracoes', 'ocultarTextoCategorias')).then(snapOcultar => {
+                        if(snapOcultar.exists()) { window.cacheOcultarCategorias = snapOcultar.data(); }
+                        window.renderizarTrilhosNaHome();
+                // Sincroniza o Modo Conteúdos (TikTok) em tempo real caso esteja ativo
+                if (window.currentActiveMenu === 'menu2') window.renderTikTokMode();
+            });
+        });
             });
         }
 
@@ -1730,22 +2223,97 @@ Let's stick to the main request: **Menu-based filtering**.
         }
 
         // ==========================================
-        // CATÁLOGO E TRILHOS
+        // CATÁLOGO E TRILHOS (ATUALIZADO COM SYNC AO VIVO)
         // ==========================================
         window.carregarCatalogoRealtime = function() {
             onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'catalog'), (snap) => {
+                // 1. Atualiza o cache interno com os dados mais recentes do Admin
                 cacheCatalogo = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => a.createdAt - b.createdAt);
                 
-                // Preenche a Landing Page na primeira vez que os dados chegam
+                // 2. Renderiza a tela de carregamento (Landing Page) se for a primeira vez
                 window.renderLandingGrid(cacheCatalogo);
                 
+                // 3. Define o primeiro destaque se nada estiver selecionado
                 if(cacheCatalogo.length > 0 && !window.currentDestaqueData) {
                     window.mudarDestaque(btoa(encodeURIComponent(JSON.stringify(cacheCatalogo[0]))));
                     setTimeout(() => { window.startHeroAutoCycle(); window.startRailsAutoScroll(); }, 1000);
                 }
+                
+                // 4. Refaz os trilhos e o TikTok Mode com os dados novos (Capas, Nomes nos cards)
                 window.renderizarTrilhosNaHome();
+                if (window.currentActiveMenu === 'menu2') window.renderTikTokMode();
+
+                // 5. A MÁGICA: Sincroniza a interface ativa (Hero e Detalhes) ao vivo!
+                window.sincronizarInterfaceAoVivo(cacheCatalogo);
             });
         }
+
+        // Função responsável por atualizar os textos da tela sem recarregar ou pausar vídeos
+        window.sincronizarInterfaceAoVivo = function(catalogoRecente) {
+            // Se o usuário não está com nenhum destaque ativo, não há o que atualizar
+            if (!window.currentDestaqueData) return;
+
+            // Busca a versão mais atualizada do vídeo que o usuário está vendo no momento
+            const itemAtualizado = catalogoRecente.find(item => item.id === window.currentDestaqueData.id);
+            
+            // Se o Admin deletou o filme, o item não existirá mais. Fechamos os detalhes.
+            if (!itemAtualizado) {
+                if (!document.getElementById('view-details').classList.contains('hidden')) {
+                    window.fecharDetalhes();
+                    window.showToast("Este conteúdo foi removido pelo administrador.", true);
+                }
+                return;
+            }
+
+            // Atualiza a memória global para a versão fresca do Admin
+            window.currentDestaqueData = itemAtualizado;
+
+            // ATUALIZAÇÃO 1: Textos do Banner Principal (Hero da Home)
+            const heroTitle = document.getElementById('hero-title');
+            if (heroTitle && heroTitle.innerText !== itemAtualizado.titulo) {
+                heroTitle.innerText = itemAtualizado.titulo;
+            }
+            
+            const heroSelo = document.getElementById('hero-selo');
+            if (heroSelo) heroSelo.innerText = itemAtualizado.selo || 'A&M ORIGINALS';
+            
+            const heroSub = document.getElementById('hero-subtitulo');
+            if (heroSub) heroSub.innerText = itemAtualizado.subtitulo || 'Classificação: 14+ | Estreia Exclusiva';
+
+            // ATUALIZAÇÃO 2: Textos da Tela de Detalhes (Se ela estiver aberta)
+            const viewDetails = document.getElementById('view-details');
+            if (viewDetails && !viewDetails.classList.contains('hidden')) {
+                // Títulos e Descrição
+                document.getElementById('details-title').innerText = itemAtualizado.titulo || '';
+                document.getElementById('details-desc').innerText = itemAtualizado.descricao || "Sem descrição disponível no momento.";
+                document.getElementById('details-trilho').innerText = itemAtualizado.trilho || "Geral";
+                
+                // Metadados (Aba superior)
+                document.getElementById('details-genero1').innerText = itemAtualizado.genero1 || "Filmes";
+                document.getElementById('details-genero2').innerText = itemAtualizado.genero2 || "Aventura";
+                document.getElementById('details-imdb').innerText = itemAtualizado.imdb ? `IMDb ${itemAtualizado.imdb}` : "IMDb 8.5/10";
+                document.getElementById('details-ano').innerText = itemAtualizado.ano || "2024";
+                document.getElementById('details-tempo').innerText = itemAtualizado.tempo || "1 h 48 min";
+                document.getElementById('details-resolucao').innerText = itemAtualizado.resolucao || "4K HDR";
+                document.getElementById('details-elenco').innerText = itemAtualizado.elenco || "A&M Studios, Convidados Especiais";
+
+                // Metadados (Aba "Detalhes" Inferior)
+                document.getElementById('details-info-title').innerText = itemAtualizado.titulo || '';
+                document.getElementById('details-info-trilho').innerText = itemAtualizado.trilho || "Geral";
+                document.getElementById('details-info-desc').innerText = itemAtualizado.descricao || "Sem descrição disponível no momento.";
+            }
+
+            // ATUALIZAÇÃO 3: Atualiza o Título dentro do Player Fullscreen (se o usuário estiver assistindo agora)
+            const playerTitle = document.getElementById('player-full-title');
+            if (playerTitle && !document.getElementById('netflix-player').classList.contains('hidden')) {
+                // Se for trailer, mantém a tag "Trailer:"
+                if (window.isWatchingTrailer) {
+                    playerTitle.innerText = `Trailer: ${itemAtualizado.titulo}`;
+                } else {
+                    playerTitle.innerText = itemAtualizado.titulo;
+                }
+            }
+        };
 
         window.scrollRail = function(btn, direction) {
             const rail = btn.parentElement.querySelector('.auto-scroll-rail');
@@ -1756,6 +2324,7 @@ Let's stick to the main request: **Menu-based filtering**.
         window.renderizarTrilhosNaHome = function() {
             let listaHTML = "";
             let continuarHTML = "";
+            let top10HTML = "";
             const categories = {}; const itemsByCategory = {};
             
             let catalogoFiltrado = [];
@@ -1782,6 +2351,13 @@ Let's stick to the main request: **Menu-based filtering**.
 
                 if (minhaListaIds.includes(item.id)) listaHTML += renderCardPaisagem(item, "text-[#2563EB]");
                 
+                // GERAÇÃO DO TOP 10 (Usa os 10 primeiros itens do catálogo ou lógica de popularidade)
+                const top10Items = cacheCatalogo.slice(0, 10);
+                if (top10Items.some(i => i.id === item.id) && window.currentActiveMenu === 'home') {
+                    const rank = top10Items.findIndex(i => i.id === item.id) + 1;
+                    top10HTML = ""; // Reset para reconstruir na ordem certa abaixo
+                }
+
                 // Se o item estiver no continuar assistindo, renderiza com barra de progresso
                 const progressData = continuarAssistindoDocs.find(d => d.itemId === item.id);
                 if (progressData && window.currentActiveMenu === 'home') {
@@ -1811,6 +2387,17 @@ Let's stick to the main request: **Menu-based filtering**.
                     sectionListaFixa.classList.add('hidden');
                 }
             }
+
+            const sectionTop10 = document.getElementById('section-top10');
+            if (sectionTop10) {
+                if (window.currentActiveMenu === 'home' && cacheCatalogo.length > 0) {
+                    sectionTop10.classList.remove('hidden');
+                    const top10Content = cacheCatalogo.slice(0, 10).map((item, idx) => renderCardTop10(item, idx + 1)).join('');
+                    document.getElementById('container-top10').innerHTML = top10Content;
+                } else {
+                    sectionTop10.classList.add('hidden');
+                }
+            }
             
             let homeRailsHTML = "";
             const sortedCategoryNames = Object.keys(categories).sort((a, b) => (window.cacheOrdemCategorias[a] || 99) - (window.cacheOrdemCategorias[b] || 99));
@@ -1819,8 +2406,7 @@ Let's stick to the main request: **Menu-based filtering**.
                 const itemsCount = itemsByCategory[catName].length;
                 if (itemsByCategory[catName]) window.masterPlayOrder.push(...itemsByCategory[catName]);
                 
-                // Lógica de visibilidade das setas baseada na instrução:
-                // Telemóvel: Mostra se > 2 | Tablet: Mostra se > 3 | Computador: Mostra se > 5
+                // Lógica de visibilidade das setas
                 const visibilityClass = `
                     ${itemsCount > 2 ? 'flex' : 'hidden'} 
                     ${itemsCount > 3 ? 'sm:flex' : 'sm:hidden'} 
@@ -1830,10 +2416,18 @@ Let's stick to the main request: **Menu-based filtering**.
                 const isCatLiked = curtidasCategoriasIds.includes(catName);
                 const catHeartClass = isCatLiked ? 'ph-fill text-[var(--brand-gold)]' : 'ph text-white/40';
 
+                // LÓGICA DE LOGO E NOME DINÂMICO DA CATEGORIA
+                const logoCat = window.cacheLogosCategorias[catName] || "";
+                const ocultarTexto = window.cacheOcultarCategorias[catName] || false;
+                
+                let headerHTML = "";
+                if(logoCat) headerHTML += `<img src="${logoCat}" class="h-8 md:h-12 object-contain mr-3">`;
+                if(!ocultarTexto || !logoCat) headerHTML += `<h3 class="text-lg md:text-xl font-medium text-white uppercase tracking-wide">${catName}</h3>`;
+
                 homeRailsHTML += `
                 <div class="relative group/rail pb-4">
                     <div class="flex items-center gap-3 mb-3 md:mb-5">
-                        <h3 class="text-lg md:text-xl font-medium text-white uppercase tracking-wide">${catName}</h3>
+                        ${headerHTML}
                         <button onclick="toggleCurtidaCategoria('${catName}')" class="focusable hover:scale-110 transition-transform flex items-center justify-center p-1" title="Curtir Categoria">
                             <i class="${catHeartClass} ph-heart text-lg md:text-xl"></i>
                         </button>
@@ -1862,7 +2456,7 @@ Let's stick to the main request: **Menu-based filtering**.
             <div class="card-container relative transition-all duration-300">
                 <div onclick="window.handleCardAction('${dataStr}', this)" onfocus="window.handleCardFocus('${dataStr}')" class="focusable min-w-[130px] md:min-w-[170px] h-[190px] md:h-[250px] relative group cursor-pointer snap-start transition-all" tabindex="0">
                     <div class="absolute inset-0 bg-black rounded-xl overflow-hidden border border-white/10 shadow-lg">
-                        <img src="${data.capaUrl}" loading="lazy" decoding="async" class="w-full h-full object-cover opacity-100 brightness-[1.2] saturate-[1.25]">
+                        <img src="${data.capaUrl}" loading="lazy" decoding="async" fetchpriority="low" class="w-full h-full object-cover opacity-100 brightness-[1.2] saturate-[1.25]">
                         <div class="absolute top-0 w-full p-2 bg-gradient-to-b from-black/60 to-transparent"><p class="text-[8px] text-[var(--brand-gold)] font-bold tracking-widest uppercase">${data.selo}</p></div>
                     </div>
                     <div class="card-expand-info">
@@ -1891,7 +2485,7 @@ Let's stick to the main request: **Menu-based filtering**.
             <div class="card-container relative transition-all duration-300">
                 <div onclick="window.handleCardAction('${dataStr}', this)" onfocus="window.handleCardFocus('${dataStr}')" class="focusable min-w-[220px] md:min-w-[280px] h-[120px] md:h-[150px] relative group cursor-pointer snap-start transition-all" tabindex="0">
                     <div class="absolute inset-0 bg-black rounded-xl overflow-hidden border border-white/10 shadow-lg">
-                        <img src="${data.capaUrl}" loading="lazy" decoding="async" class="w-full h-full object-cover opacity-100 brightness-[1.2] saturate-[1.25]">
+                        <img src="${data.capaUrl}" loading="lazy" decoding="async" fetchpriority="low" class="w-full h-full object-cover opacity-100 brightness-[1.2] saturate-[1.25]">
                         <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex items-end p-3">
                             <p class="text-[10px] md:text-xs font-bold ${colorClass} tracking-wider uppercase drop-shadow-md truncate">${data.titulo}</p>
                         </div>
@@ -1907,6 +2501,38 @@ Let's stick to the main request: **Menu-based filtering**.
                              <div class="w-6 h-6 rounded-full bg-white flex items-center justify-center text-black"><i class="ph-fill ph-play text-[10px]"></i></div>
                              <div onclick="event.stopPropagation(); toggleJoinhaById('${data.id}')" class="w-6 h-6 rounded-full bg-white/10 border border-white/30 flex items-center justify-center"><i class="${heartClass} ph-heart text-[10px]"></i></div>
                              <div class="w-6 h-6 rounded-full bg-white/10 border border-white/30 flex items-center justify-center text-white"><i class="ph ph-plus text-[10px]"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function renderCardTop10(data, rank) {
+            const dataStr = btoa(encodeURIComponent(JSON.stringify(data)));
+            const isLiked = curtidasIds.includes(data.id);
+            const heartClass = isLiked ? 'ph-fill text-[var(--brand-gold)]' : 'ph text-white';
+
+            return `
+            <div class="card-container top10-container group snap-start transition-all duration-300">
+                <span class="top10-number">${rank}</span>
+                <div onclick="window.handleCardAction('${dataStr}', this)" onfocus="window.handleCardFocus('${dataStr}')" class="focusable top10-card-body relative group cursor-pointer transition-all" tabindex="0">
+                    <div class="absolute inset-0 bg-black rounded-xl overflow-hidden border border-white/10 shadow-2xl">
+                        <img src="${data.capaUrl}" loading="lazy" decoding="async" class="w-full h-full object-cover opacity-100 brightness-[1.2] saturate-[1.25]">
+                        <div class="absolute top-2 right-2 bg-white text-black text-[7px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter shadow-md z-20">Novo Filme</div>
+                        <div class="absolute bottom-3 left-3 w-5 h-5 bg-brand-gold rounded-sm flex items-center justify-center shadow-lg">
+                            <i class="ph-fill ph-shopping-bag text-black text-[10px]"></i>
+                        </div>
+                    </div>
+                    <div class="card-expand-info">
+                        <p class="text-white font-bold text-[10px] uppercase truncate">${data.titulo}</p>
+                        <div class="flex items-center gap-1.5 mt-1 text-[8px] font-black">
+                            <span class="text-yellow-500">IMDb ${data.imdb || '8.5'}</span>
+                            <span class="text-gray-400">${data.ano || '2024'}</span>
+                            <span class="border border-white/30 px-1 rounded text-white">${data.resolucao || '4K'}</span>
+                        </div>
+                        <div class="flex gap-2 mt-2">
+                             <div class="w-6 h-6 rounded-full bg-white flex items-center justify-center text-black"><i class="ph-fill ph-play text-[10px]"></i></div>
+                             <div onclick="event.stopPropagation(); toggleJoinhaById('${data.id}')" class="w-6 h-6 rounded-full bg-white/10 border border-white/30 flex items-center justify-center"><i class="${heartClass} ph-heart text-[10px]"></i></div>
                         </div>
                     </div>
                 </div>
@@ -1985,7 +2611,7 @@ Let's stick to the main request: **Menu-based filtering**.
             if (urlDoTrailerParaTocar && urlDoTrailerParaTocar.trim() !== "" && !isPlayerOpen && !isDetailsOpen) {
                 window.heroTimeout = setTimeout(() => {
                     heroVideo.src = urlDoTrailerParaTocar; 
-                    heroVideo.preload = "auto";
+                    heroVideo.preload = "metadata"; // Alterado para metadata para não engolir a banda antes do play
                     heroVideo.muted = true;
                     heroVideo.volume = 0; // Prepara para fade in caso desmute
                     
@@ -2055,23 +2681,6 @@ Let's stick to the main request: **Menu-based filtering**.
             await toggleJoinhaById(window.currentDestaqueData.id);
         };
 
-        window.toggleJoinhaById = async function(itemId) {
-            if(!currentUser) return window.openLoginPrompt();
-            if(curtidasIds.includes(itemId)) {
-                const docItem = curtidasDocs.find(d => d.itemId === itemId);
-                if(docItem) { 
-                    await deleteDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'curtidas', docItem.docId)); 
-                    window.showToast("Coração removido."); 
-                }
-            } else {
-                await addDoc(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'curtidas'), { 
-                    itemId: itemId, 
-                    adicionadoEm: new Date().getTime() 
-                });
-                window.showToast("Você curtiu!");
-            }
-        };
-
         window.toggleCurtidaCategoria = async function(catName) {
             if(!currentUser) return window.openLoginPrompt();
             if(curtidasCategoriasIds.includes(catName)) {
@@ -2099,24 +2708,11 @@ Let's stick to the main request: **Menu-based filtering**.
             window.verificarStatusBotoes();
         };
 
-        // Motor de Ação de Card (Estilo Amazon Prime: 1º Seleciona, 2º Entra)
+        // Motor de Ação de Card (Exibição Instantânea ao Clicar)
         window.handleCardAction = function(dataStr, el) {
-            const data = JSON.parse(decodeURIComponent(atob(dataStr)));
-            
-            // Se o card clicado já é o que está "Pronto para Abrir" (foi clicado uma vez antes)
-            if (window.cardReadyToOpenId === data.id) {
-                // SEGUNDO CLIQUE: Abre os detalhes
-                window.abrirDetalhes(dataStr);
-                window.cardReadyToOpenId = null; // Reseta para a próxima interação
-            } else {
-                // PRIMEIRO CLIQUE: Apenas seleciona, destaca no Hero e foca
-                window.cardReadyToOpenId = data.id;
-                window.mudarDestaque(dataStr);
-                el.focus();
-                
-                // Feedback visual discreto (Toast)
-                window.showToast("Clique novamente para abrir detalhes");
-            }
+            // Conforme solicitado, ao clicar uma vez em qualquer vídeo dentro dos Trilhos, 
+            // ele entra imediatamente em modo de exibição (Detalhes + Trailer Autoplay)
+            window.abrirDetalhes(dataStr);
         };
 
         window.handleCardFocus = function(dataStr) {
@@ -2150,17 +2746,17 @@ Let's stick to the main request: **Menu-based filtering**.
             if(iconJoinha) {
                 if(curtidasIds.includes(itemId)) { 
                     iconJoinha.classList.replace('ph', 'ph-fill');
-                    iconJoinha.classList.add('text-[var(--brand-gold)]');
+                    iconJoinha.classList.add('text-red-500');
                     if(iconJoinhaDet) { 
                         iconJoinhaDet.classList.replace('ph', 'ph-fill'); 
-                        iconJoinhaDet.classList.add('text-[var(--brand-gold)]'); 
+                        iconJoinhaDet.classList.add('text-red-500'); 
                     }
                 } else { 
                     iconJoinha.classList.replace('ph-fill', 'ph');
-                    iconJoinha.classList.remove('text-[var(--brand-gold)]');
+                    iconJoinha.classList.remove('text-red-500');
                     if(iconJoinhaDet) { 
                         iconJoinhaDet.classList.replace('ph-fill', 'ph'); 
-                        iconJoinhaDet.classList.remove('text-[var(--brand-gold)]'); 
+                        iconJoinhaDet.classList.remove('text-red-500'); 
                     }
                 }
             }
@@ -2293,13 +2889,14 @@ Let's stick to the main request: **Menu-based filtering**.
 
             if (urlDoTrailerParaTocar) {
                 vid.src = urlDoTrailerParaTocar;
-                vid.preload = "metadata"; // Ativa o carregamento apenas quando necessário
+                vid.preload = "auto"; // Carregamento agressivo para exibição imediata
                 vid.muted = true;
                 vid.volume = 0; 
+                vid.setAttribute('fetchpriority', 'high');
                 
                 vid.onloadedmetadata = () => {
                     let mid = 0;
-                    // Se não for oficial e for muito longo (Filme), joga pro meio. Se for oficial, toca do início
+                    // Lógica de Exibição Inteligente: Trailers oficiais tocam do início
                     if (!isOficialTrailer && vid.duration > 60) {
                         mid = vid.duration / 2;
                     }
@@ -2311,10 +2908,11 @@ Let's stick to the main request: **Menu-based filtering**.
                     if (playPromise !== undefined) {
                         playPromise.then(() => {
                             setTimeout(() => {
-                                vid.style.opacity = '0.6';
+                                // Opacidade aumentada (0.8) para destacar o trailer na exibição
+                                vid.style.opacity = '0.8';
                                 img.style.opacity = '0';
                                 if (!vid.muted) window.fadeAudio(vid, 0, 1, 1000);
-                            }, 300);
+                            }, 150);
                         }).catch(e => { console.warn("Autoplay prevenido", e); });
                     }
 
@@ -2532,6 +3130,11 @@ Let's stick to the main request: **Menu-based filtering**.
             const isAnon = (!currentUser || currentUser.isAnonymous);
             const isOffline = !navigator.onLine;
 
+            // Prioriza o tráfego do vídeo no player
+            if (navigator.connection && navigator.connection.requestIdleCallback) {
+                navigator.connection.type = 'video';
+            }
+
             // Mostra o carregamento Netflix ao abrir o player
             const loader = document.getElementById('netflix-loader');
             if(loader) loader.style.display = 'flex';
@@ -2598,12 +3201,30 @@ Let's stick to the main request: **Menu-based filtering**.
             nextVideoTriggered = false;
             document.getElementById('next-video-overlay').classList.add('hidden');
 
-            // Configuração Modo Trailer (Esconder Barra e Layout)
+            // Configuração Modo Trailer (Esibe apenas a barra de progresso e botões de ação do trailer)
+            const topBar = document.getElementById('player-top-bar');
+            const buttonsBar = document.getElementById('player-buttons-bar');
+            const centerIcon = document.getElementById('center-play-icon');
+
             if(isTrailer) {
-                controlsUI.classList.add('hidden');
+                if(topBar) topBar.classList.add('hidden');
+                if(buttonsBar) buttonsBar.classList.add('hidden');
+                if(centerIcon) centerIcon.classList.add('hidden');
+                
+                controlsUI.classList.remove('hidden');
+                controlsUI.style.opacity = '1';
+                controlsUI.style.pointerEvents = 'none'; // Evita capturar cliques no centro, mas permite ver a barra
+                document.getElementById('progress-container').style.pointerEvents = 'auto'; // Permite interagir com a barra
+                
                 document.getElementById('trailer-cta-container').classList.remove('hidden');
             } else {
+                if(topBar) topBar.classList.remove('hidden');
+                if(buttonsBar) buttonsBar.classList.remove('hidden');
+                
                 controlsUI.classList.remove('hidden');
+                controlsUI.style.opacity = '0';
+                controlsUI.style.pointerEvents = 'auto';
+                
                 document.getElementById('trailer-cta-container').classList.add('hidden');
             }
 
@@ -2704,9 +3325,17 @@ Let's stick to the main request: **Menu-based filtering**.
 
             mainVid.removeEventListener('timeupdate', window.currentTrailerListener);
             
-            // Transição direta sem vinheta
+            // Transição direta sem vinheta - Restaura a interface completa do filme
             document.getElementById('trailer-cta-container').classList.add('hidden');
+            
+            const topBar = document.getElementById('player-top-bar');
+            const buttonsBar = document.getElementById('player-buttons-bar');
+            if(topBar) topBar.classList.remove('hidden');
+            if(buttonsBar) buttonsBar.classList.remove('hidden');
+            
             controlsUI.classList.remove('hidden');
+            controlsUI.style.opacity = '1';
+            controlsUI.style.pointerEvents = 'auto';
             
             mainVid.style.opacity = '1';
             window.fadeAudio(mainVid, 0, 1, 500);
@@ -2742,7 +3371,16 @@ Let's stick to the main request: **Menu-based filtering**.
 
             playerDiv.classList.add('hidden');
             document.getElementById('trailer-cta-container').classList.add('hidden');
+            
+            // Restaura visibilidades para o próximo vídeo
+            const topBar = document.getElementById('player-top-bar');
+            const buttonsBar = document.getElementById('player-buttons-bar');
+            if(topBar) topBar.classList.remove('hidden');
+            if(buttonsBar) buttonsBar.classList.remove('hidden');
+            
             controlsUI.classList.remove('hidden');
+            controlsUI.style.opacity = '0';
+            controlsUI.style.pointerEvents = 'auto';
 
             if (document.fullscreenElement) document.exitFullscreen();
             
@@ -2852,6 +3490,11 @@ Let's stick to the main request: **Menu-based filtering**.
                     const pctEl = document.getElementById('load-percentage');
                     if(pctEl) pctEl.innerText = pct + '%';
                     
+                    // ACELERAÇÃO DE REPRODUÇÃO: Se já tiver 3 segundos em cache, tenta dar play logo
+                    if (targetBuffer - mainVid.currentTime > 3 && mainVid.paused && !window.isMandatoryTrailer) {
+                        mainVid.play().catch(()=>{});
+                    }
+
                     // Se o buffer for suficiente para 10 segundos à frente, a resolução se mantém estável
                     if (targetBuffer - mainVid.currentTime > 10) window.optimizeVideoQuality();
                 }
@@ -3068,7 +3711,7 @@ Let's stick to the main request: **Menu-based filtering**.
                 const randomVideo = outrosVideos.length > 0 ? outrosVideos[Math.floor(Math.random() * outrosVideos.length)] : window.currentDestaqueData;
                 
                 adVideoUrl = randomVideo.trailerUrl || randomVideo.videoUrl || "";
-                    adTitle = `Sugestão: ${randomVideo.titulo || 'A&amp;M'}`;
+                adTitle = `Sugestão: ${randomVideo.titulo || 'A&amp;M'}`;
                 
                 // Marca se tivemos que puxar o filme grande por não ter um trailer
                 isFallbackLongVideo = !randomVideo.trailerUrl && (randomVideo.videoUrl === adVideoUrl);
@@ -3443,94 +4086,6 @@ Let's stick to the main request: **Menu-based filtering**.
                     }
                 });
             }, 8000);
-        };
-
-        // MOTOR DE RENDERIZAÇÃO TIKTOK (FEED VERTICAL) - OTIMIZADO PARA VELOCIDADE
-        window.renderTikTokFeed = function() {
-            const container = document.getElementById('tiktok-feed-container');
-            const items = cacheCatalogo.filter(i => (i.menuIds && i.menuIds.includes('menu3')) || i.menuId === 'menu3');
-            
-            if (items.length === 0) {
-                container.innerHTML = `<div class="h-screen flex items-center justify-center text-brand-text font-bold">NENHUM CONTEÚDO VERTICAL.</div>`;
-                return;
-            }
-
-            // Removido o atributo 'poster' (capa) e alterado preload para 'auto' para início imediato
-            container.innerHTML = items.map(item => {
-                const isLiked = curtidasIds.includes(item.id);
-                const isListed = minhaListaIds.includes(item.id);
-                
-                return `
-                <div class="tiktok-video-container" data-id="${item.id}">
-                    <video class="tiktok-video" src="${item.videoUrl}" loop playsinline preload="auto" muted fetchpriority="high"></video>
-                    <div class="tiktok-overlay" onclick="window.toggleTikTokPlay(this)"></div>
-                    
-                    <div class="tiktok-actions">
-                        <button onclick="toggleJoinhaById('${item.id}')" class="flex flex-col items-center gap-1 group">
-                            <div class="w-12 h-12 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center border border-white/10 group-active:scale-90 transition">
-                                <i class="${isLiked ? 'ph-fill text-red-500' : 'ph text-white'} ph-heart text-2xl"></i>
-                            </div>
-                            <span class="text-[10px] font-bold text-white shadow-sm">Gostar</span>
-                        </button>
-                        <button onclick="window.currentDestaqueData={id:'${item.id}'}; toggleMinhaLista()" class="flex flex-col items-center gap-1 group">
-                            <div class="w-12 h-12 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center border border-white/10 group-active:scale-90 transition">
-                                <i class="${isListed ? 'ph-fill text-brand-gold' : 'ph text-white'} ph-plus text-2xl"></i>
-                            </div>
-                            <span class="text-[10px] font-bold text-white shadow-sm">Lista</span>
-                        </button>
-                        <button onclick="window.abrirDetalhes('${btoa(encodeURIComponent(JSON.stringify(item)))}')" class="flex flex-col items-center gap-1 group">
-                            <div class="w-12 h-12 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center border border-white/10 group-active:scale-90 transition">
-                                <i class="ph ph-info text-2xl text-white"></i>
-                            </div>
-                            <span class="text-[10px] font-bold text-white shadow-sm">Info</span>
-                        </button>
-                    </div>
-
-                    <div class="tiktok-info">
-                        <h3 class="text-white font-black text-lg uppercase tracking-tight drop-shadow-lg">${item.titulo}</h3>
-                        <p class="text-white/80 text-xs mt-1 line-clamp-2 drop-shadow-md">${item.descricao || ''}</p>
-                        <div class="flex items-center gap-2 mt-3">
-                            <span class="bg-brand-gold text-black text-[9px] font-black px-2 py-0.5 rounded uppercase">${item.selo || 'A&amp;M ORIGINALS'}</span>
-                            <span class="text-[10px] text-white/60 font-bold">#amstreaming #original</span>
-                        </div>
-                    </div>
-                </div>
-                `;
-            }).join('');
-
-            // Inicia Observer para Auto-Play (Garante que o vídeo no centro toca sozinho)
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    const video = entry.target.querySelector('video');
-                    if (entry.isIntersecting) {
-                        // Tenta tocar o vídeo assim que entrar no centro da tela
-                        const playPromise = video.play();
-                        if (playPromise !== undefined) {
-                            playPromise.catch(() => {
-                                video.muted = true; // Força mudo se o navegador bloquear autoplay com som
-                                video.play();
-                            });
-                        }
-                    } else {
-                        video.pause();
-                        video.currentTime = 0; // Reinicia para economia de memória
-                    }
-                });
-            }, { threshold: 0.6 }); // Sensibilidade aumentada para Smart TVs e Mobile
-
-            document.querySelectorAll('.tiktok-video-container').forEach(container => observer.observe(container));
-            
-            // Força a reprodução imediata do primeiro vídeo renderizado
-            setTimeout(() => {
-                const firstVideo = document.querySelector('.tiktok-video');
-                if(firstVideo) firstVideo.play().catch(() => { firstVideo.muted = true; firstVideo.play(); });
-            }, 100);
-        };
-
-        window.toggleTikTokPlay = function(overlay) {
-            const video = overlay.parentElement.querySelector('video');
-            if (video.paused) video.play();
-            else video.pause();
         };
 
         // LÓGICA DE NAVEGAÇÃO ESPACIAL DE TV
