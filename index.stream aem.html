@@ -210,9 +210,10 @@
         .auto-scroll-rail { 
             cursor: grab; 
             user-select: none; 
-            contain: content; 
+            contain: content paint; 
             content-visibility: auto; 
             contain-intrinsic-size: 1px 150px; /* Previne pulos de scroll ao carregar trilhos */
+            will-change: scroll-position;
         }
         .auto-scroll-rail:active { cursor: grabbing; }
 
@@ -796,6 +797,14 @@
                                 <span class="text-gray-500 font-medium">Estúdio</span>
                                 <span class="col-span-2 text-white font-medium">A&amp;M Studios</span>
                             </div>
+                            <div class="grid grid-cols-3 gap-2">
+                                <span class="text-gray-500 font-medium">Produtores</span>
+                                <span class="col-span-2 text-blue-400 font-medium hover:underline cursor-pointer">A&amp;M Streaming Originals</span>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2">
+                                <span class="text-gray-500 font-medium">Estúdio</span>
+                                <span class="col-span-2 text-white font-medium">A&amp;M Studios</span>
+                            </div>
                         </div>
                     </div>
 
@@ -1130,7 +1139,7 @@
         <div id="vignette-overlay" class="hidden absolute inset-0 z-[110] bg-black flex flex-col items-center justify-center pointer-events-auto transition-opacity duration-700">
             <div id="vignette-content" class="flex flex-col items-center opacity-0 transition-all duration-700 ease-out transform scale-90">
                 <h1 class="text-4xl md:text-7xl font-sans text-white tracking-tighter font-black italic leading-none flex items-baseline gap-2">
-                    A&amp;M <span class="text-[var(--prime-blue)] font-light not-italic">streaming</span>
+                    A&amp;amp;M <span class="text-[var(--prime-blue)] font-light not-italic">streaming</span>
                 </h1>
                 <svg class="w-32 md:w-48 h-auto -mt-3 text-[var(--prime-blue)]" viewBox="0 0 100 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M5 8C25 18 75 18 95 8" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
@@ -1200,6 +1209,9 @@
                 <div id="center-play-icon" onclick="event.stopPropagation(); togglePlayerPlay()" class="hidden w-24 h-24 bg-black/50 rounded-full flex items-center justify-center cursor-pointer pointer-events-auto active:scale-95 transition-transform"><i class="ph-fill ph-play text-white text-5xl"></i></div>
             </div>
             <div class="w-full p-4 md:p-8 bg-gradient-to-t from-black/90 via-black/60 to-transparent flex flex-col gap-4 md:gap-6">
+                <!-- Mostrador de tempo exclusivo para Trailers -->
+                <div id="trailer-time-label" class="hidden self-end text-[10px] md:text-xs font-black text-white bg-black/40 px-2 py-1 rounded border border-white/10 font-mono tracking-tighter backdrop-blur-sm shadow-lg">00:00 / 00:00</div>
+                
                 <div class="w-full h-2 md:h-1.5 bg-white/30 cursor-pointer relative rounded-full group netflix-progress-bar" id="progress-container">
                     <div id="progress-bar" class="h-full bg-red-600 rounded-full w-0 relative">
                         <div id="netflix-progress-thumb" class="absolute right-0 top-1/2 transform translate-x-1/2 -translate-y-1/2 w-5 h-5 md:w-4 md:h-4 bg-red-600 rounded-full shadow transition-transform"></div>
@@ -1280,6 +1292,8 @@
         window.authMode = 'login';
         window.ignoreNextPopState = false; // TRAVA DE HISTÓRICO GLOBAL
         window.isWatchingTrailer = false; // TRAVA DO TRAILER ATIVO
+        window.trailerStartTime = 0;
+        window.trailerDuration = 0;
         
         let userProfileUnsubscribe = null;
 
@@ -2233,7 +2247,13 @@
                 window.renderLandingGrid(cacheCatalogo);
                 
                 if(cacheCatalogo.length > 0 && !window.currentDestaqueData) {
-                    window.mudarDestaque(btoa(encodeURIComponent(JSON.stringify(cacheCatalogo[0]))));
+                    // Seleciona o primeiro item que não pertença à categoria Conteúdos para o destaque inicial
+                    const firstDisplayable = cacheCatalogo.find(item => 
+                        item.trilho?.toLowerCase() !== 'conteúdos' && 
+                        item.trilho?.toLowerCase() !== 'conteudos' &&
+                        !(item.menuIds && item.menuIds.includes('menu2'))
+                    ) || cacheCatalogo[0];
+                    window.mudarDestaque(btoa(encodeURIComponent(JSON.stringify(firstDisplayable))));
                     setTimeout(() => { window.startHeroAutoCycle(); window.startRailsAutoScroll(); }, 1000);
                 }
                 window.renderizarTrilhosNaHome();
@@ -2256,7 +2276,12 @@
             
             let catalogoFiltrado = [];
             if (window.currentActiveMenu === 'home') {
-                catalogoFiltrado = cacheCatalogo;
+                // Filtra para remover a categoria "Conteúdos" e itens vinculados ao Menu 2 (TikTok) da Home principal
+                catalogoFiltrado = cacheCatalogo.filter(item => 
+                    item.trilho?.toLowerCase() !== 'conteúdos' && 
+                    item.trilho?.toLowerCase() !== 'conteudos' &&
+                    !(item.menuIds && item.menuIds.includes('menu2'))
+                );
             } else if (window.currentActiveMenu === 'minhaLista') {
                 catalogoFiltrado = cacheCatalogo.filter(item => minhaListaIds.includes(item.id));
             } else if (window.currentActiveMenu === 'meusDownloads') {
@@ -2319,7 +2344,13 @@
             if (sectionTop10) {
                 if (window.currentActiveMenu === 'home' && cacheCatalogo.length > 0) {
                     sectionTop10.classList.remove('hidden');
-                    const top10Content = cacheCatalogo.slice(0, 10).map((item, idx) => renderCardTop10(item, idx + 1)).join('');
+                    // Filtra o Top 10 para ignorar a categoria de Conteúdos
+                    const top10Items = cacheCatalogo.filter(item => 
+                        item.trilho?.toLowerCase() !== 'conteúdos' && 
+                        item.trilho?.toLowerCase() !== 'conteudos' &&
+                        !(item.menuIds && item.menuIds.includes('menu2'))
+                    ).slice(0, 10);
+                    const top10Content = top10Items.map((item, idx) => renderCardTop10(item, idx + 1)).join('');
                     document.getElementById('container-top10').innerHTML = top10Content;
                 } else {
                     sectionTop10.classList.add('hidden');
@@ -2383,7 +2414,7 @@
             <div class="card-container relative transition-all duration-300">
                 <div onclick="window.handleCardAction('${dataStr}', this)" onfocus="window.handleCardFocus('${dataStr}')" class="focusable min-w-[130px] md:min-w-[170px] h-[190px] md:h-[250px] relative group cursor-pointer snap-start transition-all" tabindex="0">
                     <div class="absolute inset-0 bg-black rounded-xl overflow-hidden border border-white/10 shadow-lg">
-                        <img src="${data.capaUrl}" loading="lazy" decoding="async" fetchpriority="low" class="w-full h-full object-cover opacity-100 brightness-[1.2] saturate-[1.25]">
+                        <img src="${data.capaUrl}" loading="lazy" decoding="async" fetchpriority="low" class="w-full h-full object-cover opacity-100 brightness-[1.2] saturate-[1.25] will-change-transform">
                         <div class="absolute top-0 w-full p-2 bg-gradient-to-b from-black/60 to-transparent"><p class="text-[8px] text-[var(--brand-gold)] font-bold tracking-widest uppercase">${data.selo}</p></div>
                     </div>
                     <div class="card-expand-info">
@@ -2412,7 +2443,7 @@
             <div class="card-container relative transition-all duration-300">
                 <div onclick="window.handleCardAction('${dataStr}', this)" onfocus="window.handleCardFocus('${dataStr}')" class="focusable min-w-[220px] md:min-w-[280px] h-[120px] md:h-[150px] relative group cursor-pointer snap-start transition-all" tabindex="0">
                     <div class="absolute inset-0 bg-black rounded-xl overflow-hidden border border-white/10 shadow-lg">
-                        <img src="${data.capaUrl}" loading="lazy" decoding="async" fetchpriority="low" class="w-full h-full object-cover opacity-100 brightness-[1.2] saturate-[1.25]">
+                        <img src="${data.capaUrl}" loading="lazy" decoding="async" fetchpriority="low" class="w-full h-full object-cover opacity-100 brightness-[1.2] saturate-[1.25] will-change-transform">
                         <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex items-end p-3">
                             <p class="text-[10px] md:text-xs font-bold ${colorClass} tracking-wider uppercase drop-shadow-md truncate">${data.titulo}</p>
                         </div>
@@ -2444,7 +2475,7 @@
                 <span class="top10-number">${rank}</span>
                 <div onclick="window.handleCardAction('${dataStr}', this)" onfocus="window.handleCardFocus('${dataStr}')" class="focusable top10-card-body relative group cursor-pointer transition-all" tabindex="0">
                     <div class="absolute inset-0 bg-black rounded-xl overflow-hidden border border-white/10 shadow-2xl">
-                        <img src="${data.capaUrl}" loading="lazy" decoding="async" class="w-full h-full object-cover opacity-100 brightness-[1.2] saturate-[1.25]">
+                        <img src="${data.capaUrl}" loading="lazy" decoding="async" fetchpriority="low" class="w-full h-full object-cover opacity-100 brightness-[1.2] saturate-[1.25] will-change-transform">
                         <div class="absolute top-2 right-2 bg-white text-black text-[7px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter shadow-md z-20">Novo Filme</div>
                         <div class="absolute bottom-3 left-3 w-5 h-5 bg-brand-gold rounded-sm flex items-center justify-center shadow-lg">
                             <i class="ph-fill ph-shopping-bag text-black text-[10px]"></i>
@@ -3133,10 +3164,19 @@
             const buttonsBar = document.getElementById('player-buttons-bar');
             const centerIcon = document.getElementById('center-play-icon');
 
+            const trailerTimeLabel = document.getElementById('trailer-time-label');
+            const progressBar = document.getElementById('progress-bar');
+            const progressThumb = document.getElementById('netflix-progress-thumb');
+
             if(isTrailer) {
                 if(topBar) topBar.classList.add('hidden');
                 if(buttonsBar) buttonsBar.classList.add('hidden');
                 if(centerIcon) centerIcon.classList.add('hidden');
+                if(trailerTimeLabel) trailerTimeLabel.classList.remove('hidden');
+                
+                // Estilo Diferenciado para Trailer: Barra Dourada
+                if(progressBar) progressBar.classList.replace('bg-red-600', 'bg-[var(--brand-gold)]');
+                if(progressThumb) progressThumb.classList.replace('bg-red-600', 'bg-[var(--brand-gold)]');
                 
                 controlsUI.classList.remove('hidden');
                 controlsUI.style.opacity = '1';
@@ -3145,6 +3185,10 @@
                 
                 document.getElementById('trailer-cta-container').classList.remove('hidden');
             } else {
+                if(trailerTimeLabel) trailerTimeLabel.classList.add('hidden');
+                // Estilo Padrão para Filme: Vermelho
+                if(progressBar) progressBar.classList.replace('bg-[var(--brand-gold)]', 'bg-red-600');
+                if(progressThumb) progressThumb.classList.replace('bg-[var(--brand-gold)]', 'bg-red-600');
                 if(topBar) topBar.classList.remove('hidden');
                 if(buttonsBar) buttonsBar.classList.remove('hidden');
                 
@@ -3183,6 +3227,8 @@
                     }
                     
                     mainVid.currentTime = startPos;
+                    window.trailerStartTime = startPos;
+                    window.trailerDuration = durationToPlay;
                     mainVid.volume = 0; // Prepara áudio zerado
                     mainVid.style.opacity = '0'; // Imagem escura inicial
 
@@ -3254,6 +3300,14 @@
             
             // Transição direta sem vinheta - Restaura a interface completa do filme
             document.getElementById('trailer-cta-container').classList.add('hidden');
+            const trailerTimeLabel = document.getElementById('trailer-time-label');
+            if(trailerTimeLabel) trailerTimeLabel.classList.add('hidden');
+            
+            // Restaura o estilo original da barra de progresso (Vermelho)
+            const progressBar = document.getElementById('progress-bar');
+            const progressThumb = document.getElementById('netflix-progress-thumb');
+            if(progressBar) progressBar.classList.replace('bg-[var(--brand-gold)]', 'bg-red-600');
+            if(progressThumb) progressThumb.classList.replace('bg-[var(--brand-gold)]', 'bg-red-600');
             
             const topBar = document.getElementById('player-top-bar');
             const buttonsBar = document.getElementById('player-buttons-bar');
@@ -3436,22 +3490,38 @@
 
         // Tempo e Barra de Progresso (Otimizado para menor uso de CPU)
         mainVid.addEventListener('timeupdate', () => {
-            if(!mainVid.duration || window.isTransitioningToNext || isDraggingProgress || window.isMandatoryTrailer) return;
+            if(!mainVid.duration || window.isTransitioningToNext || isDraggingProgress) return;
             
             // Salva o progresso a cada ~10 segundos de reprodução se não for trailer
-            if (!window.isWatchingTrailer && Math.floor(mainVid.currentTime) % 10 === 0) {
+            if (!window.isWatchingTrailer && !window.isMandatoryTrailer && Math.floor(mainVid.currentTime) % 10 === 0) {
                 window.saveProgress(window.currentDestaqueData.id, mainVid.currentTime, mainVid.duration);
             }
 
             if (Math.floor(mainVid.currentTime * 5) % 1 !== 0) return;
 
-            const pct = (mainVid.currentTime / mainVid.duration) * 100;
+            let pct, timeStr;
+
+            if (window.isWatchingTrailer || window.isMandatoryTrailer) {
+                // Cálculo relativo APENAS à duração do trailer/anúncio
+                const elapsed = Math.max(0, mainVid.currentTime - window.trailerStartTime);
+                pct = Math.min(100, (elapsed / window.trailerDuration) * 100);
+                
+                const mE = Math.floor(elapsed / 60), sE = Math.floor(elapsed % 60);
+                const mT = Math.floor(window.trailerDuration / 60), sT = Math.floor(window.trailerDuration % 60);
+                timeStr = `${mE<10?'0'+mE:mE}:${sE<10?'0'+sE:sE} / ${mT<10?'0'+mT:mT}:${sT<10?'0'+sT:sT}`;
+                
+                const trailerLabel = document.getElementById('trailer-time-label');
+                if (trailerLabel) trailerLabel.innerText = timeStr;
+            } else {
+                // Cálculo padrão para Filme Completo
+                pct = (mainVid.currentTime / mainVid.duration) * 100;
+                let mCurr = Math.floor(mainVid.currentTime / 60), sCurr = Math.floor(mainVid.currentTime % 60);
+                let mTot = Math.floor(mainVid.duration / 60), sTot = Math.floor(mainVid.duration % 60);
+                timeStr = `${mCurr<10?'0'+mCurr:mCurr}:${sCurr<10?'0'+sCurr:sCurr} / ${mTot<10?'0'+mTot:mTot}:${sTot<10?'0'+sTot:sTot}`;
+            }
+
             document.getElementById('progress-bar').style.width = pct + '%';
-            
-            let mCurr = Math.floor(mainVid.currentTime / 60), sCurr = Math.floor(mainVid.currentTime % 60);
-            let mTot = Math.floor(mainVid.duration / 60), sTot = Math.floor(mainVid.duration % 60);
-            document.getElementById('player-time').innerText = 
-                `${mCurr<10?'0'+mCurr:mCurr}:${sCurr<10?'0'+sCurr:sCurr} / ${mTot<10?'0'+mTot:mTot}:${sTot<10?'0'+sTot:sTot}`;
+            document.getElementById('player-time').innerText = timeStr;
 
             const timeLeft = mainVid.duration - mainVid.currentTime;
             const overlay = document.getElementById('next-video-overlay');
@@ -3649,9 +3719,12 @@
             document.getElementById('trailer-cta-container').classList.add('hidden');
             document.getElementById('mandatory-trailer-overlay').classList.remove('hidden');
             document.getElementById('mandatory-progress-fill').style.width = '0%';
-            document.getElementById('mandatory-trailer-title').innerText = adTitle;
+                document.getElementById('mandatory-trailer-title').innerText = adTitle;
+                
+                window.trailerStartTime = 0; // Reset para ads
+                window.trailerDuration = 15; // Fallback inicial
 
-            mainVid.src = adVideoUrl;
+                mainVid.src = adVideoUrl;
             mainVid.load(); 
 
             mainVid.onloadedmetadata = () => {
@@ -3672,6 +3745,8 @@
                 if (isFinite(mainVid.duration) && mainVid.duration > 0) {
                     durationOfAd = Math.floor(mainVid.duration - startPos);
                 }
+                window.trailerStartTime = startPos;
+                window.trailerDuration = durationOfAd;
 
                 // Tenta tocar com som, se falhar toca mudo e avisa (política de navegadores)
                 mainVid.play().then(() => {
@@ -3891,7 +3966,13 @@
         window.startHeroAutoCycle = function() {
             clearInterval(window.autoCycleInterval);
             window.autoCycleInterval = setInterval(() => {
-                const list = window.currentActiveMenu === 'home' ? cacheCatalogo : cacheCatalogo.filter(i => (i.menuIds && i.menuIds.includes(window.currentActiveMenu)) || i.menuId === window.currentActiveMenu);
+                const list = window.currentActiveMenu === 'home' 
+                    ? cacheCatalogo.filter(item => 
+                        item.trilho?.toLowerCase() !== 'conteúdos' && 
+                        item.trilho?.toLowerCase() !== 'conteudos' &&
+                        !(item.menuIds && item.menuIds.includes('menu2'))
+                      ) 
+                    : cacheCatalogo.filter(i => (i.menuIds && i.menuIds.includes(window.currentActiveMenu)) || i.menuId === window.currentActiveMenu);
                 if (list.length > 1) {
                     const currIdx = list.findIndex(v => v.id === window.currentDestaqueData?.id);
                     if(list[(currIdx + 1) % list.length]) window.mudarDestaque(btoa(encodeURIComponent(JSON.stringify(list[(currIdx + 1) % list.length]))), true);
