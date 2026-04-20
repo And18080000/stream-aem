@@ -2223,97 +2223,24 @@
         }
 
         // ==========================================
-        // CATÁLOGO E TRILHOS (ATUALIZADO COM SYNC AO VIVO)
+        // CATÁLOGO E TRILHOS
         // ==========================================
         window.carregarCatalogoRealtime = function() {
             onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'catalog'), (snap) => {
-                // 1. Atualiza o cache interno com os dados mais recentes do Admin
                 cacheCatalogo = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => a.createdAt - b.createdAt);
                 
-                // 2. Renderiza a tela de carregamento (Landing Page) se for a primeira vez
+                // Preenche a Landing Page na primeira vez que os dados chegam
                 window.renderLandingGrid(cacheCatalogo);
                 
-                // 3. Define o primeiro destaque se nada estiver selecionado
                 if(cacheCatalogo.length > 0 && !window.currentDestaqueData) {
                     window.mudarDestaque(btoa(encodeURIComponent(JSON.stringify(cacheCatalogo[0]))));
                     setTimeout(() => { window.startHeroAutoCycle(); window.startRailsAutoScroll(); }, 1000);
                 }
-                
-                // 4. Refaz os trilhos e o TikTok Mode com os dados novos (Capas, Nomes nos cards)
                 window.renderizarTrilhosNaHome();
+                // Sincronização forçada para o Modo Conteúdos (TikTok) quando o catálogo mudar
                 if (window.currentActiveMenu === 'menu2') window.renderTikTokMode();
-
-                // 5. A MÁGICA: Sincroniza a interface ativa (Hero e Detalhes) ao vivo!
-                window.sincronizarInterfaceAoVivo(cacheCatalogo);
             });
         }
-
-        // Função responsável por atualizar os textos da tela sem recarregar ou pausar vídeos
-        window.sincronizarInterfaceAoVivo = function(catalogoRecente) {
-            // Se o usuário não está com nenhum destaque ativo, não há o que atualizar
-            if (!window.currentDestaqueData) return;
-
-            // Busca a versão mais atualizada do vídeo que o usuário está vendo no momento
-            const itemAtualizado = catalogoRecente.find(item => item.id === window.currentDestaqueData.id);
-            
-            // Se o Admin deletou o filme, o item não existirá mais. Fechamos os detalhes.
-            if (!itemAtualizado) {
-                if (!document.getElementById('view-details').classList.contains('hidden')) {
-                    window.fecharDetalhes();
-                    window.showToast("Este conteúdo foi removido pelo administrador.", true);
-                }
-                return;
-            }
-
-            // Atualiza a memória global para a versão fresca do Admin
-            window.currentDestaqueData = itemAtualizado;
-
-            // ATUALIZAÇÃO 1: Textos do Banner Principal (Hero da Home)
-            const heroTitle = document.getElementById('hero-title');
-            if (heroTitle && heroTitle.innerText !== itemAtualizado.titulo) {
-                heroTitle.innerText = itemAtualizado.titulo;
-            }
-            
-            const heroSelo = document.getElementById('hero-selo');
-            if (heroSelo) heroSelo.innerText = itemAtualizado.selo || 'A&M ORIGINALS';
-            
-            const heroSub = document.getElementById('hero-subtitulo');
-            if (heroSub) heroSub.innerText = itemAtualizado.subtitulo || 'Classificação: 14+ | Estreia Exclusiva';
-
-            // ATUALIZAÇÃO 2: Textos da Tela de Detalhes (Se ela estiver aberta)
-            const viewDetails = document.getElementById('view-details');
-            if (viewDetails && !viewDetails.classList.contains('hidden')) {
-                // Títulos e Descrição
-                document.getElementById('details-title').innerText = itemAtualizado.titulo || '';
-                document.getElementById('details-desc').innerText = itemAtualizado.descricao || "Sem descrição disponível no momento.";
-                document.getElementById('details-trilho').innerText = itemAtualizado.trilho || "Geral";
-                
-                // Metadados (Aba superior)
-                document.getElementById('details-genero1').innerText = itemAtualizado.genero1 || "Filmes";
-                document.getElementById('details-genero2').innerText = itemAtualizado.genero2 || "Aventura";
-                document.getElementById('details-imdb').innerText = itemAtualizado.imdb ? `IMDb ${itemAtualizado.imdb}` : "IMDb 8.5/10";
-                document.getElementById('details-ano').innerText = itemAtualizado.ano || "2024";
-                document.getElementById('details-tempo').innerText = itemAtualizado.tempo || "1 h 48 min";
-                document.getElementById('details-resolucao').innerText = itemAtualizado.resolucao || "4K HDR";
-                document.getElementById('details-elenco').innerText = itemAtualizado.elenco || "A&M Studios, Convidados Especiais";
-
-                // Metadados (Aba "Detalhes" Inferior)
-                document.getElementById('details-info-title').innerText = itemAtualizado.titulo || '';
-                document.getElementById('details-info-trilho').innerText = itemAtualizado.trilho || "Geral";
-                document.getElementById('details-info-desc').innerText = itemAtualizado.descricao || "Sem descrição disponível no momento.";
-            }
-
-            // ATUALIZAÇÃO 3: Atualiza o Título dentro do Player Fullscreen (se o usuário estiver assistindo agora)
-            const playerTitle = document.getElementById('player-full-title');
-            if (playerTitle && !document.getElementById('netflix-player').classList.contains('hidden')) {
-                // Se for trailer, mantém a tag "Trailer:"
-                if (window.isWatchingTrailer) {
-                    playerTitle.innerText = `Trailer: ${itemAtualizado.titulo}`;
-                } else {
-                    playerTitle.innerText = itemAtualizado.titulo;
-                }
-            }
-        };
 
         window.scrollRail = function(btn, direction) {
             const rail = btn.parentElement.querySelector('.auto-scroll-rail');
@@ -4079,12 +4006,15 @@
             clearInterval(window.railsScrollInterval);
             window.railsScrollInterval = setInterval(() => {
                 if (window.isUserDraggingRail) return;
-                document.querySelectorAll('.auto-scroll-rail').forEach(rail => {
-                    if (rail.scrollWidth > rail.clientWidth) {
-                        if (rail.scrollLeft >= rail.scrollWidth - rail.clientWidth - 20) rail.scrollTo({ left: 0, behavior: 'smooth' });
-                        else rail.scrollBy({ left: 280, behavior: 'smooth' });
+                // Ajustado para rolar automaticamente APENAS o Top 10, removendo a movimentação automática das categorias gerais
+                const top10Rail = document.getElementById('container-top10');
+                if (top10Rail && top10Rail.scrollWidth > top10Rail.clientWidth) {
+                    if (top10Rail.scrollLeft >= top10Rail.scrollWidth - top10Rail.clientWidth - 20) {
+                        top10Rail.scrollTo({ left: 0, behavior: 'smooth' });
+                    } else {
+                        top10Rail.scrollBy({ left: 280, behavior: 'smooth' });
                     }
-                });
+                }
             }, 8000);
         };
 
