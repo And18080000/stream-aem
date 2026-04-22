@@ -179,13 +179,37 @@
             bottom: 0;
             left: 0;
             width: 100%;
-            height: 4px;
+            height: 6px;
             background: rgba(255,255,255,0.1);
             z-index: 50;
+            cursor: pointer;
+            transition: height 0.2s;
         }
+        .tiktok-progress-container:hover { height: 10px; }
+        .tiktok-progress-fill {
+            height: 100%;
+            background: var(--brand-gold);
+            width: 0%;
+            position: relative;
+            pointer-events: none;
+        }
+        .tiktok-progress-fill::after {
+            content: '';
+            position: absolute;
+            right: -5px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .tiktok-progress-container:hover .tiktok-progress-fill::after { opacity: 1; }
 
         /* Gavetas TikTok (Comentários e Info) */
-        .tiktok-comments-drawer, .tiktok-details-drawer {
+        .tiktok-comments-drawer {
             position: absolute;
             bottom: 0;
             left: 0;
@@ -198,6 +222,23 @@
             flex-direction: column;
             border-top: 1px solid rgba(255,255,255,0.1);
             pointer-events: auto;
+        }
+        .tiktok-details-drawer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(10, 10, 10, 0.7) !important;
+            backdrop-filter: blur(25px) !important;
+            -webkit-backdrop-filter: blur(25px) !important;
+            z-index: 100;
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            border-top: 1px solid rgba(255,255,255,0.2);
+            pointer-events: auto;
+            box-shadow: 0 -20px 40px rgba(0,0,0,0.5);
         }
         .tiktok-comments-drawer { height: 75%; border-radius: 24px 24px 0 0; }
         .tiktok-details-drawer { height: 50%; padding: 24px; border-radius: 24px 24px 0 0; }
@@ -597,51 +638,7 @@
 
 
 
-<script>
-        // Executa apenas após a página carregar, evitando a "tela branca"
-        window.addEventListener('DOMContentLoaded', (event) => {
-            
-            // 1. Bloqueia o botão direito (Menu de Contexto)
-            document.addEventListener('contextmenu', function(e) {
-                e.preventDefault();
-            });
 
-            // 2. Bloqueia atalhos F12, Inspecionar, Ver Código Fonte e Salvar
-            document.addEventListener('keydown', function(e) {
-                // F12
-                if (e.key === 'F12' || e.keyCode === 123) {
-                    e.preventDefault();
-                }
-                // Ctrl + Shift + I / J / C (Windows/Linux)
-                if (e.ctrlKey && e.shiftKey && ['I', 'J', 'C', 'i', 'j', 'c'].includes(e.key)) {
-                    e.preventDefault();
-                }
-                // Ctrl + U (Ver código fonte) / Ctrl + S (Salvar)
-                if (e.ctrlKey && ['U', 'S', 'u', 's'].includes(e.key)) {
-                    e.preventDefault();
-                }
-                // Cmd + Option + I / J / U (Mac)
-                if (e.metaKey && e.altKey && ['I', 'J', 'U', 'i', 'j', 'u'].includes(e.key)) {
-                    e.preventDefault();
-                }
-            });
-
-            // 3. Oculta o corpo da página se a impressão (Ctrl+P) for acionada para salvar em PDF
-            window.addEventListener('beforeprint', () => {
-                document.body.style.display = 'none';
-            });
-            window.addEventListener('afterprint', () => {
-                document.body.style.display = '';
-            });
-            
-            // 4. Limpa o console constantemente para evitar injeção de scripts
-            setInterval(() => {
-                console.clear();
-                console.log("%c⛔ ACESSO RESTRITO", "color: red; font-size: 24px; font-weight: bold; text-shadow: 1px 1px 0px black;");
-            }, 1000);
-        });
-    </script>
-    </head>
 
 
 
@@ -1192,7 +1189,7 @@
         <div id="vignette-overlay" class="hidden absolute inset-0 z-[110] bg-black flex flex-col items-center justify-center pointer-events-auto transition-opacity duration-700">
             <div id="vignette-content" class="flex flex-col items-center opacity-0 transition-all duration-700 ease-out transform scale-90">
                 <h1 class="text-4xl md:text-7xl font-sans text-white tracking-tighter font-black italic leading-none flex items-baseline gap-2">
-                    A&M <span class="text-[var(--prime-blue)] font-light not-italic">streaming</span>
+                    A&amp;M <span class="text-[var(--prime-blue)] font-light not-italic">streaming</span>
                 </h1>
                 <div class="flex items-center gap-3 mt-1 text-[var(--prime-blue)] opacity-90">
                     <div class="h-1.5 w-32 md:w-48 bg-current rounded-full"></div>
@@ -1666,12 +1663,24 @@
 
         // LÓGICA MODO TIKTOK
         window.tiktokObserver = null;
+        window.preferredTikTokCategory = null; // Armazena o interesse do utilizador
+
         window.renderTikTokMode = function() {
             const feed = document.getElementById('tiktok-feed');
             if (!cacheCatalogo || cacheCatalogo.length === 0) return;
 
-            // Filtra itens vinculados ao Menu 2 que possuem pelo menos um vídeo ou trailer
-            const tiktokItems = cacheCatalogo.filter(i => (i.menuIds && i.menuIds.includes('menu2')) && (i.videoUrl || i.trailerUrl));
+            // 1. Filtra itens vinculados ao Menu 2
+            let tiktokItems = cacheCatalogo.filter(i => (i.menuIds && i.menuIds.includes('menu2')) && (i.videoUrl || i.trailerUrl));
+            
+            // 2. ORDEM ALEATÓRIA: Embaralha o array para que nunca seja a mesma ordem do admin
+            tiktokItems = tiktokItems.sort(() => Math.random() - 0.5);
+
+            // 3. ALGORITMO DE RECOMENDAÇÃO: Se o utilizador aceitou ver mais de uma categoria, trazemos esses para o topo
+            if (window.preferredTikTokCategory) {
+                const related = tiktokItems.filter(i => i.trilho === window.preferredTikTokCategory);
+                const others = tiktokItems.filter(i => i.trilho !== window.preferredTikTokCategory);
+                tiktokItems = [...related, ...others];
+            }
             
             if (tiktokItems.length === 0) {
                 feed.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-brand-text gap-4">
@@ -1689,7 +1698,7 @@
                 const videoSrc = item.trailerUrl || item.videoUrl;
 
                 return `
-                <div class="tiktok-item flex flex-col md:flex-row md:items-center md:justify-center md:gap-12 md:px-16" data-id="${item.id}">
+                <div class="tiktok-item flex flex-col md:flex-row md:items-center md:justify-center md:gap-12 md:px-16" data-id="${item.id}" data-category="${item.trilho}">
                     
                     <!-- VÍDEO E SOBREPOSIÇÃO ESTILO TIKTOK -->
                     <div class="relative w-full h-full md:h-[80vh] md:max-w-[45vh] md:rounded-[24px] overflow-hidden bg-black shadow-2xl">
@@ -1697,7 +1706,16 @@
                                onclick="window.toggleTikTokVideo(this)" 
                                ontimeupdate="window.updateTikTokProgress(this, '${item.id}')"></video>
                         
-                        <div class="tiktok-progress-container">
+                        <!-- PROMPT DE RECOMENDAÇÃO (SUTIL ESTILO INSTAGRAM) -->
+                        <div id="reco-prompt-${item.id}" class="absolute top-10 left-1/2 -translate-x-1/2 z-[110] bg-black/60 backdrop-blur-md border border-white/20 px-4 py-2.5 rounded-full flex items-center gap-4 opacity-0 transition-all duration-700 pointer-events-none transform -translate-y-4">
+                            <span class="text-[9px] font-black text-white uppercase tracking-widest whitespace-nowrap">Ver mais como este?</span>
+                            <div class="flex items-center gap-2 pointer-events-auto">
+                                <button onclick="window.acceptRecommendation('${item.id}', '${item.trilho}')" class="text-[9px] bg-brand-gold text-black px-3 py-1 rounded-full font-black hover:scale-110 transition">SIM</button>
+                                <button onclick="window.rejectRecommendation('${item.id}')" class="text-[9px] text-white/60 hover:text-white font-bold px-2">NÃO</button>
+                            </div>
+                        </div>
+
+                        <div class="tiktok-progress-container" onmousedown="window.startScrubTikTok(event, '${item.id}')" ontouchstart="window.startScrubTikTok(event, '${item.id}')">
                             <div class="tiktok-progress-fill" id="tk-progress-${item.id}"></div>
                         </div>
 
@@ -1750,9 +1768,9 @@
                                 </button>
                                 <span class="text-[10px] text-white font-bold mt-[-4px] drop-shadow-md">Salvar</span>
                             </div>
-                            <!-- Mais (Três Pontos) -->
+                            <!-- Mais (Informação) -->
                             <button onclick="window.abrirDetalhesTikTok('${dataStr}', '${item.id}')" class="w-12 h-12 flex items-center justify-center mt-2">
-                                <i class="ph ph-dots-three-bold text-3xl drop-shadow-lg text-white"></i>
+                                <i class="ph ph-info text-3xl drop-shadow-lg text-white"></i>
                             </button>
                         </div>
 
@@ -1775,46 +1793,38 @@
                         <div id="drawer-${item.id}" class="tiktok-details-drawer pointer-events-auto">
                             <div class="flex justify-between items-start mb-6">
                                 <div>
-                                    <h3 class="text-white font-black text-2xl uppercase">${item.titulo}</h3>
-                                    <p class="text-brand-gold text-[10px] font-bold uppercase tracking-widest mt-1">${item.trilho || 'Conteúdo'}</p>
+                                    <h3 class="text-white font-black text-2xl uppercase drop-shadow-md">${item.titulo}</h3>
+                                    <p class="text-brand-gold text-[10px] font-black uppercase tracking-[0.3em] mt-1">${item.trilho || 'Conteúdo'}</p>
                                 </div>
-                                <button onclick="window.fecharDetalhesTikTok('${item.id}')" class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-white"><i class="ph ph-x text-xl"></i></button>
+                                <button onclick="window.fecharDetalhesTikTok('${item.id}')" class="w-12 h-12 bg-white/10 backdrop-blur-md border border-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition"><i class="ph ph-x text-2xl"></i></button>
                             </div>
-                            <div class="grid grid-cols-2 gap-4 text-[10px] text-white font-bold uppercase mb-8">
-                                <div class="bg-white/5 p-4 rounded-xl border border-white/10 flex flex-col gap-1">
-                                    <span class="opacity-50">Lançamento</span>
-                                    <span>${item.ano || '2024'}</span>
+                            <div class="grid grid-cols-2 gap-3 text-[9px] text-white font-black uppercase mb-8">
+                                <div class="bg-black/20 p-4 rounded-2xl border border-white/10 flex flex-col gap-1 backdrop-blur-md">
+                                    <span class="text-white/40 tracking-widest">Lançamento</span>
+                                    <span class="text-xs text-white">${item.ano || '2024'}</span>
                                 </div>
-                                <div class="bg-white/5 p-4 rounded-xl border border-white/10 flex flex-col gap-1">
-                                    <span class="opacity-50">Resolução</span>
-                                    <span>${item.resolucao || '4K HDR'}</span>
+                                <div class="bg-black/20 p-4 rounded-2xl border border-white/10 flex flex-col gap-1 backdrop-blur-md">
+                                    <span class="text-white/40 tracking-widest">Resolução</span>
+                                    <span class="text-xs text-brand-gold">${item.resolucao || '4K HDR'}</span>
                                 </div>
-                                <div class="bg-white/5 p-4 rounded-xl border border-white/10 flex flex-col gap-1">
-                                    <span class="opacity-50">IMDb</span>
-                                    <span class="text-yellow-500">${item.imdb || '8.5/10'}</span>
+                                <div class="bg-black/20 p-4 rounded-2xl border border-white/10 flex flex-col gap-1 backdrop-blur-md">
+                                    <span class="text-white/40 tracking-widest">IMDb</span>
+                                    <span class="text-xs text-yellow-500 font-black italic">${item.imdb || '8.5/10'}</span>
                                 </div>
-                                <div class="bg-white/5 p-4 rounded-xl border border-white/10 flex flex-col gap-1">
-                                    <span class="opacity-50">Duração</span>
-                                    <span>${item.tempo || '1h 45m'}</span>
+                                <div class="bg-black/20 p-4 rounded-2xl border border-white/10 flex flex-col gap-1 backdrop-blur-md">
+                                    <span class="text-white/40 tracking-widest">Duração</span>
+                                    <span class="text-xs text-white">${item.tempo || '1h 45m'}</span>
                                 </div>
-                                <div class="bg-white/5 p-4 rounded-xl border border-white/10 flex flex-col gap-1 col-span-2">
-                                    <span class="opacity-50">Elenco Principal</span>
-                                    <span class="truncate">${item.elenco || 'A&M Originals'}</span>
+                                <div class="bg-black/20 p-4 rounded-2xl border border-white/10 flex flex-col gap-1 col-span-2 backdrop-blur-md">
+                                    <span class="text-white/40 tracking-widest">Elenco Principal</span>
+                                    <span class="text-xs text-white truncate">${item.elenco || 'A&M Originals'}</span>
                                 </div>
                             </div>
-                            <button onclick="window.fecharDetalhesTikTok('${item.id}'); window.abrirPlayerFull()" class="w-full bg-white text-black py-4 rounded-full font-black uppercase text-xs tracking-widest hover:bg-gray-200 transition">Assistir em Alta Definição</button>
+                            <button onclick="window.fecharDetalhesTikTok('${item.id}')" class="w-full bg-brand-gold text-black py-4 rounded-full font-black uppercase text-xs tracking-[0.2em] shadow-xl active:scale-95 transition-all">Fechar Especificações</button>
                         </div>
                     </div>
 
-                    <!-- DESKTOP: INFO LATERAL (Apenas se tela larga) -->
-                    <div id="info-main-${item.id}" class="hidden md:flex flex-col max-w-md pointer-events-none md:pointer-events-auto">
-                        <h2 class="text-white font-black text-6xl uppercase tracking-tighter leading-none mb-6">${item.titulo}</h2>
-                        <p class="text-gray-400 text-lg leading-relaxed mb-8 opacity-80">${item.descricao || ''}</p>
-                        <button onclick="window.abrirPlayerFull()" class="w-fit bg-brand-gold text-black px-10 py-4 rounded-full font-black uppercase text-sm tracking-widest hover:scale-105 transition shadow-2xl flex items-center gap-3">
-                            <i class="ph-fill ph-play text-2xl"></i> Reproduzir Agora
-                        </button>
-                    </div>
-                </div>`;
+                    </div>`;
             }).join('');
 
             if (window.tiktokObserver) window.tiktokObserver.disconnect();
@@ -1822,14 +1832,40 @@
                 entries.forEach(entry => {
                     const video = entry.target.querySelector('video');
                     const itemId = entry.target.dataset.id;
+                    const prompt = document.getElementById(`reco-prompt-${itemId}`);
+
                     if (entry.isIntersecting) {
-                        video.play().catch(() => { video.muted = true; video.play(); });
-                        video.muted = false;
+                        // REPRODUÇÃO AUTOMÁTICA IMEDIATA (TENTA SOM, CAI PARA MUDO SE BLOQUEADO)
+                        video.play().then(() => {
+                            video.muted = false; 
+                        }).catch(() => { 
+                            video.muted = true; 
+                            video.play(); 
+                        });
+                        
                         entry.target.classList.remove('paused');
                         window.monitorarEstatisticas(itemId);
+
+                        // GATILHO INTELIGENTE DE RECOMENDAÇÃO (INSTAGRAM STYLE)
+                        // Só aparece se o utilizador já não tiver aceitado esta categoria nesta sessão e após 12 segundos (interesse real)
+                        if (prompt && !window[`shown_reco_${itemId}`] && window.preferredTikTokCategory !== entry.target.dataset.category) {
+                            clearTimeout(window[`timer_reco_${itemId}`]);
+                            window[`timer_reco_${itemId}`] = setTimeout(() => {
+                                if (!video.paused && entry.isIntersecting) {
+                                    prompt.classList.remove('opacity-0', 'pointer-events-none', '-translate-y-4');
+                                    prompt.classList.add('opacity-100', 'pointer-events-auto', 'translate-y-0');
+                                    window[`shown_reco_${itemId}`] = true; // Marca como exibido para não repetir neste vídeo
+                                }
+                            }, 12000); // Aumentado para 12s para seguir o dwell-time do Instagram
+                        }
                     } else {
                         video.pause();
                         video.currentTime = 0;
+                        if (prompt) {
+                            prompt.classList.add('opacity-0', 'pointer-events-none', '-translate-y-4');
+                            prompt.classList.remove('opacity-100', 'translate-y-0');
+                        }
+                        clearTimeout(window[`timer_reco_${itemId}`]);
                         window.fecharDetalhesTikTok(itemId);
                         window.fecharComentariosTikTok(itemId);
                     }
@@ -1837,6 +1873,27 @@
             }, { threshold: 0.6 });
 
             document.querySelectorAll('.tiktok-item').forEach(item => window.tiktokObserver.observe(item));
+        };
+
+        // LÓGICA DO ALGORITMO DE RECOMENDAÇÃO
+        window.acceptRecommendation = function(itemId, category) {
+            window.preferredTikTokCategory = category;
+            const prompt = document.getElementById(`reco-prompt-${itemId}`);
+            if (prompt) {
+                prompt.innerHTML = `<span class="text-[9px] font-black text-brand-gold uppercase tracking-widest animate-pulse"><i class="ph-fill ph-magic-wand"></i> Algoritmo ajustado!</span>`;
+                setTimeout(() => {
+                    prompt.classList.remove('opacity-100', 'translate-y-0');
+                    prompt.classList.add('opacity-0', 'pointer-events-none', '-translate-y-4');
+                }, 2500);
+            }
+            window.showToast("Iremos recomendar mais conteúdos de " + category);
+        };
+
+        window.rejectRecommendation = function(itemId) {
+            const prompt = document.getElementById(`reco-prompt-${itemId}`);
+            if (prompt) {
+                prompt.classList.add('opacity-0', 'pointer-events-none');
+            }
         };
 
         window.compartilharConteudo = function(titulo, id) {
@@ -1940,14 +1997,27 @@
                     }
                     list.innerHTML = snap.docs.map(d => {
                         const c = d.data();
-                        return `<div class="comment-item flex gap-3 items-start">
+                        const commentId = d.id;
+                        const isOwner = currentUser && c.userId === currentUser.uid;
+                        return `<div class="comment-item flex gap-3 items-start group">
                             <div class="w-8 h-8 rounded-full bg-white/10 flex-shrink-0 border border-white/5 overflow-hidden">
                                 <img src="${c.userPhoto || 'https://api.dicebear.com/7.x/initials/svg?seed=' + c.userName}" class="w-full h-full object-cover">
                             </div>
-                            <div class="flex flex-col gap-0.5">
-                                <span class="text-white font-bold text-[11px]">${c.userName || 'Utilizador'}</span>
-                                <p class="text-gray-300 text-xs leading-relaxed">${c.text}</p>
-                                <span class="text-white/30 text-[8px] uppercase font-bold mt-1">${new Date(c.date).toLocaleDateString()}</span>
+                            <div class="flex flex-col gap-0.5 flex-grow">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-white font-bold text-[11px]">${c.userName || 'Utilizador'}</span>
+                                    ${isOwner ? `
+                                    <div class="flex gap-3 opacity-0 group-hover:opacity-100 transition-opacity pr-2">
+                                        <button onclick="window.editarComentario('${itemId}', '${commentId}', '${c.text.replace(/'/g, "\\'")}')" class="text-brand-gold hover:scale-110 transition"><i class="ph ph-pencil-simple text-sm"></i></button>
+                                        <button onclick="window.excluirComentario('${itemId}', '${commentId}')" class="text-red-500 hover:scale-110 transition"><i class="ph ph-trash text-sm"></i></button>
+                                    </div>
+                                    ` : ''}
+                                </div>
+                                <div id="comment-content-${commentId}" class="text-gray-300 text-xs leading-relaxed">${c.text}</div>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <span class="text-white/30 text-[8px] uppercase font-bold">${new Date(c.date).toLocaleDateString()}</span>
+                                    ${c.edited ? `<span class="text-brand-gold/40 text-[7px] font-black uppercase tracking-tighter italic">Editado</span>` : ''}
+                                </div>
                             </div>
                         </div>`;
                     }).join('');
@@ -1979,6 +2049,53 @@
             } catch (e) { window.showToast("Erro ao comentar.", true); }
         };
 
+        window.excluirComentario = async function(itemId, commentId) {
+            window.showConfirm("Eliminar Comentário", "Deseja apagar permanentemente o seu comentário?", async () => {
+                try {
+                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'comments', itemId, 'list', commentId));
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'stats', itemId), { comments: increment(-1) }, { merge: true });
+                    window.showToast("Comentário removido.");
+                } catch (e) { window.showToast("Erro ao excluir.", true); }
+            });
+        };
+
+        window.editarComentario = function(itemId, commentId, oldText) {
+            const container = document.getElementById(`comment-content-${commentId}`);
+            if(!container) return;
+
+            container.innerHTML = `
+                <div class="flex flex-col gap-2 mt-1 animate-fadeIn">
+                    <textarea id="edit-input-${commentId}" class="w-full bg-white/10 border border-brand-gold/30 rounded-lg px-3 py-2 text-white text-xs outline-none focus:border-brand-gold transition resize-none h-16">${oldText}</textarea>
+                    <div class="flex gap-3 justify-end">
+                        <button onclick="window.cancelarEdicaoInline('${commentId}', '${oldText.replace(/'/g, "\\'")}')" class="text-[9px] text-gray-400 font-bold uppercase tracking-widest hover:text-white">Cancelar</button>
+                        <button onclick="window.salvarEdicaoInline('${itemId}', '${commentId}')" class="text-[9px] text-brand-gold font-black uppercase tracking-widest hover:scale-105 transition">Guardar</button>
+                    </div>
+                </div>
+            `;
+            setTimeout(() => document.getElementById(`edit-input-${commentId}`).focus(), 100);
+        };
+
+        window.cancelarEdicaoInline = function(commentId, oldText) {
+            const container = document.getElementById(`comment-content-${commentId}`);
+            if(container) container.innerText = oldText;
+        };
+
+        window.salvarEdicaoInline = async function(itemId, commentId) {
+            const input = document.getElementById(`edit-input-${commentId}`);
+            const novoTexto = input.value.trim();
+            
+            if(!novoTexto || novoTexto === "") return window.showToast("O comentário não pode estar vazio.", true);
+
+            try {
+                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'comments', itemId, 'list', commentId), {
+                    text: novoTexto,
+                    edited: true,
+                    updatedAt: new Date().getTime()
+                });
+                window.showToast("Comentário atualizado!");
+            } catch (e) { window.showToast("Erro ao atualizar.", true); }
+        };
+
         window.monitorarEstatisticas = function(itemId) {
             if(window.statsObservers[itemId]) return;
             window.statsObservers[itemId] = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'stats', itemId), (snap) => {
@@ -2008,10 +2125,49 @@
         };
 
         window.updateTikTokProgress = function(video, id) {
+            if (window.isScrubbingTikTok === id) return; // Não atualiza enquanto o user arrasta
             const bar = document.getElementById(`tk-progress-${id}`);
             if (bar && video.duration) {
                 const pct = (video.currentTime / video.duration) * 100;
                 bar.style.width = pct + '%';
+            }
+        };
+
+        window.isScrubbingTikTok = null;
+        window.startScrubTikTok = function(e, id) {
+            window.isScrubbingTikTok = id;
+            window.handleScrubTikTok(e);
+            
+            const moveHandler = (event) => window.handleScrubTikTok(event);
+            const stopHandler = () => {
+                window.isScrubbingTikTok = null;
+                window.removeEventListener('mousemove', moveHandler);
+                window.removeEventListener('mouseup', stopHandler);
+                window.removeEventListener('touchmove', moveHandler);
+                window.removeEventListener('touchend', stopHandler);
+            };
+
+            window.addEventListener('mousemove', moveHandler);
+            window.addEventListener('mouseup', stopHandler);
+            window.addEventListener('touchmove', moveHandler, { passive: false });
+            window.addEventListener('touchend', stopHandler);
+        };
+
+        window.handleScrubTikTok = function(e) {
+            if (!window.isScrubbingTikTok) return;
+            const id = window.isScrubbingTikTok;
+            const container = document.querySelector(`[data-id="${id}"] .tiktok-progress-container`);
+            const video = document.querySelector(`[data-id="${id}"] video`);
+            const bar = document.getElementById(`tk-progress-${id}`);
+
+            if (container && video && bar) {
+                const rect = container.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                let pos = (clientX - rect.left) / rect.width;
+                pos = Math.max(0, Math.min(1, pos));
+                
+                bar.style.width = (pos * 100) + '%';
+                video.currentTime = pos * video.duration;
             }
         };
 
@@ -2035,6 +2191,10 @@
             if (drawer) drawer.classList.remove('active');
             if (window.innerWidth >= 768 && infoMain) infoMain.classList.remove('hidden');
         };
+
+        // Correção de entidades e tags detectadas pelo sistema
+        const amEntities = document.querySelectorAll('h1');
+        amEntities.forEach(el => { el.innerHTML = el.innerHTML.replace(/A&M/g, 'A&amp;M'); });
 
         // ==========================================
         // MODAL DE CADASTRO DO USUÁRIO
