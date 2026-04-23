@@ -49,6 +49,18 @@
             --prime-blue: #00A8E1;
         }
 
+        /* Remove o quadrado azul de clique (tap highlight) e o contorno de foco padrão em todos os estados */
+        *, *:focus, *:active, *:hover, button, a, img, video, .focusable {
+            -webkit-tap-highlight-color: transparent !important;
+            -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
+            outline: none !important;
+            outline: 0 !important;
+            box-shadow: none !important;
+            user-select: none;
+            -webkit-user-select: none;
+            -ms-user-select: none;
+        }
+
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
         /* Estilo para o Card Expansível Prime Video Style */
@@ -259,20 +271,41 @@
         .auto-scroll-rail:active { cursor: grabbing; }
 
         .focusable {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            outline: none !important; will-change: transform;
-            transform: translateZ(0);
+            transition: all 0.2s ease-in-out;
+            outline: none !important; 
+            will-change: transform, background-color;
+            border: 2px solid transparent !important;
         }
-        .focusable:focus {
-            transform: scale(1.05); z-index: 50;
-            border: 3px solid var(--brand-gold) !important;
-            box-shadow: none !important; /* LEDs removidos para performance TV */
-            filter: none !important;
+        
+        /* Efeito Amazon Prime: Fundo branco e texto escuro ao focar/clicar, respeitando o formato original */
+        .focusable:focus, .focusable:active {
+            background-color: #FFFFFF !important;
+            color: #000000 !important;
+            /* Removemos a sobrescrita de radius para manter o formato original do botão (Pílula ou Retângulo) */
+            transform: scale(1.02); 
+            box-shadow: 0 0 0 2px #FFFFFF, 0 4px 20px rgba(255, 255, 255, 0.4) !important;
+            z-index: 50;
         }
+
+        /* Garante que ícones dentro do botão focado fiquem pretos */
+        .focusable:focus i, .focusable:active i,
+        .focusable:focus span, .focusable:active span {
+            color: #000000 !important;
+        }
+
+        /* Ajuste específico para os Cards de Vídeo (que possuem imagens) */
+        .card-container .focusable:focus, .card-container .focusable:active {
+            background-color: transparent !important; /* Não sobrepõe a imagem */
+            border: 4px solid #FFFFFF !important; /* Moldura branca grossa */
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.6) !important;
+            transform: scale(1.1);
+        }
+
+        /* Botões do Player mantêm foco branco mas sem fundo sólido para não tapar controles */
         #player-controls .focusable:focus {
-            box-shadow: 0 0 15px rgba(255, 255, 255, 0.5) !important; 
+            background-color: rgba(255, 255, 255, 0.2) !important;
             border-color: #FFFFFF !important;
-            filter: none !important; transform: scale(1.15);
+            color: #FFFFFF !important;
         }
 
         /* Top 10 Ranking Design (Prime Style) */
@@ -717,10 +750,10 @@
         <!-- VIEW 2: DETALHES DO TÍTULO (ESTILO PRIME) -->
         <!-- ========================================== -->
         <section id="view-details" class="hidden w-full min-h-screen bg-[#0B0D12] pb-20">
-            <!-- Botão Voltar Global (Fixo para facilitar navegação em conteúdos longos) -->
-            <div class="fixed top-24 md:top-28 left-6 md:left-12 z-50">
-                <button onclick="fecharDetalhes()" class="focusable w-10 h-10 bg-black/60 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center hover:bg-white/20 hover:border-white transition text-white shadow-xl" tabindex="0">
-                    <i class="ph ph-arrow-left text-xl"></i>
+            <!-- Botão Voltar Global (Fixo e persistente sobre o conteúdo ao scrollar) -->
+            <div class="fixed top-24 md:top-28 left-6 md:left-12 z-[100]">
+                <button onclick="fecharDetalhes()" class="focusable w-12 h-12 bg-black/60 backdrop-blur-lg border border-white/20 rounded-full flex items-center justify-center hover:bg-white/20 hover:border-white transition-all text-white shadow-2xl" tabindex="0">
+                    <i class="ph ph-arrow-left text-2xl"></i>
                 </button>
             </div>
 
@@ -1436,6 +1469,7 @@
                 window.carregarHistoricoPesquisaRealtime();
                 window.carregarConfigAnunciosRealtime();
                 window.carregarContinuarAssistindoRealtime();
+                window.carregarTop10Realtime();
             } else {
                 signInAnonymously(auth);
             }
@@ -1651,6 +1685,30 @@
                 
                 if (viewId !== 'menu2') {
                     window.renderizarTrilhosNaHome();
+                    
+                    // Sincroniza a prévia (Hero) com o primeiro vídeo da aba selecionada
+                    let listaParaHero = [];
+                    if (viewId === 'home') {
+                        listaParaHero = cacheCatalogo.filter(item => 
+                            item.trilho?.toLowerCase() !== 'conteúdos' && 
+                            item.trilho?.toLowerCase() !== 'conteudos' &&
+                            !(item.menuIds && item.menuIds.includes('menu2'))
+                        );
+                    } else if (viewId === 'minhaLista') {
+                        listaParaHero = cacheCatalogo.filter(item => minhaListaIds.includes(item.id));
+                    } else if (viewId === 'meusDownloads') {
+                        listaParaHero = JSON.parse(localStorage.getItem('am_offline_metadata') || '[]');
+                    } else {
+                        // Filtra por menu1, menu2 ou menu3
+                        listaParaHero = cacheCatalogo.filter(item => (item.menuIds && item.menuIds.includes(viewId)));
+                    }
+
+                    if (listaParaHero.length > 0) {
+                        // Atualiza o destaque imediatamente com o primeiro item da lista filtrada
+                        const primeiroItemData = btoa(encodeURIComponent(JSON.stringify(listaParaHero[0])));
+                        window.mudarDestaque(primeiroItemData, true, false);
+                    }
+
                     window.startHeroAutoCycle();
                 } else {
                     clearInterval(window.autoCycleInterval);
@@ -2364,10 +2422,13 @@
                         let themeMeta = document.querySelector("meta[name='theme-color']");
                         if(themeMeta) themeMeta.content = dados.corPrincipal;
                         
-                        // Atualiza os estilos de foco para Smart TV (Sem LEDs/Glow para maior performance)
+                        // Atualiza os estilos de foco e cores globais
                         let styleEl = document.getElementById('brand-custom-styles');
                         if (!styleEl) { styleEl = document.createElement('style'); styleEl.id = 'brand-custom-styles'; document.head.appendChild(styleEl); }
-                        styleEl.innerHTML = `.focusable:focus { border: 4px solid ${dados.corPrincipal} !important; box-shadow: none !important; outline: none !important; } #toast.bg-green-600 { background-color: ${dados.corPrincipal} !important; color: #000 !important; font-weight: bold; }`;
+                        styleEl.innerHTML = `
+                            #toast.bg-green-600 { background-color: ${dados.corPrincipal} !important; color: #000 !important; font-weight: bold; }
+                            .nav-link.active { border-bottom-color: ${dados.corPrincipal} !important; }
+                        `;
                     }
                 }
             });
@@ -2466,6 +2527,15 @@
             const q = query(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'continuar_assistindo'), orderBy('updatedAt', 'desc'), limit(10));
             onSnapshot(q, (snap) => {
                 continuarAssistindoDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                window.renderizarTrilhosNaHome();
+            });
+        }
+
+        window.carregarTop10Realtime = function() {
+            // Consulta global na coleção de estatísticas, ordenada por visualizações
+            const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'stats'), orderBy('views', 'desc'), limit(15));
+            onSnapshot(q, (snap) => {
+                window.cacheTop10Ids = snap.docs.map(d => d.id);
                 window.renderizarTrilhosNaHome();
             });
         }
@@ -2740,12 +2810,33 @@
             if (sectionTop10) {
                 if (window.currentActiveMenu === 'home' && cacheCatalogo.length > 0) {
                     sectionTop10.classList.remove('hidden');
-                    // Filtra o Top 10 para ignorar a categoria de Conteúdos
-                    const top10Items = cacheCatalogo.filter(item => 
-                        item.trilho?.toLowerCase() !== 'conteúdos' && 
-                        item.trilho?.toLowerCase() !== 'conteudos' &&
-                        !(item.menuIds && item.menuIds.includes('menu2'))
-                    ).slice(0, 10);
+                    
+                    // LÓGICA DE RANKING GLOBAL POR VISUALIZAÇÕES
+                    let top10Items = [];
+                    if (window.cacheTop10Ids && window.cacheTop10Ids.length > 0) {
+                        window.cacheTop10Ids.forEach(id => {
+                            const found = cacheCatalogo.find(i => i.id === id);
+                            if (found) {
+                                // Garante que o TikTok (Menu 2) não entre no Top 10 da Home
+                                const isContent = found.trilho?.toLowerCase() === 'conteúdos' || 
+                                                  found.trilho?.toLowerCase() === 'conteudos' ||
+                                                  (found.menuIds && found.menuIds.includes('menu2'));
+                                if (!isContent) top10Items.push(found);
+                            }
+                        });
+                    }
+                    
+                    // Se a lista por visualizações estiver curta, completa com os itens mais recentes para preencher 10 posições
+                    if (top10Items.length < 10) {
+                        const fallbacks = cacheCatalogo.filter(item => 
+                            !top10Items.some(existing => existing.id === item.id) &&
+                            item.trilho?.toLowerCase() !== 'conteúdos' && 
+                            item.trilho?.toLowerCase() !== 'conteudos' &&
+                            !(item.menuIds && item.menuIds.includes('menu2'))
+                        );
+                        top10Items = [...top10Items, ...fallbacks].slice(0, 10);
+                    }
+
                     const top10Content = top10Items.map((item, idx) => renderCardTop10(item, idx + 1)).join('');
                     document.getElementById('container-top10').innerHTML = top10Content;
                 } else {
@@ -2921,7 +3012,7 @@
         }
 
         // LÓGICA DE HERO E BOTÕES (HOME)
-        window.mudarDestaque = function(dataStr, isAuto = false) {
+        window.mudarDestaque = function(dataStr, isAuto = false, forcePlay = false) {
             if(!isAuto) window.startHeroAutoCycle();
             const data = JSON.parse(decodeURIComponent(atob(dataStr)));
             // Evita re-processamento se for o mesmo item
@@ -2967,8 +3058,8 @@
                 isOficialTrailer = true;
             }
 
-            // Só roda o trailer na home se não estiver no player e NÃO estiver na aba de detalhes
-            if (urlDoTrailerParaTocar && urlDoTrailerParaTocar.trim() !== "" && !isPlayerOpen && !isDetailsOpen) {
+            // Só roda o trailer na home se solicitado via clique (forcePlay), se não estiver no player e NÃO estiver na aba de detalhes
+            if (forcePlay && urlDoTrailerParaTocar && urlDoTrailerParaTocar.trim() !== "" && !isPlayerOpen && !isDetailsOpen) {
                 window.heroTimeout = setTimeout(() => {
                     heroVideo.src = urlDoTrailerParaTocar; 
                     heroVideo.preload = "auto"; // Preload auto para preview instantâneo na home
@@ -3069,19 +3160,28 @@
             window.verificarStatusBotoes();
         };
 
-        // Motor de Ação de Card (Exibição Instantânea ao Clicar)
+        // Motor de Ação de Card (Single Click -> Ativa Trailer no Banner / Double Click -> Abre Informações)
         window.handleCardAction = function(dataStr, el) {
-            // Conforme solicitado, ao clicar uma vez em qualquer vídeo dentro dos Trilhos, 
-            // ele entra imediatamente em modo de exibição (Detalhes + Trailer Autoplay)
-            window.abrirDetalhes(dataStr);
+            if (window.cardClickTimer === null) {
+                window.cardClickTimer = setTimeout(() => {
+                    window.cardClickTimer = null;
+                    // CLIQUE ÚNICO: Apenas destaca o vídeo e inicia o mini trailer no banner principal
+                    window.mudarDestaque(dataStr, false, true);
+                    window.showToast("Dê dois cliques para ver os detalhes");
+                }, 250);
+            } else {
+                clearTimeout(window.cardClickTimer);
+                window.cardClickTimer = null;
+                // CLIQUE DUPLO: Abre a tela de informações completas
+                window.abrirDetalhes(dataStr);
+            }
         };
 
         window.handleCardFocus = function(dataStr) {
             const data = JSON.parse(decodeURIComponent(atob(dataStr)));
-            // O Foco apenas muda o destaque visual no Hero (Preview)
-            // Não definimos o cardReadyToOpenId aqui para garantir que o clique seja uma ação intencional
+            // O Foco (hover/seleção na TV) apenas muda a imagem de destaque, sem tocar o vídeo automaticamente
             if (window.currentDestaqueData?.id !== data.id) {
-                window.mudarDestaque(dataStr, false);
+                window.mudarDestaque(dataStr, false, false);
             }
         };
 
@@ -3519,6 +3619,12 @@
             if(!window.currentDestaqueData || !window.currentDestaqueData.videoUrl) return window.showToast("Vídeo não registado!", true);
             
             window.isWatchingTrailer = isTrailer;
+
+            // Incrementa contador de visualizações globais se for o filme completo
+            if (!isTrailer) {
+                const statsRef = doc(db, 'artifacts', appId, 'public', 'data', 'stats', window.currentDestaqueData.id);
+                setDoc(statsRef, { views: increment(1) }, { merge: true }).catch(()=>{});
+            }
 
             // Performance Turbo: Limpeza total de memória e priorização de requisição
             mainVid.pause();
@@ -4129,7 +4235,7 @@
                 const randomVideo = outrosVideos.length > 0 ? outrosVideos[Math.floor(Math.random() * outrosVideos.length)] : window.currentDestaqueData;
                 
                 adVideoUrl = randomVideo.trailerUrl || randomVideo.videoUrl || "";
-                adTitle = `Sugestão: ${randomVideo.titulo || 'A&M'}`;
+                adTitle = `Sugestão: ${randomVideo.titulo || 'A&amp;M'}`;
                 
                 // Marca se tivemos que puxar o filme grande por não ter um trailer
                 isFallbackLongVideo = !randomVideo.trailerUrl && (randomVideo.videoUrl === adVideoUrl);
