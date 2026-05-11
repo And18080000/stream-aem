@@ -406,6 +406,20 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .video-container{
+            width: 100%;
+            max-width: 1200px;
+            overflow: hidden;
+            border-radius: 16px;
+            background: #000;
+            position: relative;
+            z-index: 5;
+        }
+        .video-container video{
+            width: 100%;
+            height: auto;
+            display: block;
+        }
     </style>
 
     <script>
@@ -1207,7 +1221,11 @@
     <!-- PLAYER DE VÍDEO FULLSCREEN ESTILO NETFLIX -->
     <div id="netflix-player" class="hidden fixed inset-0 z-[100] bg-black flex flex-col justify-center items-center">
         <!-- VÍDEO PRINCIPAL COM PRELOAD ULTRA-AGRESSIVO E PRIORIDADE DE REDE MÁXIMA -->
-        <video id="main-full-video" class="w-full h-full object-contain absolute inset-0 cursor-pointer transition-opacity duration-1000" playsinline preload="auto" fetchpriority="high" x-webkit-airplay="allow"></video>
+        <div class="video-container">
+            <video id="main-full-video" class="cursor-pointer transition-opacity duration-1000" controls preload="metadata" playsinline poster="thumb.webp" fetchpriority="high" x-webkit-airplay="allow">
+                <source src="" type="video/mp4">
+            </video>
+        </div>
 
         <!-- Netflix Style Loader -->
         <div id="netflix-loader">
@@ -3591,6 +3609,8 @@
         };
 
         window.abrirPlayerFull = function(isTrailer = false, specificUrl = null) {
+            const mainVid = document.getElementById('main-full-video');
+            if (!mainVid) return;
             const isAnon = (!currentUser || currentUser.isAnonymous);
             const isOffline = !navigator.onLine;
 
