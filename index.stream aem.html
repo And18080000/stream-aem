@@ -3611,6 +3611,8 @@
         window.abrirPlayerFull = function(isTrailer = false, specificUrl = null) {
             const mainVid = document.getElementById('main-full-video');
             if (!mainVid) return;
+            mainVid.preload = "auto";
+            mainVid.setAttribute('fetchpriority', 'high');
             const isAnon = (!currentUser || currentUser.isAnonymous);
             const isOffline = !navigator.onLine;
 
@@ -4015,9 +4017,9 @@
                     const pctEl = document.getElementById('load-percentage');
                     if(pctEl) pctEl.innerText = pct + '%';
                     
-                    // ACELERAÇÃO DE REPRODUÇÃO TURBO ADAPTATIVA:
-                    // Se o vídeo for > 60min, iniciamos com apenas 0.7s de cache para evitar espera.
-                    const threshold = (mainVid.duration > 3600) ? 0.7 : 1.2;
+                    // ACELERAÇÃO DE REPRODUÇÃO TURBO SUPREMA:
+                    // Reduzimos o tempo de espera inicial para 0.3s para início quase instantâneo
+                    const threshold = (mainVid.duration > 3600) ? 0.3 : 0.5;
 
                     if (targetBuffer - mainVid.currentTime > threshold && mainVid.paused && !window.isMandatoryTrailer) {
                         mainVid.play().catch(()=>{});
