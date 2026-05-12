@@ -100,18 +100,12 @@
             transform: scale(1.08) translateY(0);
         }
         /* Ajuste de profundidade: Garante que a expansão de info não seja cortada e não abafe o título seguinte */
-            .auto-scroll-rail { 
-                padding-top: 20px !important;
-                padding-bottom: 90px !important; 
-                margin-bottom: -70px !important;
-                overflow-y: visible !important;
-            }
-            @media (max-width: 768px) {
-                .auto-scroll-rail {
-                    padding-bottom: 110px !important;
-                    margin-bottom: -90px !important;
-                }
-            }
+        .auto-scroll-rail { 
+            padding-top: 20px !important;
+            padding-bottom: 90px !important; 
+            margin-bottom: -70px !important;
+            overflow-y: visible !important;
+        }
         
         body { background-color: #000000; color: white; overflow-x: hidden; }
 
@@ -412,19 +406,13 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        .video-container{
-            width: 100%;
-            max-width: 1200px;
-            overflow: hidden;
-            border-radius: 16px;
-            background: #000;
-            position: relative;
-            z-index: 5;
-        }
-        .video-container video{
-            width: 100%;
-            height: auto;
-            display: block;
+        .video-loader-blue {
+            border: 4px solid rgba(37, 99, 235, 0.1);
+            border-top: 4px solid #2563EB;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: n-spin 1s linear infinite;
         }
     </style>
 
@@ -742,7 +730,7 @@
             </div>
 
             <!-- Trilhos da Home (Margem negativa removida para não cobrir botões do Hero) -->
-            <div class="px-4 md:px-16 mt-4 relative z-30 space-y-24 md:space-y-24 pb-12 md:pb-24">
+            <div class="px-4 md:px-16 mt-4 relative z-30 space-y-12 md:space-y-20 pb-12 md:pb-24">
                 <div id="section-continuar-assistindo" class="hidden">
                     <h3 class="text-lg md:text-xl font-bold mb-3 md:mb-5 text-white tracking-wide flex items-center gap-2">
                         <i class="ph ph-play-circle text-brand-gold"></i> Continuar Assistindo
@@ -762,15 +750,7 @@
                     <div id="container-top10" class="auto-scroll-rail flex gap-2 overflow-x-auto pb-8 scrollbar-hide snap-x snap-mandatory min-h-[180px]"></div>
                 </div>
 
-                <div id="dynamic-rails-container" class="space-y-20 md:space-y-20"></div>
-            </div>
-
-            <!-- Botão WhatsApp Flutuante (Branco, sem fundo e menor) -->
-            <div id="whatsapp-float" class="fixed bottom-8 right-6 z-[100] transition-all duration-500 translate-y-32 opacity-0">
-                <button onclick="window.openContactModal()" class="focusable w-12 h-12 flex items-center justify-center text-white transition-all group relative" tabindex="0">
-                    <i class="ph-fill ph-whatsapp-logo text-4xl drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]"></i>
-                    <span class="absolute -top-10 right-0 bg-white text-black text-[9px] font-black px-2 py-1 rounded-md whitespace-nowrap shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none uppercase tracking-tighter">Fale Conosco</span>
-                </button>
+                <div id="dynamic-rails-container" class="space-y-10 md:space-y-14"></div>
             </div>
         </section>
 
@@ -778,10 +758,10 @@
         <!-- VIEW 2: DETALHES DO TÍTULO (ESTILO PRIME) -->
         <!-- ========================================== -->
         <section id="view-details" class="hidden w-full min-h-screen bg-[#0B0D12] pb-20">
-            <!-- Botão Voltar Global (Seta fixa que reage ao scroll) -->
-            <div id="back-button-container" class="fixed top-24 left-5 z-[100] transition-transform duration-500">
-                <button onclick="fecharDetalhes()" class="focusable flex items-center justify-center text-white hover:text-brand-gold transition-all drop-shadow-[0_2px_10px_rgba(0,0,0,1)]" tabindex="0">
-                    <i class="ph-bold ph-arrow-left text-3xl"></i>
+            <!-- Botão Voltar Global (Fixo e persistente sobre o conteúdo ao scrollar) -->
+            <div class="fixed top-24 md:top-28 left-6 md:left-12 z-[100]">
+                <button onclick="fecharDetalhes()" class="focusable w-12 h-12 bg-black/60 backdrop-blur-lg border border-white/20 rounded-full flex items-center justify-center hover:bg-white/20 hover:border-white transition-all text-white shadow-2xl" tabindex="0">
+                    <i class="ph ph-arrow-left text-2xl"></i>
                 </button>
             </div>
 
@@ -872,15 +852,15 @@
                 </div>
 
                 <!-- Aba: Relacionados -->
-                <div id="content-relacionados" class="space-y-16 md:space-y-24 animate-fadeIn">
+                <div id="content-relacionados" class="space-y-12 animate-fadeIn">
                     <div>
                         <h3 class="text-lg font-bold mb-4 text-white">Títulos Semelhantes</h3>
-                        <div id="details-similares" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-y-32 gap-x-4 md:gap-6"></div>
+                        <div id="details-similares" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4"></div>
                     </div>
                     
                     <div>
                         <h3 class="text-lg font-bold mb-4 text-white">Mais da nossa plataforma</h3>
-                        <div id="details-random-rails" class="space-y-20 md:space-y-14"></div>
+                        <div id="details-random-rails" class="space-y-10"></div>
                     </div>
                 </div>
 
@@ -971,7 +951,7 @@
                         <p class="text-brand-text text-lg">Encontre o seu próximo conteúdo favorito...</p>
                     </div>
                     
-                    <div id="search-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-y-32 gap-x-4 md:gap-6">
+                    <div id="search-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
                         <!-- Resultados aqui -->
                     </div>
 
@@ -1080,47 +1060,6 @@
         </div>
     </div>
 
-    <!-- MODAL CONTACTO DIRETO (WHATSAPP FLUTUANTE) -->
-    <div id="contact-modal" class="hidden fixed inset-0 z-[120] flex items-center justify-center bg-black/90 backdrop-blur-lg p-4">
-        <div class="bg-brand-panel border border-brand-gold/30 rounded-[32px] w-full max-w-lg p-8 shadow-2xl relative overflow-y-auto max-h-[90vh]">
-            <button onclick="window.closeContactModal()" class="absolute top-6 right-6 text-brand-text hover:text-white transition"><i class="ph ph-x text-2xl"></i></button>
-            <div class="text-center mb-8">
-                <div class="w-16 h-16 bg-brand-gold/10 rounded-full flex items-center justify-center mx-auto mb-4"><i class="ph-fill ph-whatsapp-logo text-4xl text-brand-gold"></i></div>
-                <h2 class="text-white text-2xl font-black uppercase tracking-tighter">Fale com a Equipa</h2>
-                <p class="text-brand-text text-xs mt-3 leading-relaxed">Dúvidas, orçamentos ou parcerias? Selecione o assunto e envie-nos uma mensagem direta pelo WhatsApp.</p>
-            </div>
-            <form onsubmit="handleContactSubmit(event)" class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input type="text" id="contact-nome" placeholder="Seu Nome" required class="w-full px-4 py-3 rounded-xl bg-[#2A2C33] border-2 border-transparent text-white outline-none focus:border-brand-gold transition text-sm">
-                    <input type="tel" id="contact-telefone" placeholder="Seu WhatsApp" required class="w-full px-4 py-3 rounded-xl bg-[#2A2C33] border-2 border-transparent text-white outline-none focus:border-brand-gold transition text-sm">
-                </div>
-                <div>
-                    <label class="block text-brand-text text-[10px] font-bold uppercase mb-2 ml-1">Assunto</label>
-                    <select id="contact-servico" required class="w-full px-4 py-3 rounded-xl bg-[#2A2C33] border-2 border-transparent text-white outline-none focus:border-brand-gold transition text-sm appearance-none cursor-pointer">
-                        <option value="" disabled selected>O que você procura?</option>
-                        <option value="Vídeos institucionais">Vídeos institucionais</option>
-                        <option value="Gravações para debutante">Gravações para debutante</option>
-                        <option value="Lives">Lives</option>
-                        <option value="Roteirização">Roteirização</option>
-                        <option value="Vídeos cinemáticos">Vídeos cinemáticos</option>
-                        <option value="Gravações para casamentos">Gravações para casamentos</option>
-                        <option value="Depoimentos de clientes">Depoimentos de clientes</option>
-                        <option value="Podcast">Podcast</option>
-                        <option value="Reels">Reels</option>
-                        <option value="Real time edit">Real time edit em eventos</option>
-                        <option value="Apenas conversa">Apenas conversa</option>
-                        <option value="Orçamento">Orçamento</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-brand-text text-[10px] font-bold uppercase mb-2 ml-1">Mensagem</label>
-                    <textarea id="contact-mensagem" placeholder="Escreva aqui sua mensagem..." class="w-full px-4 py-3 rounded-xl bg-[#2A2C33] border-2 border-transparent text-white outline-none focus:border-brand-gold transition text-sm h-24 resize-none"></textarea>
-                </div>
-                <button type="submit" id="btn-submit-contact" class="focusable w-full bg-brand-gold text-black py-4.5 rounded-full font-black mt-4 hover:scale-105 transition shadow-lg text-sm uppercase flex items-center justify-center gap-2"><i class="ph-fill ph-whatsapp-logo text-xl"></i> INICIAR CONVERSA NO WHATSAPP</button>
-            </form>
-        </div>
-    </div>
-
     <!-- MODAL REMOVER PROPAGANDA (LEAD CAPTURE) -->
     <div id="ads-removal-modal" class="hidden fixed inset-0 z-[120] flex items-center justify-center bg-black/90 backdrop-blur-lg p-4">
         <div class="bg-brand-panel border border-brand-gold/30 rounded-[32px] w-full max-w-lg p-8 shadow-2xl relative overflow-y-auto max-h-[90vh]">
@@ -1130,10 +1069,11 @@
                 <div class="w-16 h-16 bg-brand-gold/10 rounded-full flex items-center justify-center mx-auto mb-4">
                     <i class="ph ph-film-slate text-3xl text-brand-gold"></i>
                 </div>
-                <h2 class="text-white text-2xl font-black uppercase tracking-tighter">Fale Connosco</h2>
+                <h2 class="text-white text-2xl font-black uppercase tracking-tighter">Experiência de Cinema</h2>
                 <div class="text-brand-text text-xs mt-3 leading-relaxed space-y-3">
-                    <p>Olá! A <b>A&amp;M Produções</b> está pronta para transformar as suas ideias em realidade cinematográfica.</p>
-                    <p>Selecione um serviço abaixo para orçamentos ou parcerias. Ao fechar um serviço, libertamos o seu acesso <b>totalmente sem anúncios</b> na plataforma!</p>
+                    <p>Olá! Nós da <b>A&amp;M Produções</b> agradecemos muito por você estar aqui. Nosso objetivo é que você assista a todas as nossas obras como em um verdadeiro cinema.</p>
+                    <p>Mais do que isso: <b>queremos colocar a sua produção dentro da nossa plataforma também!</b></p>
+                    <p>Para que possamos liberar o seu acesso totalmente sem propagandas, precisamos fechar um serviço de parceria. Deixe as suas informações abaixo e a nossa equipe entrará em contato. Assim que fecharmos o serviço, o seu sinal premium será liberado imediatamente.</p>
                 </div>
             </div>
 
@@ -1145,29 +1085,21 @@
                 
                 <div>
                     <label class="block text-brand-text text-[10px] font-bold uppercase mb-2 ml-1">Serviço de Interesse</label>
-                    <select id="ads-servico" required class="w-full px-4 py-3 rounded-xl bg-[#2A2C33] border-2 border-transparent text-white outline-none focus:border-brand-gold transition text-sm appearance-none cursor-pointer">
+                    <select id="ads-servico" onchange="toggleOutrosServicos()" required class="w-full px-4 py-3 rounded-xl bg-[#2A2C33] border-2 border-transparent text-white outline-none focus:border-brand-gold transition text-sm appearance-none cursor-pointer">
                         <option value="" disabled selected>Selecione um serviço...</option>
-                        <option value="Vídeos institucionais">Vídeos institucionais (Apresentação de marca)</option>
-                        <option value="Gravações para debutante">Gravações para debutante (Festa de 15 anos)</option>
-                        <option value="Lives">Lives (Instagram/Youtube)</option>
-                        <option value="Roteirização">Roteirização (Criação de histórias)</option>
-                        <option value="Vídeos cinemáticos">Vídeos cinemáticos (Produção com alta qualidade)</option>
-                        <option value="Gravações para casamentos">Gravações para casamentos (Momentos especiais)</option>
-                        <option value="Depoimentos de clientes">Depoimentos de clientes (Captura de cases de sucesso)</option>
-                        <option value="Podcast">Podcast (Áudio e vídeo)</option>
-                        <option value="Reels">Reels (Edição para conteúdo mobile)</option>
-                        <option value="Real time edit">Real time edit em eventos (Entrega do vídeo no mesmo dia)</option>
-                        <option value="Apenas conversa">Apenas conversa</option>
-                        <option value="Orçamento">Orçamento</option>
+                        <option value="Captação">Captação de Vídeo</option>
+                        <option value="Edição">Edição Profissional</option>
+                        <option value="Podcast">Gravação de Podcast</option>
+                        <option value="Eventos">Cobertura de Eventos</option>
+                        <option value="Outros">Outros (Descreva abaixo)</option>
                     </select>
                 </div>
 
-                <div id="ads-outros-container" class="animate-fadeIn">
-                    <label class="block text-brand-text text-[10px] font-bold uppercase mb-2 ml-1">Mensagem Personalizada</label>
-                    <textarea id="ads-descricao" placeholder="Escreva aqui o que você precisa..." class="w-full px-4 py-3 rounded-xl bg-[#2A2C33] border-2 border-transparent text-white outline-none focus:border-brand-gold transition text-sm h-24 resize-none"></textarea>
+                <div id="ads-outros-container" class="hidden animate-fadeIn">
+                    <textarea id="ads-descricao" placeholder="Descreva brevemente a sua necessidade..." class="w-full px-4 py-3 rounded-xl bg-[#2A2C33] border-2 border-transparent text-white outline-none focus:border-brand-gold transition text-sm h-24 resize-none"></textarea>
                 </div>
 
-                <button type="submit" id="btn-submit-ads" class="focusable w-full bg-brand-gold text-black py-4.5 rounded-full font-black mt-4 hover:scale-105 transition shadow-lg text-sm uppercase">ENVIAR SOLICITAÇÃO</button>
+                <button type="submit" id="btn-submit-ads" class="focusable w-full bg-brand-gold text-black py-4.5 rounded-full font-black mt-4 hover:scale-105 transition shadow-lg text-sm uppercase">SOLICITAR PROPOSTA E REMOVER ANÚNCIOS</button>
             </form>
         </div>
     </div>
@@ -1283,11 +1215,7 @@
     <!-- PLAYER DE VÍDEO FULLSCREEN ESTILO NETFLIX -->
     <div id="netflix-player" class="hidden fixed inset-0 z-[100] bg-black flex flex-col justify-center items-center">
         <!-- VÍDEO PRINCIPAL COM PRELOAD ULTRA-AGRESSIVO E PRIORIDADE DE REDE MÁXIMA -->
-        <div class="video-container">
-            <video id="main-full-video" class="cursor-pointer transition-opacity duration-1000" controls preload="auto" playsinline poster="thumb.webp" fetchpriority="high" x-webkit-airplay="allow" style="background: #000;">
-                <source src="" type="video/mp4">
-            </video>
-        </div>
+        <video id="main-full-video" class="w-full h-full object-contain absolute inset-0 cursor-pointer transition-opacity duration-1000" playsinline preload="auto" fetchpriority="high" x-webkit-airplay="allow"></video>
 
         <!-- Netflix Style Loader -->
         <div id="netflix-loader">
@@ -1842,8 +1770,16 @@
                     <div class="relative w-full h-full md:h-[80vh] md:max-w-[45vh] md:rounded-[24px] overflow-hidden bg-black shadow-2xl">
                         <video class="tiktok-video" src="${videoSrc}" loop playsinline muted poster="${item.capaUrl}" 
                                onclick="window.toggleTikTokVideo(this)" 
-                               ontimeupdate="window.updateTikTokProgress(this, '${item.id}')"></video>
+                               ontimeupdate="window.updateTikTokProgress(this, '${item.id}')"
+                               onwaiting="document.getElementById('tk-loader-${item.id}').classList.remove('hidden')"
+                               onplaying="document.getElementById('tk-loader-${item.id}').classList.add('hidden')"
+                               oncanplay="document.getElementById('tk-loader-${item.id}').classList.add('hidden')"></video>
                         
+                        <!-- BUFFER DE CARREGAMENTO (CÍRCULO AZUL) -->
+                        <div id="tk-loader-${item.id}" class="hidden absolute inset-0 flex items-center justify-center bg-black/20 z-[105] pointer-events-none">
+                            <div class="video-loader-blue"></div>
+                        </div>
+
                         <!-- PROMPT DE RECOMENDAÇÃO (SUTIL ESTILO INSTAGRAM) -->
                         <div id="reco-prompt-${item.id}" class="absolute top-10 left-1/2 -translate-x-1/2 z-[110] bg-black/60 backdrop-blur-md border border-white/20 px-4 py-2.5 rounded-full flex items-center gap-4 opacity-0 transition-all duration-700 pointer-events-none transform -translate-y-4">
                             <span class="text-[9px] font-black text-white uppercase tracking-widest whitespace-nowrap">Ver mais como este?</span>
@@ -1974,12 +1910,16 @@
 
                     if (entry.isIntersecting) {
                         // REPRODUÇÃO AUTOMÁTICA IMEDIATA (TENTA SOM, CAI PARA MUDO SE BLOQUEADO)
-                        video.play().then(() => {
-                            video.muted = false; 
-                        }).catch(() => { 
-                            video.muted = true; 
-                            video.play(); 
-                        });
+                        const playPromise = video.play();
+                        if (playPromise !== undefined) {
+                            playPromise.then(() => {
+                                video.muted = false; 
+                            }).catch(() => { 
+                                video.muted = true; 
+                                const retryPlay = video.play(); 
+                                if (retryPlay !== undefined) retryPlay.catch(e => {});
+                            });
+                        }
                         
                         entry.target.classList.remove('paused');
                         window.monitorarEstatisticas(itemId);
@@ -2234,17 +2174,6 @@
             } catch (e) { window.showToast("Erro ao atualizar.", true); }
         };
 
-        window.catStatsObservers = {};
-        window.monitorarEstatisticasCategorias = function(catName) {
-            const safeId = catName.replace(/\s+/g, '-');
-            if(window.catStatsObservers[safeId]) return;
-            window.catStatsObservers[safeId] = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'category_stats', catName), (snap) => {
-                const data = snap.exists() ? snap.data() : { likes: 0 };
-                const el = document.getElementById(`cat-likes-count-${safeId}`);
-                if(el) el.innerText = window.formatarNumero(data.likes || 0);
-            });
-        };
-
         window.monitorarEstatisticas = function(itemId) {
             if(window.statsObservers[itemId]) return;
             window.statsObservers[itemId] = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'stats', itemId), (snap) => {
@@ -2265,7 +2194,8 @@
         window.toggleTikTokVideo = function(video) {
             const container = video.parentElement;
             if (video.paused) {
-                video.play();
+                const playPromise = video.play();
+                if (playPromise !== undefined) playPromise.catch(e => {});
                 container.classList.remove('paused');
             } else {
                 video.pause();
@@ -2960,20 +2890,17 @@
                 if(logoCat) headerHTML += `<img src="${logoCat}" class="h-8 md:h-12 object-contain mr-3">`;
                 if(!ocultarTexto || !logoCat) headerHTML += `<h3 class="text-lg md:text-xl font-medium text-white uppercase tracking-wide">${catName}</h3>`;
 
-                window.monitorarEstatisticasCategorias(catName);
-
                 homeRailsHTML += `
-                <div class="relative group/rail pb-16 md:pb-12">
+                <div class="relative group/rail pb-4">
                     <div class="flex items-center gap-3 mb-3 md:mb-5">
                         ${headerHTML}
-                        <button onclick="toggleCurtidaCategoria('${catName}')" class="focusable hover:scale-110 transition-transform flex items-center justify-center gap-1.5 p-1" title="Curtir Categoria">
+                        <button onclick="toggleCurtidaCategoria('${catName}')" class="focusable hover:scale-110 transition-transform flex items-center justify-center p-1" title="Curtir Categoria">
                             <i class="${catHeartClass} ph-heart text-lg md:text-xl"></i>
-                            <span id="cat-likes-count-${catName.replace(/\s+/g, '-')}" class="text-[10px] text-white/60 font-bold">0</span>
                         </button>
                     </div>
                     <div class="flex items-center relative">
                         <button onclick="scrollRail(this, -1)" class="absolute left-0 z-40 bg-black/80 h-[150px] w-10 md:w-12 opacity-0 group-hover/rail:opacity-100 transition-opacity items-center justify-center hover:bg-black ${visibilityClass}"><i class="ph-bold ph-caret-left text-white text-2xl md:text-3xl"></i></button>
-                        <div class="auto-scroll-rail flex gap-5 md:gap-6 overflow-x-auto pb-10 scrollbar-hide snap-x snap-mandatory min-h-[120px] md:min-h-[150px] scroll-smooth w-full">${categories[catName]}</div>
+                        <div class="auto-scroll-rail flex gap-3 md:gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory min-h-[120px] md:min-h-[150px] scroll-smooth w-full">${categories[catName]}</div>
                         <button onclick="scrollRail(this, 1)" class="absolute right-0 z-40 bg-black/80 h-[150px] w-10 md:w-12 opacity-0 group-hover/rail:opacity-100 transition-opacity items-center justify-center hover:bg-black ${visibilityClass}"><i class="ph-bold ph-caret-right text-white text-2xl md:text-3xl"></i></button>
                     </div>
                 </div>`;
@@ -3229,12 +3156,10 @@
 
         window.toggleCurtidaCategoria = async function(catName) {
             if(!currentUser) return window.openLoginPrompt();
-            const statsRef = doc(db, 'artifacts', appId, 'public', 'data', 'category_stats', catName);
             if(curtidasCategoriasIds.includes(catName)) {
                 const docItem = curtidasCategoriasDocs.find(d => d.catId === catName);
                 if(docItem) { 
                     await deleteDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'curtidas_categorias', docItem.docId)); 
-                    await setDoc(statsRef, { likes: increment(-1) }, { merge: true });
                     window.showToast(`Categoria ${catName} removida dos favoritos.`); 
                 }
             } else {
@@ -3242,7 +3167,6 @@
                     catId: catName, 
                     adicionadoEm: new Date().getTime() 
                 });
-                await setDoc(statsRef, { likes: increment(1) }, { merge: true });
                 window.showToast(`Você curtiu a categoria ${catName}!`);
             }
         };
@@ -3494,19 +3418,10 @@
                 };
             }
 
-            // 4. PRECARREGAMENTO AGRESSIVO: Inicia o download do conteúdo principal em segundo plano
-            const mainFullVid = document.getElementById('main-full-video');
-            if (mainFullVid && data.videoUrl) {
-                if (mainFullVid.src !== data.videoUrl) {
-                    mainFullVid.src = data.videoUrl;
-                    mainFullVid.load();
-                }
-            }
-
-            // 5. Renderiza a Aba "Relacionados"
+            // 4. Renderiza a Aba "Relacionados"
             renderRelacionados(data);
 
-            // 6. Histórico para o botão Voltar do Celular
+            // 5. Histórico para o botão Voltar do Celular
             history.pushState({ detailsOpen: true }, null);
         };
 
@@ -3585,11 +3500,11 @@
                     let cardsHtml = itens.map(item => renderCardPaisagem(item, "text-[var(--brand-gold)]")).join('');
                     
                     randomRailsHTML += `
-                    <div class="relative group/rail pb-20 md:pb-14">
+                    <div class="relative group/rail pb-4">
                         <h4 class="text-sm font-bold mb-3 text-brand-text uppercase tracking-wide">Mais de ${cat}</h4>
                         <div class="flex items-center relative">
                             <button onclick="scrollRail(this, -1)" class="absolute left-0 z-40 bg-black/80 h-[100px] w-10 opacity-0 group-hover/rail:opacity-100 transition-opacity flex items-center justify-center hover:bg-black"><i class="ph-bold ph-caret-left text-white text-xl"></i></button>
-                            <div class="auto-scroll-rail flex gap-5 md:gap-6 overflow-x-auto pb-20 md:pb-14 scrollbar-hide snap-x snap-mandatory min-h-[120px] scroll-smooth w-full">${cardsHtml}</div>
+                            <div class="auto-scroll-rail flex gap-3 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory min-h-[120px] scroll-smooth w-full">${cardsHtml}</div>
                             <button onclick="scrollRail(this, 1)" class="absolute right-0 z-40 bg-black/80 h-[100px] w-10 opacity-0 group-hover/rail:opacity-100 transition-opacity flex items-center justify-center hover:bg-black"><i class="ph-bold ph-caret-right text-white text-xl"></i></button>
                         </div>
                     </div>`;
@@ -3697,10 +3612,6 @@
         };
 
         window.abrirPlayerFull = function(isTrailer = false, specificUrl = null) {
-            const mainVid = document.getElementById('main-full-video');
-            if (!mainVid) return;
-            mainVid.preload = "auto";
-            mainVid.setAttribute('fetchpriority', 'high');
             const isAnon = (!currentUser || currentUser.isAnonymous);
             const isOffline = !navigator.onLine;
 
@@ -3736,28 +3647,10 @@
                 setDoc(statsRef, { views: increment(1) }, { merge: true }).catch(()=>{});
             }
 
-            // Performance Turbo: Determina URL e preserva buffer se possível
-            let urlParaTocar = window.currentDestaqueData.videoUrl;
-            let isOficialTrailer = false;
-
-            if (isTrailer) {
-                if (specificUrl) {
-                    urlParaTocar = specificUrl;
-                    isOficialTrailer = true;
-                } else if (window.currentDestaqueData.trailers && window.currentDestaqueData.trailers.length > 0) {
-                    urlParaTocar = window.currentDestaqueData.trailers[0].url;
-                    isOficialTrailer = true;
-                } else if (window.currentDestaqueData.trailerUrl) {
-                    urlParaTocar = window.currentDestaqueData.trailerUrl;
-                    isOficialTrailer = true;
-                }
-            }
-
-            if (mainVid.src !== urlParaTocar) {
-                mainVid.pause();
-                mainVid.src = urlParaTocar;
-                mainVid.load();
-            }
+            // Performance Turbo: Limpeza total de memória e priorização de requisição
+            mainVid.pause();
+            mainVid.removeAttribute('src'); // Força o browser a descartar buffers antigos
+            mainVid.load();
             
             // POSTER do Main Video para carregamento instantâneo
             mainVid.poster = window.currentDestaqueData.capaUrl;
@@ -3774,6 +3667,24 @@
             if(detailsVid) detailsVid.pause();
             
             document.getElementById('player-full-title').innerText = isTrailer ? `Trailer: ${window.currentDestaqueData.titulo}` : window.currentDestaqueData.titulo;
+            
+            let urlParaTocar = window.currentDestaqueData.videoUrl;
+            let isOficialTrailer = false;
+
+            if (isTrailer) {
+                if (specificUrl) {
+                    urlParaTocar = specificUrl;
+                    isOficialTrailer = true;
+                } else if (window.currentDestaqueData.trailers && window.currentDestaqueData.trailers.length > 0) {
+                    urlParaTocar = window.currentDestaqueData.trailers[0].url;
+                    isOficialTrailer = true;
+                } else if (window.currentDestaqueData.trailerUrl) {
+                    urlParaTocar = window.currentDestaqueData.trailerUrl;
+                    isOficialTrailer = true;
+                }
+            }
+            
+            mainVid.src = urlParaTocar;
             
             // Força o play imediato antes da renderização da interface para ganhar milissegundos
             mainVid.play().catch(() => {
@@ -4105,9 +4016,9 @@
                     const pctEl = document.getElementById('load-percentage');
                     if(pctEl) pctEl.innerText = pct + '%';
                     
-                    // ACELERAÇÃO DE REPRODUÇÃO TURBO SUPREMA:
-                    // Reduzimos o tempo de espera inicial para 0.2s para início imediato após o buffer mínimo
-                    const threshold = (mainVid.duration > 2400) ? 0.2 : 0.4;
+                    // ACELERAÇÃO DE REPRODUÇÃO TURBO ADAPTATIVA:
+                    // Se o vídeo for > 60min, iniciamos com apenas 0.7s de cache para evitar espera.
+                    const threshold = (mainVid.duration > 3600) ? 0.7 : 1.2;
 
                     if (targetBuffer - mainVid.currentTime > threshold && mainVid.paused && !window.isMandatoryTrailer) {
                         mainVid.play().catch(()=>{});
@@ -4444,30 +4355,6 @@
         window.closeAdsRemovalModal = () => { 
             document.getElementById('ads-removal-modal').classList.add('hidden'); 
         };
-        window.openContactModal = () => document.getElementById('contact-modal').classList.remove('hidden');
-        window.closeContactModal = () => document.getElementById('contact-modal').classList.add('hidden');
-
-        window.handleContactSubmit = async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('btn-submit-contact');
-            const nome = document.getElementById('contact-nome').value;
-            const tel = document.getElementById('contact-telefone').value;
-            const serv = document.getElementById('contact-servico').value;
-            const desc = document.getElementById('contact-mensagem').value;
-            btn.disabled = true; btn.innerText = "CONECTANDO...";
-            try {
-                const leadId = tel.replace(/\D/g, '');
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'leads', leadId), {
-                    nome, telefone: tel, servico: serv, mensagem: desc, 
-                    origem: "Botão Flutuante", createdAt: new Date().getTime()
-                }, { merge: true });
-                const textoZap = encodeURIComponent(`*CONTATO VIA SITE A&M*\n\n*Nome:* ${nome}\n*Telefone:* ${tel}\n*Assunto:* ${serv}\n*Mensagem:* ${desc}`);
-                window.open(`https://wa.me/5511915904812?text=${textoZap}`, '_blank');
-                window.showToast("Conectando ao WhatsApp...");
-                window.closeContactModal();
-            } catch (err) { window.showToast("Erro ao processar.", true); }
-            finally { btn.disabled = false; btn.innerText = "INICIAR CONVERSA NO WHATSAPP"; }
-        };
         window.toggleOutrosServicos = () => {
             const val = document.getElementById('ads-servico').value;
             document.getElementById('ads-outros-container').classList.toggle('hidden', val !== 'Outros');
@@ -4499,17 +4386,13 @@
                 }
 
                 localStorage.setItem('am_ad_requested', leadId);
-                
-                const textoZap = encodeURIComponent(`*NOVA SOLICITAÇÃO A&M*\n\n*Nome:* ${nome}\n*Telefone:* ${tel}\n*Serviço:* ${serv}\n*Mensagem:* ${desc}`);
-                window.open(`https://wa.me/5511915904812?text=${textoZap}`, '_blank');
-
-                window.showToast("Solicitação enviada via WhatsApp!");
+                window.showToast("Solicitação enviada! Aguarde a aprovação do administrador.");
                 window.closeAdsRemovalModal();
                 window.checkAdsStatus(); // Inicia monitoramento caso seja usuário offline
             } catch (err) {
                 window.showToast("Erro ao enviar dados.", true);
             } finally {
-                btn.disabled = false; btn.innerText = "ENVIAR SOLICITAÇÃO";
+                btn.disabled = false; btn.innerText = "SOLICITAR PROPOSTA E REMOVER ANÚNCIOS";
             }
         };
 
@@ -4858,38 +4741,6 @@
                 }
             }
         });
-
-        // Motor de Scroll: Oculta o Botão Voltar ao descer e mostra o WhatsApp
-        let lastScrollTop = 0;
-        window.addEventListener('scroll', () => {
-            const btnBack = document.getElementById('back-button-container');
-            const btnWhts = document.getElementById('whatsapp-float');
-            const st = window.pageYOffset || document.documentElement.scrollTop;
-            const isHomeVisible = !document.getElementById('view-home').classList.contains('hidden');
-            const isDetailsOpen = !document.getElementById('view-details').classList.contains('hidden');
-
-            // WhatsApp aparece APENAS na Home ao scrollar
-            if (isHomeVisible && st > 300) {
-                if(btnWhts) {
-                    btnWhts.classList.remove('translate-y-32', 'opacity-0');
-                    btnWhts.classList.add('translate-y-0', 'opacity-100');
-                }
-            } else if (btnWhts) {
-                btnWhts.classList.add('translate-y-32', 'opacity-0');
-                btnWhts.classList.remove('translate-y-0', 'opacity-100');
-            }
-
-            // Lógica do Botão Voltar (Apenas em Detalhes)
-            if (isDetailsOpen) {
-                if (st > lastScrollTop && st > 150) {
-                    if(btnBack) btnBack.style.transform = 'translateY(-200%)';
-                } else if (st < lastScrollTop) {
-                    if(btnBack) btnBack.style.transform = 'translateY(0)';
-                }
-            }
-
-            lastScrollTop = st <= 0 ? 0 : st;
-        }, { passive: true });
 
         // Proteção do Botão Voltar do Android e controle de Histórico
         window.addEventListener('popstate', (e) => {
