@@ -256,6 +256,16 @@
         .tiktok-details-drawer { height: 50%; padding: 24px; border-radius: 24px 24px 0 0; }
         .tiktok-comments-drawer.active, .tiktok-details-drawer.active { transform: translateY(0); }
 
+        /* Estilos do Perfil Estilo TikTok */
+        .profile-overlay {
+            position: fixed; inset: 0; z-index: 200;
+            background: #000; display: none; flex-direction: column;
+            animation: slideInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @keyframes slideInUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .profile-tab-btn.active { color: white; border-bottom: 2px solid white; }
+        .profile-video-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; }
+
         ::-webkit-scrollbar-thumb { background: #2A2C33; border-radius: 4px; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
@@ -964,6 +974,88 @@
             </div>
         </section>
 
+        <!-- VIEW: PERFIL ESTILO TIKTOK -->
+        <section id="view-profile" class="profile-overlay">
+            <div class="h-14 flex items-center px-4 border-b border-white/10 shrink-0">
+                <button onclick="window.fecharPerfilTikTok()" class="p-2"><i class="ph ph-arrow-left text-2xl"></i></button>
+                <div class="flex-1 text-center font-bold text-sm" id="profile-header-name">Nome do Perfil</div>
+                <button class="p-2"><i class="ph ph-share-network text-2xl"></i></button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto custom-scrollbar">
+                <!-- Header do Perfil -->
+                <div class="flex flex-col items-center py-6 px-4">
+                    <div class="w-24 h-24 rounded-full border-2 border-white/10 p-1 mb-3">
+                        <img id="profile-avatar" src="" class="w-full h-full rounded-full object-cover">
+                    </div>
+                    <h2 id="profile-display-name" class="font-bold text-lg mb-1">@aemproducoes</h2>
+                    
+                    <div class="flex gap-6 my-4 text-center">
+                        <div><p class="font-black text-sm" id="count-following">0</p><p class="text-[10px] text-gray-500 uppercase">Seguindo</p></div>
+                        <div><p class="font-black text-sm" id="count-followers">2.4k</p><p class="text-[10px] text-gray-500 uppercase">Seguidores</p></div>
+                        <div><p class="font-black text-sm" id="count-likes-total">15.8k</p><p class="text-[10px] text-gray-500 uppercase">Curtidas</p></div>
+                    </div>
+
+                    <div class="flex gap-2 w-full max-w-[280px]">
+                        <button id="btn-follow-profile" onclick="window.toggleSeguirPerfil()" class="flex-1 bg-red-500 text-white font-bold py-2.5 rounded-md text-sm">Seguir</button>
+                        <button onclick="window.abrirMensagensPerfil()" class="px-3 bg-white/10 rounded-md focusable" tabindex="0"><i class="ph ph-messenger-logo text-xl"></i></button>
+                        <button class="px-3 bg-white/10 rounded-md"><i class="ph ph-caret-down text-sm"></i></button>
+                    </div>
+
+                    <p id="profile-bio" class="text-xs text-gray-400 mt-4 text-center px-6">Produções exclusivas A&M Studios. O melhor do entretenimento digital.</p>
+                </div>
+
+                <!-- Abas -->
+                <div class="sticky top-0 bg-black z-20 flex border-b border-white/10">
+                    <button onclick="window.switchProfileTab('postados')" id="p-tab-postados" class="profile-tab-btn active flex-1 py-3 flex justify-center"><i class="ph ph-squares-four text-2xl"></i></button>
+                    <button onclick="window.switchProfileTab('salvos')" id="p-tab-salvos" class="profile-tab-btn flex-1 py-3 flex justify-center text-gray-500"><i class="ph ph-bookmark-simple text-2xl"></i></button>
+                    <button onclick="window.switchProfileTab('curtidos')" id="p-tab-curtidos" class="profile-tab-btn flex-1 py-3 flex justify-center text-gray-500"><i class="ph ph-heart text-2xl"></i></button>
+                </div>
+
+                <!-- Grid de Vídeos -->
+                <div id="profile-grid" class="profile-video-grid pb-20">
+                    <!-- Conteúdo dinâmico -->
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW: CENTRO DE MENSAGENS (INBOX) -->
+        <section id="view-messenger-inbox" class="profile-overlay bg-black hidden flex-col">
+            <div class="h-14 flex items-center px-4 border-b border-white/10 shrink-0 bg-[#121212]">
+                <button onclick="window.fecharMessengerInbox()" class="p-2 focusable" tabindex="0"><i class="ph ph-arrow-left text-2xl"></i></button>
+                <div class="flex-1 text-center font-bold text-sm">Mensagens</div>
+                <div class="w-10"></div>
+            </div>
+            <!-- Sub-Abas -->
+            <div class="flex border-b border-white/5 bg-[#121212]">
+                <button onclick="window.switchMessengerTab('conversas')" id="m-tab-conversas" class="flex-1 py-3 text-xs font-black uppercase tracking-widest text-brand-gold border-b-2 border-brand-gold">Conversas</button>
+                <button onclick="window.switchMessengerTab('contatos')" id="m-tab-contatos" class="flex-1 py-3 text-xs font-black uppercase tracking-widest text-gray-500">Contatos</button>
+            </div>
+            <!-- Lista -->
+            <div id="messenger-list" class="flex-1 overflow-y-auto custom-scrollbar"></div>
+        </section>
+
+        <!-- VIEW: CHAT DIRETO ENTRE USUÁRIOS -->
+        <section id="view-direct-chat" class="profile-overlay bg-black hidden flex-col">
+            <div class="h-14 flex items-center px-4 border-b border-white/10 shrink-0 bg-[#121212]">
+                <button onclick="window.fecharChatDireto()" class="p-2 focusable" tabindex="0"><i class="ph ph-arrow-left text-2xl"></i></button>
+                <div class="flex-1 text-center font-bold text-sm flex items-center justify-center gap-2">
+                    <img id="chat-header-avatar" src="" class="w-7 h-7 rounded-full object-cover border border-white/10">
+                    <span id="chat-header-name">Mensagens</span>
+                </div>
+                <button onclick="window.confirmarDeletarConversaInteira()" class="p-2 text-red-500"><i class="ph ph-trash text-xl"></i></button>
+            </div>
+            <div id="chat-messages-list" class="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar flex flex-col"></div>
+            <!-- Barra de Emojis Rápida -->
+            <div id="emoji-bar" class="flex gap-4 px-4 py-2 bg-white/5 overflow-x-auto scrollbar-hide">
+                ${['😀','😂','🥰','😍','😎','🙏','👍','🔥','❤️','✨'].map(e => `<button onclick="document.getElementById('input-direct-msg').value += '${e}'" class="text-xl hover:scale-125 transition">${e}</button>`).join('')}
+            </div>
+            <div class="p-4 bg-[#121212] border-t border-white/5 flex items-center gap-3 pb-8 md:pb-4">
+                <input type="text" id="input-direct-msg" onkeydown="if(event.key==='Enter') window.enviarMensagemDireta()" placeholder="Enviar mensagem..." class="flex-grow bg-white/5 border border-white/10 rounded-full px-4 py-2.5 text-white text-xs outline-none focus:border-brand-gold transition">
+                <button onclick="window.enviarMensagemDireta()" class="w-10 h-10 bg-brand-gold rounded-full flex items-center justify-center text-black shadow-lg shrink-0"><i class="ph-fill ph-paper-plane-right text-lg"></i></button>
+            </div>
+        </section>
+
     </main>
 
     <!-- FOOTER -->
@@ -1532,13 +1624,13 @@
             document.getElementById('btn-toggle-auth').innerText = window.authMode === 'login' ? 'Cadastre-se' : 'Já tenho conta';
         };
 
-        window.openLoginPrompt = function() {
-            window.authMode = 'login';
-            document.getElementById('login-title').innerText = 'Entrar na Conta';
-            document.getElementById('btn-login-action').innerText = 'ENTRAR';
-            document.getElementById('btn-toggle-auth').innerText = 'Cadastre-se';
+        window.openLoginPrompt = function(mode = 'login') {
+            window.authMode = mode;
+            document.getElementById('login-title').innerText = mode === 'login' ? 'Entrar na Conta' : 'Criar Nova Conta';
+            document.getElementById('btn-login-action').innerText = mode === 'login' ? 'ENTRAR' : 'CADASTRAR E ENTRAR';
+            document.getElementById('btn-toggle-auth').innerText = mode === 'login' ? 'Cadastre-se' : 'Já tenho conta';
             window.openLoginModal();
-            window.showToast("Inicie sessão para assistir ao conteúdo completo!");
+            window.showToast(mode === 'login' ? "Inicie sessão para continuar!" : "Crie uma conta para continuar!");
         };
 
         window.handleGoogleLogin = async () => {
@@ -1802,7 +1894,7 @@
                                 <div class="w-9 h-9 rounded-full border border-white/40 overflow-hidden bg-brand-gold/10">
                                     <img src="${window.brandingConfig?.logoUrl || 'https://api.dicebear.com/7.x/initials/svg?seed=AM'}" class="w-full h-full object-cover">
                                 </div>
-                                <span class="text-white font-bold text-sm tracking-tight">${item.selo || 'A&M Official'} <i class="ph-fill ph-seal-check text-blue-400"></i></span>
+                                <span onclick="window.abrirPerfilTikTok('${item.selo || 'A&M Produções'}')" class="text-white font-bold text-sm tracking-tight cursor-pointer hover:underline">${item.selo || 'A&M Official'} <i class="ph-fill ph-seal-check text-blue-400"></i></span>
                             </div>
                             <h2 class="text-white font-bold text-base mb-1 drop-shadow-lg">${item.titulo}</h2>
                             <p class="text-gray-300 text-xs line-clamp-2 drop-shadow-md font-medium leading-relaxed">${item.descricao || ''}</p>
@@ -2269,6 +2361,310 @@
             const infoMain = document.getElementById(`info-main-${id}`);
             if (drawer) drawer.classList.remove('active');
             if (window.innerWidth >= 768 && infoMain) infoMain.classList.remove('hidden');
+        };
+
+        // MOTOR DO PERFIL TIKTOK
+        window.activeProfileTab = 'postados';
+        window.isFollowingCreator = false;
+
+        window.abrirPerfilTikTok = function(creatorName) {
+            const profile = document.getElementById('view-profile');
+            const creatorId = creatorName.toLowerCase().replace(/\s+/g, '');
+            
+            // Pausa todos os vídeos do feed ao entrar no perfil
+            document.querySelectorAll('.tiktok-video').forEach(v => v.pause());
+            
+            document.getElementById('profile-header-name').innerText = creatorName;
+            document.getElementById('profile-display-name').innerText = '@' + creatorId;
+            document.getElementById('profile-avatar').src = window.brandingConfig?.logoUrl || 'https://api.dicebear.com/7.x/initials/svg?seed=AM';
+            
+            // Listeners de Seguidores Reais
+            if (window.creatorUnsub) window.creatorUnsub();
+            window.creatorUnsub = onSnapshot(doc(db, 'artifacts', appId, 'creators', creatorId), (snap) => {
+                const data = snap.exists() ? snap.data() : { followers: 0, following: 0 };
+                document.getElementById('count-followers').innerText = window.formatarNumero(data.followers || 0);
+                document.getElementById('count-following').innerText = window.formatarNumero(data.following || 0);
+            });
+
+            // Cálculo Real de Curtidas Totais (Soma de todos os vídeos do criador)
+            let totalLikes = 0;
+            const creatorVideos = cacheCatalogo.filter(v => v.selo === creatorName);
+            const promises = creatorVideos.map(v => getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'stats', v.id)));
+            
+            Promise.all(promises).then(snaps => {
+                totalLikes = snaps.reduce((acc, s) => acc + (s.exists() ? (s.data().likes || 0) : 0), 0);
+                document.getElementById('count-likes-total').innerText = window.formatarNumero(totalLikes);
+            });
+
+            // Verifica se o usuário já segue
+            if (currentUser && !currentUser.isAnonymous) {
+                getDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'following', creatorId)).then(s => {
+                    window.isFollowingCreator = s.exists();
+                    const btn = document.getElementById('btn-follow-profile');
+                    if (window.isFollowingCreator) {
+                        btn.innerText = 'Seguindo';
+                        btn.classList.replace('bg-red-500', 'bg-white/10');
+                    } else {
+                        btn.innerText = 'Seguir';
+                        btn.classList.replace('bg-white/10', 'bg-red-500');
+                    }
+                });
+            }
+            
+            profile.style.display = 'flex';
+            window.switchProfileTab('postados');
+            history.pushState({ profileOpen: true }, null);
+        };
+
+        window.fecharPerfilTikTok = function(fromPopstate = false) {
+            document.getElementById('view-profile').style.display = 'none';
+            if (fromPopstate !== true) history.back();
+        };
+
+        window.chatUnsub = null;
+        window.activeChatId = null;
+        window.messengerTab = 'conversas';
+
+        window.abrirMensagensPerfil = function() {
+            if(!currentUser || currentUser.isAnonymous) return window.openLoginPrompt('register');
+            document.getElementById('view-messenger-inbox').style.display = 'flex';
+            window.switchMessengerTab('conversas');
+            history.pushState({ messengerOpen: true }, null);
+        };
+
+        window.fecharMessengerInbox = function(fromPopstate = false) {
+            document.getElementById('view-messenger-inbox').style.display = 'none';
+            if (fromPopstate !== true) history.back();
+        };
+
+        window.switchMessengerTab = function(tab) {
+            window.messengerTab = tab;
+            document.getElementById('m-tab-conversas').className = `flex-1 py-3 text-xs font-black uppercase tracking-widest ${tab==='conversas'?'text-brand-gold border-b-2 border-brand-gold':'text-gray-500'}`;
+            document.getElementById('m-tab-contatos').className = `flex-1 py-3 text-xs font-black uppercase tracking-widest ${tab==='contatos'?'text-brand-gold border-b-2 border-brand-gold':'text-gray-500'}`;
+            
+            const list = document.getElementById('messenger-list');
+            list.innerHTML = '<div class="py-20 text-center opacity-20 text-[10px] font-black uppercase">Carregando...</div>';
+
+            if (tab === 'contatos') {
+                onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'user_registrations'), (snap) => {
+                    const users = snap.docs.map(d => ({id: d.id, ...d.data()})).filter(u => u.id !== currentUser.uid);
+                    list.innerHTML = users.map(u => `
+                        <div onclick="window.abrirConversaDireta('${u.id}', '${u.nome}', '${u.photoUrl}')" class="flex items-center gap-4 p-4 hover:bg-white/5 border-b border-white/5 cursor-pointer">
+                            <img src="${u.photoUrl || 'https://api.dicebear.com/7.x/initials/svg?seed='+u.nome}" class="w-12 h-12 rounded-full border border-white/10">
+                            <div class="flex-1">
+                                <p class="font-bold text-sm">${u.nome}</p>
+                                <p class="text-[10px] text-gray-500 uppercase">Disponível</p>
+                            </div>
+                            <i class="ph ph-chat-circle text-brand-gold text-xl"></i>
+                        </div>
+                    `).join('');
+                });
+            } else {
+                const q = query(collection(db, 'artifacts', appId, 'user_chats'), where('users', 'array-contains', currentUser.uid), orderBy('lastUpdated', 'desc'));
+                onSnapshot(q, (snap) => {
+                    if (snap.empty) return list.innerHTML = '<div class="py-20 text-center opacity-20 text-[10px] font-black uppercase">Nenhuma conversa ativa</div>';
+                    list.innerHTML = snap.docs.map(d => {
+                        const data = d.data();
+                        const otherId = data.users.find(id => id !== currentUser.uid);
+                        const lastMsg = data.messages[data.messages.length - 1];
+                        return `
+                        <div onclick="window.abrirConversaDireta('${otherId}', 'Utilizador', '')" class="flex items-center gap-4 p-4 hover:bg-white/5 border-b border-white/5 cursor-pointer">
+                            <div class="w-12 h-12 rounded-full bg-brand-gold/10 flex items-center justify-center text-brand-gold font-black">${otherId.charAt(0).toUpperCase()}</div>
+                            <div class="flex-1">
+                                <p class="font-bold text-sm">ID: ${otherId.substring(0,8)}...</p>
+                                <p class="text-xs text-gray-500 truncate">${lastMsg ? lastMsg.text : 'Sem mensagens'}</p>
+                            </div>
+                            <div class="text-[9px] text-gray-600 font-bold uppercase">${lastMsg ? new Date(lastMsg.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : ''}</div>
+                        </div>`;
+                    }).join('');
+                });
+            }
+        };
+
+        window.abrirConversaDireta = function(otherId, otherName, otherPhoto) {
+            window.activeChatId = [currentUser.uid, otherId].sort().join('_');
+            document.getElementById('chat-header-name').innerText = otherName;
+            document.getElementById('chat-header-avatar').src = otherPhoto || 'https://api.dicebear.com/7.x/initials/svg?seed=' + otherName;
+            document.getElementById('view-direct-chat').style.display = 'flex';
+            
+            const chatList = document.getElementById('chat-messages-list');
+            if (window.chatUnsub) window.chatUnsub();
+            window.chatUnsub = onSnapshot(doc(db, 'artifacts', appId, 'user_chats', window.activeChatId), (snap) => {
+                if (!snap.exists()) {
+                    chatList.innerHTML = '<div class="py-10 text-center opacity-20 text-[10px] font-black uppercase">Inicia a conversa!</div>';
+                    return;
+                }
+                const msgs = snap.data().messages || [];
+                chatList.innerHTML = msgs.map((m, idx) => {
+                    const isMe = m.senderId === currentUser.uid;
+                    return `
+                    <div class="flex ${isMe ? 'justify-end' : 'justify-start'} group">
+                        <div class="max-w-[80%] px-4 py-2 rounded-2xl text-xs relative ${isMe ? 'bg-brand-gold text-black rounded-tr-none' : 'bg-white/10 text-white rounded-tl-none border border-white/5'}">
+                            ${m.text}
+                            <div class="text-[8px] mt-1 opacity-50 text-right">${new Date(m.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                            <div class="absolute -top-2 ${isMe?'-left-8':' -right-8'} opacity-0 group-hover:opacity-100 flex gap-2 transition-opacity">
+                                <button onclick="window.editarMensagem(${idx}, '${m.text.replace(/'/g, "\\'")}')" class="text-indigo-400"><i class="ph ph-pencil-simple"></i></button>
+                                <button onclick="window.excluirMensagem(${idx})" class="text-red-500"><i class="ph ph-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>`;
+                }).join('');
+                chatList.scrollTop = chatList.scrollHeight;
+            });
+            history.pushState({ chatOpen: true }, null);
+        };
+
+        window.enviarMensagemDireta = async function() {
+            const input = document.getElementById('input-direct-msg');
+            const text = input.value.trim();
+            if(!text || !window.activeChatId) return;
+
+            const newMessage = { senderId: currentUser.uid, text: text, date: new Date().getTime() };
+            try {
+                await setDoc(doc(db, 'artifacts', appId, 'user_chats', window.activeChatId), {
+                    messages: arrayUnion(newMessage),
+                    lastUpdated: new Date().getTime(),
+                    users: window.activeChatId.split('_')
+                }, { merge: true });
+                input.value = "";
+            } catch (e) { console.error(e); }
+        };
+
+        window.excluirMensagem = function(idx) {
+            window.showConfirm("Apagar Mensagem", "Desejas apagar esta mensagem para todos?", async () => {
+                const snap = await getDoc(doc(db, 'artifacts', appId, 'user_chats', window.activeChatId));
+                let msgs = snap.data().messages;
+                msgs.splice(idx, 1);
+                await updateDoc(doc(db, 'artifacts', appId, 'user_chats', window.activeChatId), { messages: msgs });
+            });
+        };
+
+        window.editarMensagem = function(idx, oldText) {
+            const novo = prompt("Editar mensagem:", oldText);
+            if(novo && novo !== oldText) {
+                getDoc(doc(db, 'artifacts', appId, 'user_chats', window.activeChatId)).then(async snap => {
+                    let msgs = snap.data().messages;
+                    msgs[idx].text = novo + " (editada)";
+                    await updateDoc(doc(db, 'artifacts', appId, 'user_chats', window.activeChatId), { messages: msgs });
+                });
+            }
+        };
+
+        window.confirmarDeletarConversaInteira = function() {
+            window.showConfirm("Apagar Conversa", "Desejas excluir TODO o histórico desta conversa?", async () => {
+                await deleteDoc(doc(db, 'artifacts', appId, 'user_chats', window.activeChatId));
+                window.fecharChatDireto();
+            });
+        };
+
+        window.fecharChatDireto = function() {
+            document.getElementById('view-direct-chat').style.display = 'none';
+            if (window.chatUnsub) window.chatUnsub();
+            history.back();
+        };
+
+        window.enviarMensagemDireta = async function() {
+            const input = document.getElementById('input-direct-msg');
+            const text = input.value.trim();
+            if(!text) return;
+
+            const creatorName = document.getElementById('profile-header-name').innerText;
+            const creatorId = creatorName.toLowerCase().replace(/\s+/g, '');
+            const chatId = [currentUser.uid, creatorId].sort().join('_');
+
+            const newMessage = {
+                senderId: currentUser.uid,
+                text: text,
+                date: new Date().getTime()
+            };
+
+            try {
+                await setDoc(doc(db, 'artifacts', appId, 'user_chats', chatId), {
+                    messages: arrayUnion(newMessage),
+                    lastUpdated: new Date().getTime(),
+                    users: [currentUser.uid, creatorId]
+                }, { merge: true });
+                input.value = "";
+            } catch (e) { console.error(e); }
+        };
+
+        window.assistirNoFeedTikTok = function(id) {
+            window.fecharPerfilTikTok();
+            window.navigate('menu2');
+            setTimeout(() => {
+                const target = document.querySelector(`.tiktok-item[data-id="${id}"]`);
+                if (target) {
+                    target.scrollIntoView({ behavior: 'instant' });
+                }
+            }, 300);
+        };
+
+        window.toggleSeguirPerfil = async function() {
+            if(!currentUser || currentUser.isAnonymous) {
+                window.openLoginPrompt('register');
+                return window.showToast("É obrigatório criar uma conta para seguir criadores!", true);
+            }
+            
+            const creatorName = document.getElementById('profile-header-name').innerText;
+            const creatorId = creatorName.toLowerCase().replace(/\s+/g, '');
+            const btn = document.getElementById('btn-follow-profile');
+            const creatorRef = doc(db, 'artifacts', appId, 'creators', creatorId);
+            const userFollowRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'following', creatorId);
+
+            window.isFollowingCreator = !window.isFollowingCreator;
+
+            try {
+                if (window.isFollowingCreator) {
+                    await setDoc(userFollowRef, { active: true, date: new Date().getTime() });
+                    await setDoc(creatorRef, { followers: increment(1) }, { merge: true });
+                    btn.innerText = 'Seguindo';
+                    btn.classList.replace('bg-red-500', 'bg-white/10');
+                    window.showToast("Agora segues " + creatorName);
+                } else {
+                    await deleteDoc(userFollowRef);
+                    await setDoc(creatorRef, { followers: increment(-1) }, { merge: true });
+                    btn.innerText = 'Seguir';
+                    btn.classList.replace('bg-white/10', 'bg-red-500');
+                }
+            } catch (e) { console.error(e); }
+        };
+
+        window.switchProfileTab = function(tab) {
+            window.activeProfileTab = tab;
+            document.querySelectorAll('.profile-tab-btn').forEach(b => {
+                b.classList.remove('active', 'text-white');
+                b.classList.add('text-gray-500');
+            });
+            document.getElementById('p-tab-' + tab).classList.add('active', 'text-white');
+            
+            const grid = document.getElementById('profile-grid');
+            let filtered = [];
+            const creator = document.getElementById('profile-header-name').innerText;
+
+            if (tab === 'postados') {
+                // Exibe todos os vídeos vinculados à Aba Conteúdos (menu2)
+                filtered = cacheCatalogo.filter(i => (i.menuIds && i.menuIds.includes('menu2')));
+            } else if (tab === 'salvos') {
+                filtered = cacheCatalogo.filter(i => minhaListaIds.includes(i.id));
+            } else if (tab === 'curtidos') {
+                filtered = cacheCatalogo.filter(i => curtidasIds.includes(i.id));
+            }
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div class="col-span-3 py-20 text-center opacity-30 text-xs font-bold uppercase tracking-widest">Nenhum vídeo nesta aba</div>`;
+            } else {
+                grid.innerHTML = filtered.map(item => {
+                    const dataStr = btoa(encodeURIComponent(JSON.stringify(item)));
+                    const clickAction = `window.assistirNoFeedTikTok('${item.id}')`;
+                    return `
+                    <div onclick="${clickAction}" class="aspect-[3/4] bg-[#111] overflow-hidden relative group cursor-pointer border border-black">
+                        <img src="${item.capaUrl}" class="w-full h-full object-cover">
+                        <div class="absolute bottom-2 left-2 flex items-center gap-1 text-[10px] font-bold">
+                            <i class="ph-fill ph-play"></i> 1.2k
+                        </div>
+                    </div>`;
+                }).join('');
+            }
         };
 
         // Correção de entidades e tags detectadas pelo sistema
@@ -4758,8 +5154,12 @@
             const iosInst = document.getElementById('ios-instructions-modal');
             const andInst = document.getElementById('android-instructions-modal');
             const confModal = document.getElementById('confirm-modal');
+            const profile = document.getElementById('view-profile');
 
             if (!player.classList.contains('hidden')) { window.fecharPlayerFull(true); } 
+            else if (document.getElementById('view-direct-chat').style.display === 'flex') { document.getElementById('view-direct-chat').style.display = 'none'; }
+            else if (document.getElementById('view-messenger-inbox').style.display === 'flex') { window.fecharMessengerInbox(true); }
+            else if (profile && profile.style.display === 'flex') { window.fecharPerfilTikTok(true); }
             else if (!details.classList.contains('hidden')) { window.fecharDetalhes(true); }
             else if (searchView && !searchView.classList.contains('hidden')) { window.closeSearch(true); }
             else if (confModal && !confModal.classList.contains('hidden')) { confModal.classList.add('hidden'); history.pushState(null, null); }
