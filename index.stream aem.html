@@ -670,7 +670,7 @@
             </div>
             <nav class="flex gap-4 md:gap-6 text-xs md:text-sm font-medium text-brand-text whitespace-nowrap">
                 <button onclick="navigate('home')" id="nav-home" class="nav-link focusable active pb-1 hover:text-white transition" tabindex="0">INÍCIO</button>
-                <button onclick="navigate('menu1')" id="menu-1-label" class="focusable pb-1 hover:text-white transition" tabindex="0">SÉRIES</button>
+                <button onclick="navigate('menu1')" id="menu-1-label" class="focusable pb-1 hover:text-white transition" tabindex="0">INTERNACIONAIS</button>
                 <button onclick="navigate('menu2')" id="menu-2-label" class="focusable pb-1 hover:text-white transition" tabindex="0">FILMES</button>
                 <button onclick="navigate('menu3')" id="menu-3-label" class="focusable pb-1 hover:text-white transition" tabindex="0">ORIGINAIS</button>
                 <button onclick="navigate('minhaLista')" id="nav-minhaLista" class="nav-link focusable pb-1 hover:text-white transition" tabindex="0">MINHA LISTA</button>
@@ -998,8 +998,14 @@
 
                     <div class="flex gap-2 w-full max-w-[280px]">
                         <button id="btn-follow-profile" onclick="window.toggleSeguirPerfil()" class="flex-1 bg-red-500 text-white font-bold py-2.5 rounded-md text-sm">Seguir</button>
-                        <button onclick="window.abrirMensagensPerfil()" class="px-3 bg-white/10 rounded-md focusable" tabindex="0"><i class="ph ph-messenger-logo text-xl"></i></button>
-                        <button class="px-3 bg-white/10 rounded-md"><i class="ph ph-caret-down text-sm"></i></button>
+                        <div class="relative">
+                            <button onclick="window.toggleNavShortcuts()" class="h-full px-3 bg-white/10 rounded-md focusable" tabindex="0"><i class="ph ph-caret-down text-sm"></i></button>
+                            <div id="nav-shortcuts-menu" class="hidden absolute top-full right-0 mt-2 w-48 bg-[#121212] border border-white/10 rounded-xl shadow-2xl z-[300] overflow-hidden flex flex-col">
+                                <button onclick="window.fecharPerfilTikTok(); navigate('home')" class="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest hover:bg-white/5 border-b border-white/5 flex items-center gap-3"><i class="ph ph-house text-lg text-brand-gold"></i> Início</button>
+                                <button onclick="window.fecharPerfilTikTok(); navigate('menu1')" class="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest hover:bg-white/5 border-b border-white/5 flex items-center gap-3"><i class="ph ph-globe text-lg text-brand-gold"></i> Internacionais</button>
+                                <button onclick="window.fecharPerfilTikTok(); navigate('menu2')" class="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest hover:bg-white/5 border-b border-white/5 flex items-center gap-3"><i class="ph ph-video-camera text-lg text-brand-gold"></i> Conteúdos</button>
+                            </div>
+                        </div>
                     </div>
 
                     <p id="profile-bio" class="text-xs text-gray-400 mt-4 text-center px-6">Produções exclusivas A&M Studios. O melhor do entretenimento digital.</p>
@@ -1048,7 +1054,16 @@
             <div id="chat-messages-list" class="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar flex flex-col"></div>
             <!-- Barra de Emojis Rápida -->
             <div id="emoji-bar" class="flex gap-4 px-4 py-2 bg-white/5 overflow-x-auto scrollbar-hide">
-                ${['😀','😂','🥰','😍','😎','🙏','👍','🔥','❤️','✨'].map(e => `<button onclick="document.getElementById('input-direct-msg').value += '${e}'" class="text-xl hover:scale-125 transition">${e}</button>`).join('')}
+                <button onclick="document.getElementById('input-direct-msg').value += '😀'" class="text-xl hover:scale-125 transition">😀</button>
+                <button onclick="document.getElementById('input-direct-msg').value += '😂'" class="text-xl hover:scale-125 transition">😂</button>
+                <button onclick="document.getElementById('input-direct-msg').value += '🥰'" class="text-xl hover:scale-125 transition">🥰</button>
+                <button onclick="document.getElementById('input-direct-msg').value += '😍'" class="text-xl hover:scale-125 transition">😍</button>
+                <button onclick="document.getElementById('input-direct-msg').value += '😎'" class="text-xl hover:scale-125 transition">😎</button>
+                <button onclick="document.getElementById('input-direct-msg').value += '🙏'" class="text-xl hover:scale-125 transition">🙏</button>
+                <button onclick="document.getElementById('input-direct-msg').value += '👍'" class="text-xl hover:scale-125 transition">👍</button>
+                <button onclick="document.getElementById('input-direct-msg').value += '🔥'" class="text-xl hover:scale-125 transition">🔥</button>
+                <button onclick="document.getElementById('input-direct-msg').value += '❤️'" class="text-xl hover:scale-125 transition">❤️</button>
+                <button onclick="document.getElementById('input-direct-msg').value += '✨'" class="text-xl hover:scale-125 transition">✨</button>
             </div>
             <div class="p-4 bg-[#121212] border-t border-white/5 flex items-center gap-3 pb-8 md:pb-4">
                 <input type="text" id="input-direct-msg" onkeydown="if(event.key==='Enter') window.enviarMensagemDireta()" placeholder="Enviar mensagem..." class="flex-grow bg-white/5 border border-white/10 rounded-full px-4 py-2.5 text-white text-xs outline-none focus:border-brand-gold transition">
@@ -1799,8 +1814,12 @@
                     } else if (viewId === 'meusDownloads') {
                         listaParaHero = JSON.parse(localStorage.getItem('am_offline_metadata') || '[]');
                     } else {
-                        // Filtra por menu1, menu2 ou menu3
-                        listaParaHero = cacheCatalogo.filter(item => (item.menuIds && item.menuIds.includes(viewId)));
+                        // Filtra por menu1 (Internacional), menu2 ou menu3
+                        if (viewId === 'menu1') {
+                            listaParaHero = cacheCatalogo.filter(item => item.trilho?.toLowerCase() === 'internacional' || (item.menuIds && item.menuIds.includes('menu1')));
+                        } else {
+                            listaParaHero = cacheCatalogo.filter(item => (item.menuIds && item.menuIds.includes(viewId)));
+                        }
                     }
 
                     if (listaParaHero.length > 0) {
@@ -2563,6 +2582,20 @@
             history.back();
         };
 
+        window.toggleNavShortcuts = function() {
+            const menu = document.getElementById('nav-shortcuts-menu');
+            menu.classList.toggle('hidden');
+            if (!menu.classList.contains('hidden')) {
+                const closeHandler = (e) => {
+                    if (!e.target.closest('#nav-shortcuts-menu') && !e.target.closest('button[onclick="window.toggleNavShortcuts()"]')) {
+                        menu.classList.add('hidden');
+                        document.removeEventListener('click', closeHandler);
+                    }
+                };
+                setTimeout(() => document.addEventListener('click', closeHandler), 10);
+            }
+        };
+
         window.enviarMensagemDireta = async function() {
             const input = document.getElementById('input-direct-msg');
             const text = input.value.trim();
@@ -2647,7 +2680,7 @@
             } else if (tab === 'salvos') {
                 filtered = cacheCatalogo.filter(i => minhaListaIds.includes(i.id));
             } else if (tab === 'curtidos') {
-                filtered = cacheCatalogo.filter(i => curtidasIds.includes(i.id));
+                filtered = cacheCatalogo.filter(i => curtidasIds.includes(i.id) && (i.menuIds && i.menuIds.includes('menu2')));
             }
 
             if (filtered.length === 0) {
@@ -3155,7 +3188,11 @@
                 // Puxa do armazenamento offline (localStorage + Cache)
                 catalogoFiltrado = JSON.parse(localStorage.getItem('am_offline_metadata') || '[]');
             } else {
-                catalogoFiltrado = cacheCatalogo.filter(item => (item.menuIds && item.menuIds.includes(window.currentActiveMenu)) || item.menuId === window.currentActiveMenu);
+                if (window.currentActiveMenu === 'menu1') {
+                    catalogoFiltrado = cacheCatalogo.filter(item => item.trilho?.toLowerCase() === 'internacional' || (item.menuIds && item.menuIds.includes('menu1')));
+                } else {
+                    catalogoFiltrado = cacheCatalogo.filter(item => (item.menuIds && item.menuIds.includes(window.currentActiveMenu)) || item.menuId === window.currentActiveMenu);
+                }
             }
 
             window.masterPlayOrder = []; 
