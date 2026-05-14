@@ -435,43 +435,12 @@
         window.lastManifestString = "";
 
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                const swCode = `
-                    const CACHE_NAME = 'aem-offline-v1';
-                    const ASSETS_TO_CACHE = ['/', './index.html', location.href];
-
-                    self.addEventListener('install', (event) => {
-                        event.waitUntil(
-                            caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
-                        );
-                        self.skipWaiting();
-                    });
-
-                    self.addEventListener('activate', (event) => {
-                        event.waitUntil(self.clients.claim());
-                    });
-
-                    self.addEventListener('fetch', (event) => {
-                        // Navegação: Se falhar a rede, entrega o HTML em cache
-                        if (event.request.mode === 'navigate') {
-                            event.respondWith(
-                                fetch(event.request).catch(() => caches.match('/'))
-                            );
-                            return;
-                        }
-
-                        // Mídia e Ativos: Cache-First para performance máxima offline
-                        event.respondWith(
-                            caches.match(event.request).then((response) => {
-                                return response || fetch(event.request).catch(() => null);
-                            })
-                        );
-                    }); 
-                `;
-                const blob = new Blob([swCode], { type: 'application/javascript' });
-                navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(err => console.log('SW Error:', err));
-            });
-        }
+        window.addEventListener('load', () => {
+            // Service Workers devem ser registrados a partir de um ficheiro físico (ex: sw.js) na raiz para segurança.
+            // O registro via Blob URL foi removido para eliminar o erro de protocolo não suportado.
+            navigator.serviceWorker.register('./sw.js').catch(err => console.warn('PWA: Ficheiro sw.js não encontrado na raiz. Funcionalidades offline limitadas.'));
+        });
+    }
 
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
