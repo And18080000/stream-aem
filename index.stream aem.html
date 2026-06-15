@@ -311,10 +311,40 @@
             transform: scale(1.1);
         }
 
-        /* Botões do Player mantêm foco branco mas sem fundo sólido para não tapar controles */
-        #player-controls .focusable:focus {
+       /* Botões do Player mantêm foco APENAS para navegação por teclado/TV (foco visível apenas via teclado) */
+        #player-controls button,
+        #player-controls .focusable,
+        #player-controls input[type="range"] {
+            outline: none !important;
+            box-shadow: none !important;
+            -webkit-tap-highlight-color: transparent !important;
+        }
+
+        #player-controls .focusable:focus-visible {
             background-color: rgba(255, 255, 255, 0.2) !important;
-            border-color: #FFFFFF !important;
+            border-radius: 8px !important;
+            box-shadow: 0 0 0 2px #FFFFFF !important;
+            color: #FFFFFF !important;
+        }
+
+        #player-controls .focusable:focus-visible i,
+        #player-controls .focusable:focus-visible span {
+            color: #FFFFFF !important;
+        }
+        
+        /* Mantém o fundo transparente e FORÇA os ícones a continuarem BRANCOS ao clicar */
+        #player-controls .focusable:active,
+        #player-controls .focusable:focus:not(:focus-visible) {
+            background-color: transparent !important;
+            box-shadow: none !important;
+            border-color: transparent !important;
+            color: #FFFFFF !important;
+        }
+
+        #player-controls .focusable:active i,
+        #player-controls .focusable:active span,
+        #player-controls .focusable:focus:not(:focus-visible) i,
+        #player-controls .focusable:focus:not(:focus-visible) span {
             color: #FFFFFF !important;
         }
 
@@ -637,13 +667,12 @@
                     </div>
                 </div>
             </div>
-            <nav class="flex gap-4 md:gap-6 text-xs md:text-sm font-medium text-brand-text whitespace-nowrap">
+           <nav class="flex gap-4 md:gap-6 text-xs md:text-sm font-medium text-brand-text whitespace-nowrap">
                 <button onclick="navigate('home')" id="nav-home" class="nav-link focusable active pb-1 hover:text-white transition" tabindex="0">INÍCIO</button>
                 <button onclick="navigate('menu1')" id="menu-1-label" class="focusable pb-1 hover:text-white transition" tabindex="0">INTERNACIONAIS</button>
                 <button onclick="navigate('menu2')" id="menu-2-label" class="focusable pb-1 hover:text-white transition" tabindex="0">FILMES</button>
                 <button onclick="navigate('menu3')" id="menu-3-label" class="focusable pb-1 hover:text-white transition" tabindex="0">ORIGINAIS</button>
                 <button onclick="navigate('minhaLista')" id="nav-minhaLista" class="nav-link focusable pb-1 hover:text-white transition" tabindex="0">MINHA LISTA</button>
-                <button onclick="navigate('meusDownloads')" id="nav-meusDownloads" class="nav-link focusable pb-1 hover:text-white transition" tabindex="0">MEUS DOWNLOADS</button>
                 <button id="btn-install-header" onclick="triggerInstall()" class="focusable pb-1 hover:text-brand-gold transition flex items-center gap-1 text-brand-gold font-bold" tabindex="0">
                     <i class="ph ph-download-simple"></i> BAIXAR APP
                 </button>
@@ -761,14 +790,12 @@
                         <h2 id="details-title" class="text-2xl md:text-5xl font-bold mb-4 md:mb-6 font-serif text-white tracking-wide drop-shadow-md uppercase">TÍTULO</h2>
                         
                         <div class="flex flex-wrap items-center gap-3 mb-6">
-                            <!-- Container dinâmico para os trailers -->
                             <div id="dynamic-trailers-container" class="flex flex-wrap gap-2"></div>
                             
                             <button onclick="toggleMinhaListaDetails()" title="Adicionar à Lista" class="prime-btn focusable" tabindex="0"><i id="details-icon-add" class="ph ph-plus text-xl text-white"></i></button>
                             <button onclick="toggleJoinhaDetails()" title="Gostei" class="prime-btn focusable" tabindex="0"><i id="details-icon-like" class="ph ph-heart text-xl text-white"></i></button>
                             <button title="Não Gostei" class="prime-btn focusable hidden sm:flex" tabindex="0"><i class="ph ph-thumbs-down text-xl text-white"></i></button>
                             <button onclick="window.compartilharConteudo()" title="Partilhar" class="prime-btn focusable" tabindex="0"><i class="ph ph-share-network text-xl text-white"></i></button>
-                            <button id="btn-download-details" onclick="toggleDownloadDetails()" title="Transferir para Ver Offline" class="prime-btn focusable" tabindex="0"><i id="details-icon-download" class="ph ph-download-simple text-xl text-white"></i></button>
                     </div>
 
                     <!-- Progresso de Reprodução (Continuar Assistindo) -->
@@ -798,8 +825,12 @@
                         <button id="btn-remover-propaganda" onclick="window.openAdsRemovalModal()" class="focusable mt-3 w-full md:w-80 bg-white/5 border border-white/10 text-white px-8 py-3 rounded-full flex items-center justify-center gap-2 font-bold transition hover:bg-white/10 text-[10px] uppercase tracking-widest" tabindex="0">
                             <i class="ph ph-megaphone-slash"></i> Assistir sem propaganda
                         </button>
+
+                        <button onclick="window.playTrailerDetails()" class="focusable mt-3 w-full md:w-80 bg-transparent border border-brand-gold/40 text-brand-gold px-8 py-3 rounded-full flex items-center justify-center gap-2 font-bold transition hover:bg-brand-gold/10 text-[10px] uppercase tracking-widest shadow-lg" tabindex="0">
+                            <i class="ph ph-film-strip text-lg"></i> Assistir Trailer
+                        </button>
                         
-                        <p class="text-[11px] text-brand-text mt-3 flex items-center gap-1.5"><i class="ph-fill ph-check-circle text-blue-500 text-base"></i> Incluso com sua assinatura A&amp;M Streaming</p>
+                        <p class="text-[11px] text-brand-text mt-4 flex items-center gap-1.5"><i class="ph-fill ph-check-circle text-blue-500 text-base"></i> Incluso com sua assinatura A&amp;M Streaming</p>
                     </div>
 
                     <!-- Lado Direito: Sinopse e Metadados (PREPARADOS PARA EDIÇÃO DINÂMICA) -->
@@ -1324,7 +1355,13 @@
                         <span class="bg-brand-gold text-black text-[9px] font-black px-2 py-0.5 rounded w-fit mb-1 tracking-widest uppercase">Propaganda</span>
                         <p id="mandatory-trailer-title" class="text-white font-bold text-sm md:text-lg uppercase tracking-tight">Sugestão A&amp;M</p>
                     </div>
-                    <p id="mandatory-countdown-text" class="text-white font-bold text-xs tabular-nums uppercase">O vídeo começa em 00:15</p>
+                    
+                    <div class="flex flex-col items-end gap-3">
+                        <button onclick="document.getElementById('main-full-video').pause(); window.openAdsRemovalModal()" class="pointer-events-auto focusable bg-transparent border border-brand-gold/40 text-brand-gold px-4 py-2 rounded-full flex items-center justify-center gap-2 font-bold transition hover:bg-brand-gold/10 text-[9px] uppercase tracking-widest shadow-lg" tabindex="0">
+                            <i class="ph ph-megaphone-slash text-sm"></i> Assistir sem propaganda
+                        </button>
+                        <p id="mandatory-countdown-text" class="text-white font-bold text-xs tabular-nums uppercase">O vídeo começa em 00:15</p>
+                    </div>
                 </div>
                 <div class="w-full h-1.5 bg-white/20 rounded-full overflow-hidden">
                     <div id="mandatory-progress-fill" class="h-full bg-brand-gold w-0 transition-all duration-1000 linear shadow-[0_0_10px_#D6B778]"></div>
@@ -1333,12 +1370,13 @@
         </div>
         
         <!-- CTA Trailer: Voltar e Assistir Vídeo Completo -->
-        <div id="trailer-cta-container" class="hidden absolute bottom-12 right-6 md:right-16 z-[70] flex items-center gap-3">
-            <button onclick="window.fecharPlayerFull()" class="focusable bg-black/60 backdrop-blur-md border border-white/20 hover:bg-white/10 text-white px-5 py-2.5 rounded-lg font-bold flex items-center gap-2 transition-all text-xs md:text-sm uppercase tracking-tight" tabindex="0">
-                <i class="ph ph-arrow-left text-lg"></i> VOLTAR
+        <div id="trailer-cta-container" class="hidden absolute bottom-24 left-6 md:left-16 z-[70] flex flex-row items-center gap-4 transition-opacity duration-300">
+            <button onclick="window.fecharPlayerFull()" class="focusable w-12 h-12 bg-black/60 backdrop-blur-md border border-white/20 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all shadow-lg hover:scale-105" title="Voltar" tabindex="0">
+                <i class="ph ph-arrow-left text-2xl"></i>
             </button>
-            <button onclick="window.assistirVideoCompleto()" class="focusable bg-white hover:bg-gray-200 text-black px-5 py-2.5 rounded-lg font-black flex items-center gap-2 shadow-[0_0_20px_rgba(0,0,0,0.4)] hover:scale-105 transition-all text-xs md:text-sm uppercase tracking-tighter" tabindex="0">
-                <i class="ph-fill ph-play text-lg"></i> FILME
+            
+            <button onclick="window.assistirVideoCompleto()" class="focusable bg-[var(--brand-gold)] hover:brightness-110 text-black px-6 md:px-8 py-3.5 rounded-full font-black flex items-center justify-center gap-3 shadow-[0_0_25px_rgba(214,183,120,0.4)] animate-pulse hover:scale-105 transition-all text-xs md:text-sm uppercase tracking-tighter" tabindex="0">
+                <i class="ph-fill ph-play text-xl"></i> ASSISTIR FILME COMPLETO
             </button>
         </div>
 
@@ -1373,9 +1411,12 @@
                     <div id="quality-indicator" class="mt-1 flex items-center gap-2"><span class="quality-badge bg-black/50 border border-white/30 text-brand-gold px-2 py-0.5 rounded text-[10px] font-black" id="badge-hd">HD</span></div>
                 </div>
             </div>
-            <div class="flex-grow flex items-center justify-center pointer-events-none">
-                <div id="center-play-icon" onclick="event.stopPropagation(); togglePlayerPlay()" class="hidden w-24 h-24 bg-black/50 rounded-full flex items-center justify-center cursor-pointer pointer-events-auto active:scale-95 transition-transform"><i class="ph-fill ph-play text-white text-5xl"></i></div>
+            <div class="flex-grow flex items-center justify-center pointer-events-auto cursor-pointer" onclick="window.togglePlayerPlay()">
+                <div id="center-play-icon" class="hidden w-24 h-24 bg-black/50 rounded-full flex items-center justify-center active:scale-95 transition-transform">
+                    <i class="ph-fill ph-play text-white text-5xl"></i>
+                </div>
             </div>
+            
             <div class="w-full p-4 md:p-8 bg-gradient-to-t from-black/90 via-black/60 to-transparent flex flex-col gap-4 md:gap-6">
                 <!-- Mostrador de tempo exclusivo para Trailers -->
                 <div id="trailer-time-label" class="hidden self-end text-[10px] md:text-xs font-black text-white bg-black/40 px-2 py-1 rounded border border-white/10 font-mono tracking-tighter backdrop-blur-sm shadow-lg">00:00 / 00:00</div>
@@ -1731,7 +1772,13 @@
         // ==========================================
         window.currentActiveMenu = 'home';
         window.navigate = function(viewId) {
-            if(['home', 'menu1', 'menu2', 'menu3', 'minhaLista', 'meusDownloads'].includes(viewId)) {
+            // TRAVA DE SEGURANÇA: Se tentar acessar a Minha Lista e não estiver logado, exibe o painel de Login.
+            if (viewId === 'minhaLista' && (!currentUser || currentUser.isAnonymous)) {
+                window.openLoginPrompt('login');
+                return; // Bloqueia a navegação e não deixa prosseguir
+            }
+
+            if(['home', 'menu1', 'menu2', 'menu3', 'minhaLista'].includes(viewId)) {
                 window.currentActiveMenu = viewId;
                 document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
                 
@@ -1762,10 +1809,6 @@
                     document.getElementById('nav-minhaLista').classList.add('active');
                     document.getElementById('view-home').classList.remove('hidden');
                 }
-                else if(viewId === 'meusDownloads') {
-                    document.getElementById('nav-meusDownloads').classList.add('active');
-                    document.getElementById('view-home').classList.remove('hidden');
-                }
                 
                 if (viewId !== 'menu2') {
                     window.renderizarTrilhosNaHome();
@@ -1780,8 +1823,6 @@
                         );
                     } else if (viewId === 'minhaLista') {
                         listaParaHero = cacheCatalogo.filter(item => minhaListaIds.includes(item.id));
-                    } else if (viewId === 'meusDownloads') {
-                        listaParaHero = JSON.parse(localStorage.getItem('am_offline_metadata') || '[]');
                     } else {
                         // Filtra por menu1 (Internacional), menu2 ou menu3
                         if (viewId === 'menu1') {
@@ -3645,8 +3686,7 @@
                 }
             }
 
-            // Atualiza CTA Detalhes e Hero dinamicamente com base na Autenticação
-            const isAnon = (!currentUser || currentUser.isAnonymous);
+            // Atualiza CTA Detalhes e Hero (Agora liberado para todos sem login obrigatório)
             const ctaTextDet = document.getElementById('details-cta-text');
             const ctaBtnHero = document.getElementById('btn-hero-assistir');
             const btnHeroLogin = document.getElementById('btn-hero-login');
@@ -3656,32 +3696,26 @@
             const progressCont = document.getElementById('details-progress-container');
             const progressFill = document.getElementById('details-progress-fill');
 
-            if (isAnon) {
-                if(ctaTextDet) ctaTextDet.innerText = "Ver Trailer";
-                if(ctaBtnHero) ctaBtnHero.innerHTML = `<i class="ph-fill ph-play text-xl"></i> Ver Trailer`;
-                if(btnHeroLogin) btnHeroLogin.classList.remove('hidden');
-                if(btnDetailsLogin) btnDetailsLogin.classList.remove('hidden');
-                if(progressCont) progressCont.classList.add('hidden');
-            } else {
-                let text = "FILME";
-                
-                // Se houver progresso salvo, o botão vira "CONTINUAR" e a barra aparece
-                if (progressData) {
-                    text = "CONTINUAR";
-                    if (progressCont && progressFill) {
-                        const pct = (progressData.currentTime / progressData.duration) * 100;
-                        progressCont.classList.remove('hidden');
-                        progressFill.style.width = pct + '%';
-                    }
-                } else {
-                    if (progressCont) progressCont.classList.add('hidden');
+            let text = "FILME";
+            
+            // Se houver progresso salvo, o botão vira "CONTINUAR" e a barra aparece
+            if (progressData) {
+                text = "CONTINUAR";
+                if (progressCont && progressFill) {
+                    const pct = (progressData.currentTime / progressData.duration) * 100;
+                    progressCont.classList.remove('hidden');
+                    progressFill.style.width = pct + '%';
                 }
-
-                if(ctaTextDet) ctaTextDet.innerText = text;
-                if(ctaBtnHero) ctaBtnHero.innerHTML = `<i class="ph-fill ph-play text-xl"></i> ${text}`;
-                if(btnHeroLogin) btnHeroLogin.classList.add('hidden');
-                if(btnDetailsLogin) btnDetailsLogin.classList.add('hidden');
+            } else {
+                if (progressCont) progressCont.classList.add('hidden');
             }
+
+            if(ctaTextDet) ctaTextDet.innerText = text;
+            if(ctaBtnHero) ctaBtnHero.innerHTML = `<i class="ph-fill ph-play text-xl"></i> ${text}`;
+            
+            // Esconde os botões de login para não confundir o usuário
+            if(btnHeroLogin) btnHeroLogin.classList.add('hidden');
+            if(btnDetailsLogin) btnDetailsLogin.classList.add('hidden');
 
             // Status do ícone de Download (Verifica Offline Storage)
             const iconDownload = document.getElementById('details-icon-download');
@@ -4029,15 +4063,23 @@
             // Se estiver offline, força a reprodução do vídeo completo que está em cache
             if (isOffline) isTrailer = false;
 
+            // NOVO: Forçar o trailer antes de iniciar o filme 
+            if (window.currentDestaqueData) {
+                // Checa se o usuário tem progresso salvo neste filme
+                const progressDataCheck = continuarAssistindoDocs.find(d => d.itemId === window.currentDestaqueData.id);
+                const isResuming = (progressDataCheck && progressDataCheck.currentTime > 0);
+                // Checa se o filme possui um trailer cadastrado no banco de dados
+                const hasTrailer = (window.currentDestaqueData.trailers && window.currentDestaqueData.trailers.length > 0) || window.currentDestaqueData.trailerUrl;
+                
+                // Se o usuário apertou "Assistir" (isTrailer = false), e o filme tem trailer, e NÃO estamos retomando pela metade... joga o trailer na tela!
+                if (!isTrailer && hasTrailer && !isOffline && !isResuming && !specificUrl) {
+                    isTrailer = true;
+                }
+            }
+
             // Reseta estados do próximo vídeo ao iniciar um novo conteúdo
             window.isNextVideoCanceled = false;
             mainVid.loop = false;
-
-            // INTERCEÇÃO DE CADASTRO: Se o usuário for anônimo e estiver online, ele só pode assistir ao trailer.
-            if (!isTrailer && isAnon) {
-                window.showToast("A reproduzir o trailer. Registe-se para assistir ao filme completo.");
-                isTrailer = true;
-            }
 
             if(!window.currentDestaqueData || !window.currentDestaqueData.videoUrl) return window.showToast("Vídeo não registado!", true);
             
@@ -4200,14 +4242,8 @@
                             mainVid.removeEventListener('timeupdate', checkTrailerEnd);
                             if(document.getElementById('trailer-cta-container').classList.contains('hidden')) return; // Usuário já clicou em assistir completo
                             
-                            window.fecharPlayerFull(); // Retorna automaticamente para a aba Detalhes
-                            
-                            // GATILHO DE CADASTRO OBRIGATÓRIO (MODAL) SE FOR ANÔNIMO
-                            if (isAnon) {
-                                setTimeout(() => {
-                                    window.openLoginPrompt();
-                                }, 600);
-                            }
+                            // Inicia o filme principal automaticamente assim que o trailer acaba
+                            window.assistirVideoCompleto(); 
                         }
                     };
                     mainVid.addEventListener('timeupdate', checkTrailerEnd);
@@ -4234,14 +4270,7 @@
         window.assistirVideoCompleto = function() {
             const isAnon = (!currentUser || currentUser.isAnonymous);
             
-            // SE O UTILIZADOR FOR ANÓNIMO E TENTAR CLICAR EM "FILME" DURANTE O TRAILER
-            if (isAnon) {
-                window.fecharPlayerFull();
-                setTimeout(() => {
-                    window.openLoginPrompt();
-                }, 500);
-                return;
-            }
+            
 
             mainVid.removeEventListener('timeupdate', window.currentTrailerListener);
             
