@@ -881,7 +881,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                         <h2 id="details-title" class="text-2xl md:text-5xl font-bold mb-4 md:mb-6 font-serif text-white tracking-wide drop-shadow-md uppercase">TÍTULO</h2>
                         
                         <div class="flex flex-wrap items-center gap-3 mb-6">
-                            <div id="dynamic-trailers-container" class="flex flex-wrap gap-2"></div>
+
                             
                             <button onclick="toggleMinhaListaDetails()" title="Adicionar à Lista" class="prime-btn focusable" tabindex="0"><i id="details-icon-add" class="ph ph-plus text-xl text-white"></i></button>
                             <button onclick="toggleJoinhaDetails()" title="Gostei" class="prime-btn focusable" tabindex="0"><i id="details-icon-like" class="ph ph-heart text-xl text-white"></i></button>
@@ -947,9 +947,10 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
 
             <!-- Seção de Abas e Conteúdo Extra -->
             <div class="px-6 md:px-16 mt-6 max-w-[1600px] mx-auto">
-                <div class="flex gap-8 border-b border-white/10 mb-8">
+                <div class="flex flex-wrap gap-x-4 md:gap-x-8 gap-y-1 border-b border-white/10 mb-8">
                     <button onclick="switchDetailsTab('relacionados')" id="tab-relacionados" class="pb-3 text-white font-bold border-b-2 border-white text-sm md:text-base focusable uppercase tracking-wide transition" tabindex="0">Relacionados</button>
                     <button onclick="switchDetailsTab('detalhes')" id="tab-detalhes" class="pb-3 text-brand-text font-bold border-b-2 border-transparent hover:text-white text-sm md:text-base focusable uppercase tracking-wide transition" tabindex="0">Detalhes</button>
+                    <button onclick="switchDetailsTab('trailers')" id="tab-trailers" class="pb-3 text-brand-text font-bold border-b-2 border-transparent hover:text-white text-sm md:text-base focusable uppercase tracking-wide transition" tabindex="0">Trailers</button>
                 </div>
 
                 <!-- Aba: Relacionados -->
@@ -964,6 +965,10 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                         <div id="details-random-rails" class="space-y-10"></div>
                     </div>
                 </div>
+
+                <section id="content-trailers" aria-labelledby="tab-trailers" class="hidden animate-fadeIn">
+                    <div id="dynamic-trailers-container" class="grid gap-3 sm:grid-cols-2"></div>
+                </section>
 
                 <!-- Aba: Detalhes -->
                 <div id="content-detalhes" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6 animate-fadeIn">
@@ -3528,6 +3533,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             // =======================================================
             const viewDetails = document.getElementById('view-details');
             if (viewDetails && !viewDetails.classList.contains('hidden')) {
+                renderFilmTrailerTab(itemAtualizado);
                 // Textos e Metadados
                 document.getElementById('details-title').innerText = itemAtualizado.titulo || '';
                 document.getElementById('details-desc').innerText = itemAtualizado.descricao || "Sem descrição disponível no momento.";
@@ -4199,18 +4205,8 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             document.getElementById('details-info-trilho').innerText = data.trilho || "Geral";
             document.getElementById('details-info-desc').innerText = data.descricao || "Sem descrição disponível no momento.";
 
-            // Renderização Dinâmica de Multiplos Trailers
-            const trailersDiv = document.getElementById('dynamic-trailers-container');
-            trailersDiv.innerHTML = '';
-            
-            const choices=filmTrailers(data);
-            for(const [i,trailer] of (choices.length ? choices : [{nome:'Ver trecho',url:null}]).entries()){
-                const button=document.createElement('button');
-                button.type='button';button.className='prime-btn focusable px-4 text-sm text-white';
-                button.style.width='auto';button.textContent=trailer.nome || 'Trailer '+(i+1);
-                button.onclick=()=>window.playTrailerDetails(trailer.url);
-                trailersDiv.append(button);
-            }
+            renderFilmTrailerTab(data);
+            window.switchDetailsTab('relacionados');
 
             // 3. Sistema de Vídeo e Imagem de Fundo
             const vid = document.getElementById('details-video');
@@ -4314,30 +4310,46 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             window.showToast("A reproduzir o Trailer...");
         };
 
+        function renderFilmTrailerTab(film) {
+            const list = document.getElementById('dynamic-trailers-container');
+            const tab = document.getElementById('tab-trailers');
+            const trailers = filmTrailers(film);
+            const signature = JSON.stringify([film.id,trailers]);
+            if (list.dataset.signature === signature) return;
+            list.dataset.signature = signature;
+            tab.classList.toggle('hidden', !trailers.length);
+            if (!trailers.length && !document.getElementById('content-trailers').classList.contains('hidden')) {
+                window.switchDetailsTab('relacionados');
+            }
+            list.replaceChildren(...trailers.map((trailer,index) => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'focusable rounded-xl bg-[#1a1c23] border border-white/10 p-4 text-left text-white hover:border-white/50';
+                const label = 'Trailer ' + (index + 1);
+                const title = document.createElement('strong');
+                title.textContent = label;
+                button.append(title);
+                if (trailer.nome && trailer.nome !== label) {
+                    const name = document.createElement('span');
+                    name.className = 'block mt-1 text-sm text-gray-300';
+                    name.textContent = trailer.nome;
+                    button.append(name);
+                }
+                button.onclick = () => window.playTrailerDetails(trailer.url);
+                return button;
+            }));
+        }
         window.switchDetailsTab = function(tabName) {
-            const btnRel = document.getElementById('tab-relacionados');
-            const btnDet = document.getElementById('tab-detalhes');
-            const contentRel = document.getElementById('content-relacionados');
-            const contentDet = document.getElementById('content-detalhes');
-
-            if(tabName === 'relacionados') {
-                btnRel.classList.replace('text-brand-text', 'text-white');
-                btnRel.classList.replace('border-transparent', 'border-white');
-                btnDet.classList.replace('text-white', 'text-brand-text');
-                btnDet.classList.replace('border-white', 'border-transparent');
-                
-                contentRel.classList.remove('hidden');
-                contentDet.classList.add('hidden');
-            } else {
-                btnDet.classList.replace('text-brand-text', 'text-white');
-                btnDet.classList.replace('border-transparent', 'border-white');
-                btnRel.classList.replace('text-white', 'text-brand-text');
-                btnRel.classList.replace('border-white', 'border-transparent');
-                
-                contentDet.classList.remove('hidden');
-                contentDet.classList.add('hidden'); // Bug do tailwind, consertado abaixo
-                contentDet.style.display = 'grid'; // Força o grid
-                contentRel.classList.add('hidden');
+            for (const name of ['relacionados','detalhes','trailers']) {
+                const selected = name === tabName;
+                const button = document.getElementById('tab-' + name);
+                button.setAttribute('aria-pressed', String(selected));
+                button.setAttribute('aria-controls', 'content-' + name);
+                button.classList.toggle('text-white', selected);
+                button.classList.toggle('border-white', selected);
+                button.classList.toggle('text-brand-text', !selected);
+                button.classList.toggle('border-transparent', !selected);
+                document.getElementById('content-' + name).classList.toggle('hidden', !selected);
             }
         };
 
