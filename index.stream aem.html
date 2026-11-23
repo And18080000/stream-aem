@@ -590,6 +590,23 @@
 .yt-backdrop.preview-playing>iframe{opacity:1!important}
 .yt-backdrop>img{opacity:.75!important}
 .yt-backdrop.preview-playing>img{opacity:0!important}
+</style><style>
+html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior:none}
+.in-shorts #main-footer{display:none!important}
+.in-shorts #view-tiktok{position:fixed;inset:var(--shorts-top,64px) 0 0;z-index:30}
+#tiktok-feed{height:100%;overscroll-behavior:contain;overflow-x:hidden}
+#tiktok-feed .tiktok-item{height:100%;min-height:100%;padding:0}
+#tiktok-feed .short-layout{display:grid;width:min(100%,520px);max-width:100%;height:100%;max-height:100%;grid-template-rows:minmax(0,1fr) auto auto;align-content:stretch;border-radius:0;padding-bottom:env(safe-area-inset-bottom);background:#101215}
+.short-media{position:relative;min-height:0;overflow:hidden;background:black}
+.short-media video,.short-media iframe{width:100%!important;height:100%!important;object-fit:contain}
+.short-media~.tiktok-progress-container,.short-media~.bg-gradient-to-t{display:none}
+.short-layout .short-caption,.short-layout .short-actions{position:static;min-width:0;transform:none}
+.short-caption{padding:.35rem .8rem}.short-caption>div,.short-caption>p{display:none}.short-caption h2{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.short-actions{display:flex;flex-direction:row;justify-content:space-around;align-items:center;gap:2px;padding:0 .25rem .3rem}
+.short-actions button{margin:0;width:clamp(30px,9vw,44px);height:36px}.short-actions i{font-size:21px}
+.short-layout .tiktok-details-drawer{height:auto;max-height:70%;overflow-y:auto;overscroll-behavior:contain;display:block;padding:14px;background:#17191e!important;color:white}
+.tiktok-details-drawer h3{font-size:1rem}.tiktok-details-drawer .grid{gap:5px;margin-bottom:8px}.tiktok-details-drawer .grid>div{padding:6px 8px}.tiktok-details-drawer .truncate{white-space:normal}
+.tiktok-details-drawer .mb-6{margin-bottom:6px}.short-description{white-space:pre-wrap;overflow-wrap:anywhere;font-size:.82rem;line-height:1.4;margin:4px 0 10px}
 </style></head>
 <body class="antialiased flex flex-col min-h-screen" id="app-body"><section id="maintenancePage" role="status"><h1>Estamos atualizando o portfólio</h1><p>Volte em instantes.</p></section>
 
@@ -1467,7 +1484,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, setDoc, getDoc, updateDoc, query, orderBy, limit, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, runTransaction, collection, addDoc, onSnapshot, deleteDoc, doc, setDoc, getDoc, updateDoc, query, orderBy, limit, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyC9mGKW38Dh8xIIphde_V41dit52CRctgo",
@@ -1523,7 +1540,7 @@
                 document.getElementById('hero-video').pause();
                 if(!roomPage.open)roomPage.showModal();
             }
-            for(const [name,items] of groups){
+            for(const [name,items] of [...groups].sort(([a],[b])=>(window.cacheOrdemCategorias?.[a]||99)-(window.cacheOrdemCategorias?.[b]||99))){
                 const room=roomSettings[name] || {};tiles.append(roomTile(name,room.type==='image'?room.banner:items[0]?.capaUrl,()=>openRoom(name)));
             }
             if(roomPage.open){if(groups.has(currentRoom))openRoom(currentRoom);else roomPage.close();}
@@ -2025,6 +2042,8 @@
             }
 
             if(['home', 'menu1', 'menu2', 'menu3', 'minhaLista'].includes(viewId)) {
+                document.documentElement.classList.toggle('in-shorts',viewId==='menu2');
+                if(viewId!=='menu2')document.querySelectorAll('.tiktok-video').forEach(v=>v.pause());
                 window.currentActiveMenu = viewId; renderRooms();
                 document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
                 
@@ -2096,15 +2115,54 @@
 
         // LÓGICA MODO TIKTOK
         window.tiktokObserver = null;
+        const shortsHeader=document.getElementById('main-header');
+        new ResizeObserver(()=>document.documentElement.style.setProperty('--shorts-top',shortsHeader.offsetHeight+'px')).observe(shortsHeader);
+        function feedPrefRef(uid){return doc(db,'artifacts',appId,'users',uid,'preferencias','feed');}
+        let unsubFeedPrefs;
+        onAuthStateChanged(auth,user=>{
+            unsubFeedPrefs?.();window.preferredTikTokCategory=null;
+            if(user)unsubFeedPrefs=onSnapshot(feedPrefRef(user.uid),snap=>{
+                window.preferredTikTokCategory=snap.data()?.category || localStorage.getItem('feed-category:'+user.uid);
+                promoteUpcoming();
+            },()=>{window.preferredTikTokCategory=localStorage.getItem('feed-category:'+user.uid);promoteUpcoming();});
+        });
+        function promoteUpcoming(){
+            const feed=document.getElementById('tiktok-feed'),list=[...feed.querySelectorAll('.tiktok-item')];
+            if(!window.preferredTikTokCategory || !list.length)return;
+            const pos=Math.round(feed.scrollTop/Math.max(1,feed.clientHeight));
+            const rest=list.slice(pos+1),same=rest.filter(el=>el.dataset.category===window.preferredTikTokCategory), other=rest.filter(el=>el.dataset.category!==window.preferredTikTokCategory);
+            let n=0;while(same.length || other.length){const el=(same.length && (!other.length || n%3!==2)?same:other).shift();feed.append(el);n++;}
+        }
+        async function reserveSurvey(){
+            const uid=auth.currentUser?.uid;if(!uid)return false;
+            const now=new Date(),slot=[now.getFullYear(),now.getMonth()+1,now.getDate()<=15?1:2].join('-');
+            const key='feed-survey:'+uid;
+            if(localStorage.getItem(key)===slot)return false;
+            try{
+                const allowed=await runTransaction(db,async tx=>{
+                    const ref=feedPrefRef(uid),snap=await tx.get(ref);
+                    if(snap.data()?.slot===slot)return false;
+                    tx.set(ref,{slot},{merge:true});return true;
+                });
+                if(allowed)localStorage.setItem(key,slot);return allowed;
+            }catch{return false;}
+        }
         window.preferredTikTokCategory = null; // Armazena o interesse do utilizador
 
         window.renderTikTokMode = function() {
             const feed = document.getElementById('tiktok-feed');
-            if (!cacheCatalogo || cacheCatalogo.length === 0) return;
 
             // 1. Filtra itens vinculados ao Menu 2
             let tiktokItems = cacheCatalogo.filter(i => (i.menuIds && i.menuIds.includes('menu2')) && (i.videoUrl || i.trailerUrl));
             
+            const signature=JSON.stringify([auth.currentUser?.uid,tiktokItems,curtidasIds,minhaListaIds]);
+            if(feed.dataset.signature===signature && window.tiktokObserver){
+                const visible=feed.children[Math.round(feed.scrollTop/Math.max(1,feed.clientHeight))];
+                visible?.querySelector('video')?.play().catch(()=>{});
+                return;
+            }
+            feed.dataset.signature=signature;
+            window.tiktokObserver?.disconnect();
             // 2. ORDEM ALEATÓRIA: Embaralha o array para que nunca seja a mesma ordem do admin
             tiktokItems = tiktokItems.sort(() => Math.random() - 0.5);
 
@@ -2112,7 +2170,7 @@
             if (window.preferredTikTokCategory) {
                 const related = tiktokItems.filter(i => i.trilho === window.preferredTikTokCategory);
                 const others = tiktokItems.filter(i => i.trilho !== window.preferredTikTokCategory);
-                tiktokItems = [...related, ...others];
+                tiktokItems=[]; while(related.length || others.length){tiktokItems.push((related.length && (!others.length || tiktokItems.length%3!==2)?related:others).shift());}
             }
             
             if (tiktokItems.length === 0) {
@@ -2128,19 +2186,19 @@
                 const isLiked = curtidasIds.includes(item.id);
                 const isSaved = minhaListaIds.includes(item.id);
                 // Prioriza o trailer no feed TikTok para carregamento rápido, fallback para o vídeo principal
-                const videoSrc = item.trailerUrl || item.videoUrl;
+                const videoSrc = item.videoUrl || item.trailerUrl;
 
                 return `
                 <div class="tiktok-item flex flex-col md:flex-row md:items-center md:justify-center md:gap-12 md:px-16" data-id="${item.id}" data-category="${item.trilho}">
                     
                     <!-- VÍDEO E SOBREPOSIÇÃO ESTILO TIKTOK -->
-                    <div class="relative w-full h-full md:h-[80vh] md:max-w-[45vh] md:rounded-[24px] overflow-hidden bg-black shadow-2xl">
-                        <video class="tiktok-video" src="${videoSrc}" loop playsinline muted poster="${item.capaUrl}" 
+                    <div class="short-layout relative w-full h-full md:h-[80vh] md:max-w-[45vh] md:rounded-[24px] overflow-hidden bg-black shadow-2xl">
+                        <div class="short-media"><video class="tiktok-video" src="${videoSrc}" loop playsinline muted poster="${item.capaUrl}" 
                                onclick="window.toggleTikTokVideo(this)" 
                                ontimeupdate="window.updateTikTokProgress(this, '${item.id}')"
                                onwaiting="document.getElementById('tk-loader-${item.id}').classList.remove('hidden')"
                                onplaying="document.getElementById('tk-loader-${item.id}').classList.add('hidden')"
-                               oncanplay="document.getElementById('tk-loader-${item.id}').classList.add('hidden')"></video>
+                               oncanplay="document.getElementById('tk-loader-${item.id}').classList.add('hidden')"></video></div>
                         
                         <!-- BUFFER DE CARREGAMENTO (CÍRCULO AZUL) -->
                         <div id="tk-loader-${item.id}" class="hidden absolute inset-0 flex items-center justify-center bg-black/20 z-[105] pointer-events-none">
@@ -2164,7 +2222,7 @@
                         <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none"></div>
 
                         <!-- INFO CANTO INFERIOR ESQUERDO -->
-                        <div class="absolute bottom-6 left-4 right-16 z-20 pointer-events-none">
+                        <div class="short-caption absolute bottom-6 left-4 right-16 z-20 pointer-events-none">
                             <div class="flex items-center gap-3 mb-3 pointer-events-auto">
                                 <div class="w-9 h-9 rounded-full border border-white/40 overflow-hidden bg-brand-gold/10">
                                     <img src="${window.brandingConfig?.logoUrl || 'https://api.dicebear.com/7.x/initials/svg?seed=AM'}" class="w-full h-full object-cover">
@@ -2180,7 +2238,7 @@
                         </div>
 
                         <!-- BOTÕES LATERAIS (DIREITA) -->
-                        <div class="absolute right-3 bottom-12 flex flex-col items-center gap-5 z-20 pointer-events-auto">
+                        <div class="short-actions absolute right-3 bottom-12 flex flex-col items-center gap-5 z-20 pointer-events-auto">
                             <!-- Curtir -->
                             <div class="flex flex-col items-center">
                                 <button onclick="window.toggleJoinhaById('${item.id}')" class="w-12 h-12 flex items-center justify-center">
@@ -2239,26 +2297,26 @@
                                 </div>
                                 <button onclick="window.fecharDetalhesTikTok('${item.id}')" class="w-12 h-12 bg-white/10 backdrop-blur-md border border-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition"><i class="ph ph-x text-2xl"></i></button>
                             </div>
-                            <div class="grid grid-cols-2 gap-3 text-[9px] text-white font-black uppercase mb-8">
+                            <p class="short-description"></p><div class="grid grid-cols-2 gap-3 text-[9px] text-white font-black uppercase mb-8">
                                 <div class="bg-black/20 p-4 rounded-2xl border border-white/10 flex flex-col gap-1 backdrop-blur-md">
                                     <span class="text-white/40 tracking-widest">Lançamento</span>
-                                    <span class="text-xs text-white">${item.ano || '2024'}</span>
+                                    <span class="text-xs text-white">${item.ano || 'Não informado'}</span>
                                 </div>
                                 <div class="bg-black/20 p-4 rounded-2xl border border-white/10 flex flex-col gap-1 backdrop-blur-md">
                                     <span class="text-white/40 tracking-widest">Resolução</span>
-                                    <span class="text-xs text-brand-gold">${item.resolucao || '4K HDR'}</span>
+                                    <span class="text-xs text-brand-gold">${item.resolucao || 'Não informado'}</span>
                                 </div>
                                 <div class="bg-black/20 p-4 rounded-2xl border border-white/10 flex flex-col gap-1 backdrop-blur-md">
                                     <span class="text-white/40 tracking-widest">IMDb</span>
-                                    <span class="text-xs text-yellow-500 font-black italic">${item.imdb || '8.5/10'}</span>
+                                    <span class="text-xs text-yellow-500 font-black italic">${item.imdb || 'Não informado'}</span>
                                 </div>
                                 <div class="bg-black/20 p-4 rounded-2xl border border-white/10 flex flex-col gap-1 backdrop-blur-md">
                                     <span class="text-white/40 tracking-widest">Duração</span>
-                                    <span class="text-xs text-white">${item.tempo || '1h 45m'}</span>
+                                    <span class="text-xs text-white">${item.tempo || 'Não informado'}</span>
                                 </div>
                                 <div class="bg-black/20 p-4 rounded-2xl border border-white/10 flex flex-col gap-1 col-span-2 backdrop-blur-md">
                                     <span class="text-white/40 tracking-widest">Elenco Principal</span>
-                                    <span class="text-xs text-white truncate">${item.elenco || 'A&M Originals'}</span>
+                                    <span class="text-xs text-white truncate">${item.elenco || 'Não informado'}</span>
                                 </div>
                             </div>
                             <button onclick="window.fecharDetalhesTikTok('${item.id}')" class="w-full bg-brand-gold text-black py-4 rounded-full font-black uppercase text-xs tracking-[0.2em] shadow-xl active:scale-95 transition-all">Fechar Especificações</button>
@@ -2269,6 +2327,15 @@
             }).join('');
 
             // Os itens de Shorts e do feed podem vir de YouTube ou de vídeos antigos no R2.
+            feed.querySelectorAll('.tiktok-item').forEach((el,index)=>{
+                el.querySelector('.short-description').textContent=tiktokItems[index].descricao || 'Sem descrição cadastrada.';
+                const bar=el.querySelector('.short-actions');
+                for(const [direction,label] of [[-1,'Anterior'],[1,'Próximo']]){
+                    if(tiktokItems.length<2)continue;
+                    const btn=document.createElement('button');btn.textContent=direction<0?'↑':'↓';btn.setAttribute('aria-label',label);btn.title=label;
+                    btn.onclick=()=>{const sibling=direction<0?el.previousElementSibling:el.nextElementSibling;if(sibling)feed.scrollTo({top:sibling.offsetTop-feed.firstElementChild.offsetTop,behavior:'smooth'});};bar.append(btn);
+                }
+            });
             feed.querySelectorAll('video').forEach(installStreamYoutubeAdapter);
 
             if (window.tiktokObserver) window.tiktokObserver.disconnect();
@@ -2298,8 +2365,8 @@
                         // Só aparece se o utilizador já não tiver aceitado esta categoria nesta sessão e após 12 segundos (interesse real)
                         if (prompt && !window[`shown_reco_${itemId}`] && window.preferredTikTokCategory !== entry.target.dataset.category) {
                             clearTimeout(window[`timer_reco_${itemId}`]);
-                            window[`timer_reco_${itemId}`] = setTimeout(() => {
-                                if (!video.paused && entry.isIntersecting) {
+                            window[`timer_reco_${itemId}`] = setTimeout(async () => {
+                                if (!video.paused && video.isConnected && !document.hidden && window.currentActiveMenu==='menu2' && await reserveSurvey() && video.isConnected && !video.paused) {
                                     prompt.classList.remove('opacity-0', 'pointer-events-none', '-translate-y-4');
                                     prompt.classList.add('opacity-100', 'pointer-events-auto', 'translate-y-0');
                                     window[`shown_reco_${itemId}`] = true; // Marca como exibido para não repetir neste vídeo
@@ -2318,7 +2385,7 @@
                         window.fecharComentariosTikTok(itemId);
                     }
                 });
-            }, { threshold: 0.6 });
+            }, { root:feed, threshold: 0.6 });
 
             document.querySelectorAll('.tiktok-item').forEach(item => window.tiktokObserver.observe(item));
         };
@@ -2326,6 +2393,8 @@
         // LÓGICA DO ALGORITMO DE RECOMENDAÇÃO
         window.acceptRecommendation = function(itemId, category) {
             window.preferredTikTokCategory = category;
+            if(auth.currentUser){localStorage.setItem('feed-category:'+auth.currentUser.uid,category);setDoc(feedPrefRef(auth.currentUser.uid),{category},{merge:true}).catch(()=>{});}
+            promoteUpcoming();
             const prompt = document.getElementById(`reco-prompt-${itemId}`);
             if (prompt) {
                 prompt.innerHTML = `<span class="text-[9px] font-black text-brand-gold uppercase tracking-widest animate-pulse"><i class="ph-fill ph-magic-wand"></i> Algoritmo ajustado!</span>`;
@@ -3161,7 +3230,7 @@
         window.carregarOrdemCategorias = function() {
             // Escuta Ordem
             onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'configuracoes', 'ordemCategorias'), (snap) => {
-                if(snap.exists()) { window.cacheOrdemCategorias = snap.data(); }
+                window.cacheOrdemCategorias=snap.data()||{}; renderRooms();
                 // Escuta Logos de Categorias
                 getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'configuracoes', 'logosCategorias')).then(snapLogos => {
                     if(snapLogos.exists()) { window.cacheLogosCategorias = snapLogos.data(); }
@@ -4938,12 +5007,13 @@
             let adVideoUrl = "";
             let adTitle = "Sugestão A&amp;M";
             let isFallbackLongVideo = false;
+            let playingAd=null;
 
             // Escolhe anúncios exclusivos subidos no Painel Admin ou usa o catálogo como fallback
             if (window.adsConfig && window.adsConfig.videos && window.adsConfig.videos.length > 0) {
                 const ads = window.adsConfig.videos;
                 const randomAd = ads[Math.floor(Math.random() * ads.length)];
-                adVideoUrl = randomAd.url;
+                playingAd=randomAd; adVideoUrl = randomAd.url;
                 adTitle = randomAd.nome || "Publicidade";
             } else {
                 const outrosVideos = cacheCatalogo.filter(v => v.id !== window.currentDestaqueData.id && (v.trailerUrl || v.videoUrl));
@@ -4969,6 +5039,7 @@
                 mainVid.src = adVideoUrl;
             mainVid.load(); 
 
+            if(streamYoutubeId(adVideoUrl))mainVid.play().catch(()=>{});
             mainVid.onloadedmetadata = () => {
                 // Configuração inicial agressiva para garantir som
                 mainVid.muted = false; 
@@ -4983,10 +5054,12 @@
                 }
                 mainVid.currentTime = startPos;
                 
-                let durationOfAd = 15;
-                if (isFinite(mainVid.duration) && mainVid.duration > 0) {
-                    durationOfAd = Math.floor(mainVid.duration - startPos);
-                }
+                const adDuration=()=>{
+                    const current=window.adsConfig?.videos?.find(a=>a.id===playingAd?.id);
+                    const limit=Math.max(1,Number(current?.duracao || playingAd?.duracao)||15);
+                    return Math.min(limit,mainVid.duration>0?Math.ceil(mainVid.duration-startPos):limit);
+                };
+                let durationOfAd=adDuration();
                 window.trailerStartTime = startPos;
                 window.trailerDuration = durationOfAd;
 
@@ -5003,6 +5076,7 @@
                 if(window.mandatoryInterval) clearInterval(window.mandatoryInterval);
 
                 window.mandatoryInterval = setInterval(() => {
+                    durationOfAd=adDuration();window.trailerDuration=durationOfAd;
                     const currentPos = Math.floor(mainVid.currentTime - startPos);
                     elapsed = currentPos > elapsed ? currentPos : elapsed;
 
@@ -5653,77 +5727,3 @@
                 }
                 if (searchIcon) searchIcon.classList.add('hidden');
                 if (installBtn) installBtn.classList.add('hidden');
-
-                window.showToast("Ligação perdida. A carregar biblioteca offline.", true);
-                window.renderizarModoOffline();
-            } else {
-                // RESTAURA TUDO AO VOLTAR ONLINE
-                if (searchIcon) searchIcon.classList.remove('hidden');
-                if(window.renderizarTrilhosNaHome) window.renderizarTrilhosNaHome();
-                
-                // Pré-carrega ativos de sistema na entrada online
-                window.precacheSystem();
-            }
-        };
-
-        window.precacheSystem = async function() {
-            if (!('caches' in window)) return;
-            const cache = await caches.open(OFFLINE_CACHE_NAME);
-            const core = [
-                "https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev/0416.mp4",
-                "https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev/Cinematic%20logo%20intro%20sound%20effect%20(no%20copyright)%20%23logointro%20%23soundeffects%20%23cinematic%20-%20Vfx%20Secrets%20(youtube).mp3"
-            ];
-            core.forEach(url => {
-                caches.match(url).then(m => { if(!m) fetch(url).then(r => cache.put(url, r)).catch(()=>{}); });
-            });
-        };
-
-        window.renderizarModoOffline = function() {
-            const offlineList = JSON.parse(localStorage.getItem('am_offline_metadata') || '[]');
-            const container = document.getElementById('dynamic-rails-container');
-            const sectionLista = document.getElementById('section-minha-lista');
-            const hero = document.querySelector('#view-home > div.relative');
-            
-            if (sectionLista) sectionLista.classList.add('hidden');
-            if (hero) hero.classList.add('hidden'); // Oculta o Hero online para focar na aba única
-            
-            if (offlineList.length === 0) {
-                container.innerHTML = `
-                    <div class="flex flex-col items-center justify-center py-40 text-center px-8">
-                        <i class="ph ph-cloud-slash text-7xl text-white/10 mb-6"></i>
-                        <h3 class="text-2xl font-bold text-white mb-3 uppercase tracking-tighter">Nenhum vídeo disponível</h3>
-                        <p class="text-brand-text text-sm max-w-xs mx-auto leading-relaxed">Os seus downloads aparecerão aqui quando estiver sem internet.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            let cardsHtml = offlineList.map(item => renderCardPaisagem(item, "text-[var(--brand-gold)]")).join('');
-            
-            container.innerHTML = `
-                <div class="relative pb-10 animate-fadeIn px-4 md:px-0">
-                    <div class="flex items-center justify-between mb-8">
-                        <h3 class="text-xl md:text-2xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
-                            <i class="ph-fill ph-download-simple text-[var(--brand-gold)]"></i> Seus Downloads Offline
-                        </h3>
-                        <span class="text-[10px] bg-brand-gold/10 text-brand-gold px-3 py-1 rounded-full font-bold border border-brand-gold/20">${offlineList.length} TÍTULOS</span>
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        ${cardsHtml.replace(/min-w-\[220px\]/g, 'w-full')} 
-                    </div>
-                </div>
-            `;
-        };
-
-        window.addEventListener('online', window.atualizarModoConexao);
-        window.addEventListener('offline', window.atualizarModoConexao);
-        
-        // Execução Imediata: Verifica se já iniciou offline para evitar ecrãs de erro do Firebase
-        if (!navigator.onLine) {
-            setTimeout(window.atualizarModoConexao, 100);
-        } else {
-            setTimeout(window.atualizarModoConexao, 3000);
-        }
-    </script>
-</body>
-</html>
