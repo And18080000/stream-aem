@@ -5901,3 +5901,72 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             } else {
                 // RESTAURA TUDO AO VOLTAR ONLINE
                 if (searchIcon) searchIcon.classList.remove('hidden');
+                if(window.renderizarTrilhosNaHome) window.renderizarTrilhosNaHome();
+                
+                // Pré-carrega ativos de sistema na entrada online
+                window.precacheSystem();
+            }
+        };
+
+        window.precacheSystem = async function() {
+            if (!('caches' in window)) return;
+            const cache = await caches.open(OFFLINE_CACHE_NAME);
+            const core = [
+                "https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev/0416.mp4",
+                "https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev/Cinematic%20logo%20intro%20sound%20effect%20(no%20copyright)%20%23logointro%20%23soundeffects%20%23cinematic%20-%20Vfx%20Secrets%20(youtube).mp3"
+            ];
+            core.forEach(url => {
+                caches.match(url).then(m => { if(!m) fetch(url).then(r => cache.put(url, r)).catch(()=>{}); });
+            });
+        };
+
+        window.renderizarModoOffline = function() {
+            const offlineList = JSON.parse(localStorage.getItem('am_offline_metadata') || '[]').filter(visibleOfflineItem);
+            const container = document.getElementById('dynamic-rails-container');
+            const sectionLista = document.getElementById('section-minha-lista');
+            const hero = document.querySelector('#view-home > div.relative');
+            
+            if (sectionLista) sectionLista.classList.add('hidden');
+            if (hero) hero.classList.add('hidden'); // Oculta o Hero online para focar na aba única
+            
+            if (offlineList.length === 0) {
+                container.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-40 text-center px-8">
+                        <i class="ph ph-cloud-slash text-7xl text-white/10 mb-6"></i>
+                        <h3 class="text-2xl font-bold text-white mb-3 uppercase tracking-tighter">Nenhum vídeo disponível</h3>
+                        <p class="text-brand-text text-sm max-w-xs mx-auto leading-relaxed">Os seus downloads aparecerão aqui quando estiver sem internet.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let cardsHtml = offlineList.map(item => renderCardPaisagem(item, "text-[var(--brand-gold)]")).join('');
+            
+            container.innerHTML = `
+                <div class="relative pb-10 animate-fadeIn px-4 md:px-0">
+                    <div class="flex items-center justify-between mb-8">
+                        <h3 class="text-xl md:text-2xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
+                            <i class="ph-fill ph-download-simple text-[var(--brand-gold)]"></i> Seus Downloads Offline
+                        </h3>
+                        <span class="text-[10px] bg-brand-gold/10 text-brand-gold px-3 py-1 rounded-full font-bold border border-brand-gold/20">${offlineList.length} TÍTULOS</span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        ${cardsHtml.replace(/min-w-\[220px\]/g, 'w-full')} 
+                    </div>
+                </div>
+            `;
+        };
+
+        window.addEventListener('online', window.atualizarModoConexao);
+        window.addEventListener('offline', window.atualizarModoConexao);
+        
+        // Execução Imediata: Verifica se já iniciou offline para evitar ecrãs de erro do Firebase
+        if (!navigator.onLine) {
+            setTimeout(window.atualizarModoConexao, 100);
+        } else {
+            setTimeout(window.atualizarModoConexao, 3000);
+        }
+        window.dispatchEvent(new Event('stream-ready'));
+    </script>
+</body>
+</html>
