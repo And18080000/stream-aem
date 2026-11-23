@@ -644,6 +644,12 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
  #tiktok-feed .short-actions{position:absolute;right:14px;bottom:62px;max-height:calc(100% - 84px);padding:8px;gap:8px;background:#080e18ce;border-radius:18px}
  #tiktok-feed .short-actions>button[title]{order:-1;background:#263647;border-radius:50%}
 }
+#tiktok-feed .category-avatar{width:40px;height:40px;border-radius:50%;border:2px solid #00a8e1;overflow:hidden;color:white;background:#172738;font-weight:bold}
+.category-avatar img{width:100%;height:100%;object-fit:cover}
+#view-profile .profile-video-grid{width:min(100%,900px);margin:auto;gap:4px}
+#profile-grid button{position:relative;aspect-ratio:3/4;background:#141c28;overflow:hidden}
+#profile-grid img{width:100%;height:100%;object-fit:cover}
+#profile-grid button span{position:absolute;bottom:0;left:0;right:0;text-align:left;padding:.65rem;color:white;background:linear-gradient(transparent,#070d16e6);overflow-wrap:anywhere}
 </style></head>
 <body class="antialiased flex flex-col min-h-screen" id="app-body"><section id="maintenancePage" role="status"><h1>Estamos atualizando o portfólio</h1><p>Volte em instantes.</p></section>
 
@@ -1077,8 +1083,8 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                     
                     <div class="flex gap-6 my-4 text-center">
                         <div><p class="font-black text-sm" id="count-following">0</p><p class="text-[10px] text-gray-500 uppercase">Seguindo</p></div>
-                        <div><p class="font-black text-sm" id="count-followers">2.4k</p><p class="text-[10px] text-gray-500 uppercase">Seguidores</p></div>
-                        <div><p class="font-black text-sm" id="count-likes-total">15.8k</p><p class="text-[10px] text-gray-500 uppercase">Curtidas</p></div>
+                        <div><p class="font-black text-sm" id="count-followers">0</p><p class="text-[10px] text-gray-500 uppercase">Seguidores</p></div>
+                        <div><p class="font-black text-sm" id="count-likes-total">0</p><p class="text-[10px] text-gray-500 uppercase">Curtidas</p></div>
                     </div>
 
                     <div class="flex gap-2 w-full max-w-[280px]">
@@ -1566,6 +1572,37 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
         let selectedProfilePhoto = null;
         let currentProfilePhotoUrl = "";
         let cacheCatalogo = [];
+        let contentFeed = [];
+        let contentProfiles = new Map();
+        const categoryName = item => String(item.trilho || '').trim() || 'Outros';
+        const categoryKey = name => name.normalize('NFC').trim().toLocaleLowerCase('pt-BR');
+        function isFeedContent(item) {
+            return item.isShort === true || item.menuIds?.includes('menu2') || item.menuId === 'menu2' ||
+                ['conteúdos','conteudos'].includes(categoryKey(categoryName(item)));
+        }
+        function partitionCatalog(items) {
+            cacheCatalogo = [];
+            contentFeed = [];
+            contentProfiles = new Map();
+            for (const item of items) {
+                if (!isFeedContent(item)) { cacheCatalogo.push(item); continue; }
+                if (!item.videoUrl && !item.trailerUrl) continue;
+                contentFeed.push(item);
+                const name = categoryName(item), key = categoryKey(name);
+                if (!contentProfiles.has(key)) contentProfiles.set(key,{name,cover:'',videos:[]});
+                const group = contentProfiles.get(key);
+                group.videos.push(item);
+                if (!group.cover && item.capaUrl) group.cover = item.capaUrl;
+            }
+            for (const group of contentProfiles.values()) {
+                const id = streamYoutubeId(group.videos[0].videoUrl || group.videos[0].trailerUrl);
+                if (!group.cover && id) group.cover = 'https://i.ytimg.com/vi/'+id+'/hqdefault.jpg';
+            }
+        }
+        function visibleOfflineItem(item) {
+            return !isFeedContent(item) && !contentFeed.some(video=>video.id===item.id);
+        }
+
         let roomSettings=Object.create(null), legacyRooms={menu1:'Internacional',menu3:'Edições'}, currentRoom='';
         const roomPage=document.getElementById('roomPage');
         document.getElementById('roomClose').onclick=()=>roomPage.close();
@@ -1581,7 +1618,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             const title=document.createElement('strong');title.textContent=name;tile.append(title);tile.onclick=click;return tile;
         }
         function renderRooms(){
-            const groups=new Map(Object.keys(roomSettings).map(n=>[n,[]]));
+            const groups=new Map(Object.keys(roomSettings).filter(n=>!contentProfiles.has(categoryKey(n))).map(n=>[n,[]]));
             for(const item of cacheCatalogo)for(const n of categoriesFor(item)){
                 if(!groups.has(n))groups.set(n,[]);groups.get(n).push(item);
             }
@@ -2234,7 +2271,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             return items.map(item => {
                 const id = idOf(item);
                 if (!feedDraws.has(id)) feedDraws.set(id, -Math.log(1 - Math.random()));
-                const weight = preferred && categoryOf(item) === preferred ? 1.5 : 1;
+                const weight = preferred && categoryKey(categoryOf(item) || 'Outros') === categoryKey(preferred) ? 1.5 : 1;
                 return {item, rank: feedDraws.get(id) / weight};
             }).sort((a,b) => a.rank - b.rank).map(entry => entry.item);
         }
@@ -2274,12 +2311,12 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             const feed = document.getElementById('tiktok-feed');
 
             // 1. Filtra itens vinculados ao Menu 2
-            let tiktokItems = cacheCatalogo.filter(i => (i.menuIds && i.menuIds.includes('menu2')) && (i.videoUrl || i.trailerUrl));
+            let tiktokItems = contentFeed;
             
             const signature=JSON.stringify([auth.currentUser?.uid,tiktokItems,curtidasIds,minhaListaIds]);
             if(feed.dataset.signature===signature && window.tiktokObserver){
                 const visible=feed.children[Math.round(feed.scrollTop/Math.max(1,feed.clientHeight))];
-                visible?.querySelector('video')?.play().catch(()=>{});
+                if (!activeCategoryKey) visible?.querySelector('video')?.play().catch(()=>{});
                 return;
             }
             feed.dataset.signature=signature;
@@ -2305,13 +2342,14 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
 
             feed.innerHTML = tiktokItems.map(item => {
                 const dataStr = btoa(encodeURIComponent(JSON.stringify(item)));
+                const group = contentProfiles.get(categoryKey(categoryName(item)));
                 const isLiked = curtidasIds.includes(item.id);
                 const isSaved = minhaListaIds.includes(item.id);
                 // Prioriza o trailer no feed TikTok para carregamento rápido, fallback para o vídeo principal
 
 
                 return `
-                <div class="tiktok-item flex flex-col md:flex-row md:items-center md:justify-center md:gap-12 md:px-16" data-id="${item.id}" data-category="${catalogText(item.trilho)}">
+                <div class="tiktok-item flex flex-col md:flex-row md:items-center md:justify-center md:gap-12 md:px-16" data-id="${item.id}" data-category="${catalogText(group.name)}">
                     
                     <!-- VÍDEO E SOBREPOSIÇÃO ESTILO TIKTOK -->
                     <div class="short-layout">
@@ -2340,10 +2378,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                         <!-- INFO CANTO INFERIOR ESQUERDO -->
                         <div class="short-caption">
                             <div class="flex items-center gap-3 mb-3 pointer-events-auto">
-                                <div class="w-9 h-9 rounded-full border border-white/40 overflow-hidden bg-brand-gold/10">
-                                    <img loading="lazy" decoding="async" src="${window.brandingConfig?.logoUrl || 'https://api.dicebear.com/7.x/initials/svg?seed=AM'}" class="w-full h-full object-cover">
-                                </div>
-                                <span onclick="window.abrirPerfilTikTok('${item.selo || 'A&M Produções'}')" class="text-white font-bold text-sm tracking-tight cursor-pointer hover:underline">${item.selo || 'A&M Official'} <i class="ph-fill ph-seal-check text-blue-400"></i></span>
+                                <button type="button" onclick="window.abrirPerfilTikTok(this.closest('.tiktok-item').dataset.category)" class="text-white font-bold text-sm hover:underline">${catalogText(group.name)}</button>
                             </div>
                             <h2 class="text-white font-bold text-base mb-1 drop-shadow-lg">${catalogText(item.titulo)}</h2>
                             <p class="text-gray-300 text-xs line-clamp-2 drop-shadow-md font-medium leading-relaxed">${item.descricao || ''}</p>
@@ -2355,6 +2390,9 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
 
                         <!-- BOTÕES LATERAIS (DIREITA) -->
                         <div class="short-actions pointer-events-auto">
+                            <button type="button" class="category-avatar" aria-label="Abrir perfil de ${catalogText(group.name)}" onclick="window.abrirPerfilTikTok(this.closest('.tiktok-item').dataset.category)">
+                                ${group.cover ? '<img alt="" src="'+catalogText(group.cover)+'">' : catalogText(group.name.slice(0,1))}
+                            </button>
                             <!-- Curtir -->
                             <div class="flex flex-col items-center">
                                 <button onclick="window.toggleJoinhaById('${item.id}')" class="w-12 h-12 flex items-center justify-center">
@@ -2464,7 +2502,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                     const itemId = entry.target.dataset.id;
                     const prompt = document.getElementById(`reco-prompt-${itemId}`);
 
-                    if (entry.isIntersecting && entry.intersectionRatio >= 0.6) {
+                    if (!activeCategoryKey && entry.isIntersecting && entry.intersectionRatio >= 0.6) {
                         if (video.dataset.feedSource) {
                             installStreamYoutubeAdapter(video);
                             if (video.dataset.feedPoster) video.poster = video.dataset.feedPoster;
@@ -2768,7 +2806,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                 }
             }
             if (window.innerWidth >= 768 && infoMain) infoMain.classList.add('hidden');
-            window.currentDestaqueData = JSON.parse(decodeURIComponent(atob(dataStr)));
+            
         };
 
         window.fecharDetalhesTikTok = function(id) {
@@ -2782,16 +2820,22 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
         window.activeProfileTab = 'postados';
         window.isFollowingCreator = false;
 
-        window.abrirPerfilTikTok = function(creatorName) {
+        let activeCategoryKey = '';
+        const categoryCreatorId = name => 'categoria-'+encodeURIComponent(categoryKey(name));
+        window.abrirPerfilTikTok = function(name) {
+            const group = contentProfiles.get(categoryKey(name));
+            if (!group || window.currentActiveMenu !== 'menu2') return;
+            const creatorName = group.name;
+            activeCategoryKey = categoryKey(creatorName);
             const profile = document.getElementById('view-profile');
-            const creatorId = creatorName.toLowerCase().replace(/\s+/g, '');
+            const creatorId = categoryCreatorId(creatorName);
             
             // Pausa todos os vídeos do feed ao entrar no perfil
             document.querySelectorAll('.tiktok-video').forEach(v => v.pause());
             
             document.getElementById('profile-header-name').innerText = creatorName;
-            document.getElementById('profile-display-name').innerText = '@' + creatorId;
-            document.getElementById('profile-avatar').src = window.brandingConfig?.logoUrl || 'https://api.dicebear.com/7.x/initials/svg?seed=AM';
+            document.getElementById('profile-display-name').innerText = creatorName;
+            document.getElementById('profile-avatar').alt = creatorName;
             
             // Listeners de Seguidores Reais
             if (window.creatorUnsub) window.creatorUnsub();
@@ -2803,10 +2847,12 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
 
             // Cálculo Real de Curtidas Totais (Soma de todos os vídeos do criador)
             let totalLikes = 0;
-            const creatorVideos = cacheCatalogo.filter(v => v.selo === creatorName);
+            document.getElementById('count-likes-total').textContent = '—';
+            const creatorVideos = group.videos;
             const promises = creatorVideos.map(v => getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'stats', v.id)));
             
             Promise.all(promises).then(snaps => {
+                if (activeCategoryKey !== categoryKey(creatorName)) return;
                 totalLikes = snaps.reduce((acc, s) => acc + (s.exists() ? (s.data().likes || 0) : 0), 0);
                 document.getElementById('count-likes-total').innerText = window.formatarNumero(totalLikes);
             });
@@ -2814,6 +2860,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             // Verifica se o usuário já segue
             if (currentUser && !currentUser.isAnonymous) {
                 getDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'following', creatorId)).then(s => {
+                    if (activeCategoryKey !== categoryKey(creatorName)) return;
                     window.isFollowingCreator = s.exists();
                     const btn = document.getElementById('btn-follow-profile');
                     if (window.isFollowingCreator) {
@@ -2833,7 +2880,14 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
 
         window.fecharPerfilTikTok = function(fromPopstate = false) {
             document.getElementById('view-profile').style.display = 'none';
-            if (fromPopstate !== true) history.back();
+            activeCategoryKey = '';
+            window.creatorUnsub?.();
+            if (!fromPopstate && history.state?.profileOpen) {window.ignoreNextPopState=true;history.back();}
+            if(window.currentActiveMenu==='menu2'){
+                const feed=document.getElementById('tiktok-feed');
+                const current=feed.children[Math.round(feed.scrollTop/Math.max(feed.clientHeight,1))];
+                if(current && window.tiktokObserver){window.tiktokObserver.unobserve(current);window.tiktokObserver.observe(current);}
+            }
         };
 
         window.chatUnsub = null;
@@ -2998,7 +3052,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             if(!text) return;
 
             const creatorName = document.getElementById('profile-header-name').innerText;
-            const creatorId = creatorName.toLowerCase().replace(/\s+/g, '');
+            const creatorId = categoryCreatorId(creatorName);
             const chatId = [currentUser.uid, creatorId].sort().join('_');
 
             const newMessage = {
@@ -3019,13 +3073,8 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
 
         window.assistirNoFeedTikTok = function(id) {
             window.fecharPerfilTikTok();
-            window.navigate('menu2');
-            setTimeout(() => {
-                const target = document.querySelector(`.tiktok-item[data-id="${id}"]`);
-                if (target) {
-                    target.scrollIntoView({ behavior: 'instant' });
-                }
-            }, 300);
+            const target = document.querySelector('.tiktok-item[data-id="'+CSS.escape(id)+'"]');
+            target?.scrollIntoView({block:'start',behavior:'instant'});
         };
 
         window.toggleSeguirPerfil = async function() {
@@ -3035,7 +3084,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             }
             
             const creatorName = document.getElementById('profile-header-name').innerText;
-            const creatorId = creatorName.toLowerCase().replace(/\s+/g, '');
+            const creatorId = categoryCreatorId(creatorName);
             const btn = document.getElementById('btn-follow-profile');
             const creatorRef = doc(db, 'artifacts', appId, 'creators', creatorId);
             const userFollowRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'following', creatorId);
@@ -3067,33 +3116,21 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             document.getElementById('p-tab-' + tab).classList.add('active', 'text-white');
             
             const grid = document.getElementById('profile-grid');
-            let filtered = [];
-            const creator = document.getElementById('profile-header-name').innerText;
-
-            if (tab === 'postados') {
-                // Exibe todos os vídeos vinculados à Aba Conteúdos (menu2)
-                filtered = cacheCatalogo.filter(i => (i.menuIds && i.menuIds.includes('menu2')));
-            } else if (tab === 'salvos') {
-                filtered = cacheCatalogo.filter(i => minhaListaIds.includes(i.id));
-            } else if (tab === 'curtidos') {
-                filtered = cacheCatalogo.filter(i => curtidasIds.includes(i.id) && (i.menuIds && i.menuIds.includes('menu2')));
-            }
-
-            if (filtered.length === 0) {
-                grid.innerHTML = `<div class="col-span-3 py-20 text-center opacity-30 text-xs font-bold uppercase tracking-widest">Nenhum vídeo nesta aba</div>`;
-            } else {
-                grid.innerHTML = filtered.map(item => {
-                    const dataStr = btoa(encodeURIComponent(JSON.stringify(item)));
-                    const clickAction = `window.assistirNoFeedTikTok('${item.id}')`;
-                    return `
-                    <div onclick="${clickAction}" class="aspect-[3/4] bg-[#111] overflow-hidden relative group cursor-pointer border border-black">
-                        <img loading="lazy" decoding="async" src="${item.capaUrl}" class="w-full h-full object-cover">
-                        <div class="absolute bottom-2 left-2 flex items-center gap-1 text-[10px] font-bold">
-                            <i class="ph-fill ph-play"></i> 1.2k
-                        </div>
-                    </div>`;
-                }).join('');
-            }
+            const group = contentProfiles.get(activeCategoryKey);
+            if (!group) {grid.replaceChildren(); return;}
+            const avatar = document.getElementById('profile-avatar');
+            avatar.hidden = !group.cover;
+            if(group.cover) avatar.src = group.cover;
+            document.getElementById('profile-bio').textContent = group.videos.length + (group.videos.length === 1 ? ' vídeo' : ' vídeos');
+            const filtered = group.videos.filter(item=>tab==='salvos' ? minhaListaIds.includes(item.id) : tab==='curtidos' ? curtidasIds.includes(item.id) : true);
+            grid.replaceChildren(...filtered.map(item=>{
+                const button=document.createElement('button'), label=document.createElement('span');
+                button.type='button';
+                if(item.capaUrl){const img=new Image();img.alt='';img.loading='lazy';img.src=item.capaUrl;button.append(img);}
+                label.textContent=item.titulo;button.append(label);button.onclick=()=>window.assistirNoFeedTikTok(item.id);
+                return button;
+            }));
+            if(!filtered.length)grid.textContent='Nenhum vídeo nesta aba.';
         };
 
         // Correção de entidades e tags detectadas pelo sistema
@@ -3327,6 +3364,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             onSnapshot(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'minha_lista'), (snap) => {
                 minhaListaDocs = snap.docs.map(d => ({ docId: d.id, itemId: d.data().itemId }));
                 minhaListaIds = minhaListaDocs.map(d => d.itemId);
+                if(activeCategoryKey) window.switchProfileTab(window.activeProfileTab);
                 scheduleHomeRails(); window.verificarStatusBotoes();
             });
         }
@@ -3336,6 +3374,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             onSnapshot(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'curtidas'), (snap) => {
                 curtidasDocs = snap.docs.map(d => ({ docId: d.id, itemId: d.data().itemId }));
                 curtidasIds = curtidasDocs.map(d => d.itemId);
+                if(activeCategoryKey) window.switchProfileTab(window.activeProfileTab);
                 scheduleHomeRails(); // Força re-render para atualizar os corações nos cards
                 window.verificarStatusBotoes();
             });
@@ -3389,7 +3428,17 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
         // ==========================================
         window.carregarCatalogoRealtime = function() {
             onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'catalog'), (snap) => {
-                cacheCatalogo = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => a.createdAt - b.createdAt);
+                partitionCatalog(snap.docs.map(doc => ({ ...doc.data(), id:doc.id })).sort((a,b)=>a.createdAt-b.createdAt));
+                if (activeCategoryKey) {
+                    if (contentProfiles.has(activeCategoryKey)) window.switchProfileTab(window.activeProfileTab);
+                    else window.fecharPerfilTikTok();
+                }
+                document.getElementById('landing-grid').replaceChildren();
+                if(window.currentDestaqueData && !cacheCatalogo.some(item=>item.id===window.currentDestaqueData.id)){
+                    if(!document.getElementById('netflix-player').classList.contains('hidden')) window.fecharPlayerFull();
+                    if(!document.getElementById('view-details').classList.contains('hidden')) window.fecharDetalhes();
+                    window.currentDestaqueData=null;
+                }
                 
                 renderRooms();
                 const empty=!cacheCatalogo.length;
@@ -3585,7 +3634,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                 catalogoFiltrado = cacheCatalogo.filter(item => savedIds.has(item.id));
             } else if (window.currentActiveMenu === 'meusDownloads') {
                 // Puxa do armazenamento offline (localStorage + Cache)
-                catalogoFiltrado = JSON.parse(localStorage.getItem('am_offline_metadata') || '[]');
+                catalogoFiltrado = JSON.parse(localStorage.getItem('am_offline_metadata') || '[]').filter(visibleOfflineItem);
             } else {
                 if (window.currentActiveMenu === 'menu1') {
                     catalogoFiltrado = cacheCatalogo.filter(item => item.trilho?.toLowerCase() === 'internacional' || (item.menuIds && item.menuIds.includes('menu1')));
@@ -5822,7 +5871,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
         };
 
         window.renderizarModoOffline = function() {
-            const offlineList = JSON.parse(localStorage.getItem('am_offline_metadata') || '[]');
+            const offlineList = JSON.parse(localStorage.getItem('am_offline_metadata') || '[]').filter(visibleOfflineItem);
             const container = document.getElementById('dynamic-rails-container');
             const sectionLista = document.getElementById('section-minha-lista');
             const hero = document.querySelector('#view-home > div.relative');
