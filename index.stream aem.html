@@ -21,7 +21,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <!-- AWS SDK para Browser -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/aws-sdk/2.1408.0/aws-sdk.min.js"></script>
 
     <!-- Configuração do Tailwind -->
     <script>
@@ -287,30 +286,22 @@
             border: 2px solid transparent !important;
         }
         
-        /* Efeito Amazon Prime: Fundo branco e texto escuro ao focar/clicar, respeitando o formato original */
-        .focusable:focus, .focusable:active {
-            background-color: #FFFFFF !important;
-            color: #000000 !important;
-            /* Removemos a sobrescrita de radius para manter o formato original do botão (Pílula ou Retângulo) */
-            transform: scale(1.02); 
-            box-shadow: 0 0 0 2px #FFFFFF, 0 4px 20px rgba(255, 255, 255, 0.4) !important;
-            z-index: 50;
+        .focusable:focus-visible {
+            outline: 2px solid #d6b778 !important;
+            outline-offset: -3px !important;
         }
-
-        /* Garante que ícones dentro do botão focado fiquem pretos */
-        .focusable:focus i, .focusable:active i,
-        .focusable:focus span, .focusable:active span {
-            color: #000000 !important;
+        .card-container > .focusable { border: 0 !important; border-radius: .75rem; }
+        .card-container:is(:focus-within,:hover) { transform: none; }
+        .card-expand-info > .flex:last-child { align-items:center; flex-wrap:wrap; gap:.5rem; }
+        .card-expand-info > .flex:last-child > .rounded-full {
+            width:2rem; height:2rem; flex:none; display:grid; place-items:center;
         }
-
-        /* Ajuste específico para os Cards de Vídeo (que possuem imagens) */
-        .card-container .focusable:focus, .card-container .focusable:active {
-            background-color: transparent !important; /* Não sobrepõe a imagem */
-            border: 4px solid #FFFFFF !important; /* Moldura branca grossa */
-            box-shadow: 0 0 30px rgba(255, 255, 255, 0.6) !important;
-            transform: scale(1.1);
+        #details-similares .card-container {min-width:0;}
+        #details-similares .card-container > .focusable {min-width:0; width:100%;}
+        #details-similares .card-container:is(:focus-within,:hover) {margin-bottom:7rem;}
+        @media(pointer:coarse){
+            .card-expand-info > .flex:last-child > .rounded-full {width:2.5rem;height:2.5rem;}
         }
-
        /* Botões do Player mantêm foco APENAS para navegação por teclado/TV (foco visível apenas via teclado) */
         #player-controls button,
         #player-controls .focusable,
@@ -538,9 +529,8 @@
 
         window.installAsAPK = () => {
             runProcessingAnimation(() => {
-                const apkUrl = (window.brandingConfig?.apkUrl && window.brandingConfig.apkUrl.trim() !== "") 
-                    ? window.brandingConfig.apkUrl 
-                    : "https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev/aem%20streaming.apk";
+                const apkUrl = String(window.brandingConfig?.apkUrl || '').trim();
+                if (!apkUrl) { window.showToast?.('Configure um endereço externo para o instalador APK nas opções de marca.'); return; }
 
                 if(typeof window.showToast === 'function') window.showToast("A iniciar transferência do instalador...");
                 
@@ -585,8 +575,18 @@
 <meta name="theme-color" content="#D6B778">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-</head>
-<body class="antialiased flex flex-col min-h-screen" id="app-body">
+<style>html.maintenance body > :not(#maintenancePage){display:none!important}#maintenancePage{display:none}html.maintenance #maintenancePage{display:grid;position:fixed;inset:0;place-content:center;text-align:center;padding:2rem;background:#0b0d12;color:white}#hero-title,#details-title{overflow-wrap:anywhere} @media(max-width:767px){#btn-mute-hero{top:1rem;bottom:auto}div:has(> #hero-title){right:1rem;max-height:78%;overflow:auto}div:has(> #details-video){height:auto!important;min-height:70svh;padding-top:9rem}div:has(> #details-video)>div:has(#details-title){position:relative;inset:auto;padding:1rem}#hero-title{font-size:clamp(1.5rem,7vw,2.6rem)}.tiktok-video{object-fit:contain}}</style><style>
+#youtube-actions{display:none}
+#netflix-player.native-youtube{--action-height:calc(3.5rem + env(safe-area-inset-top));cursor:auto}
+.native-youtube #youtube-actions{position:absolute;inset:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:.75rem;height:var(--action-height);padding:env(safe-area-inset-top) 1rem 0;z-index:3;background:#101216}
+#youtube-actions button{padding:.5rem .9rem;color:white;background:#272b32;border-radius:2rem;font-size:.9rem}
+#netflix-player.native-youtube > iframe{top:var(--action-height)!important;height:calc(100% - var(--action-height))!important;transform:none!important;opacity:1!important;pointer-events:auto!important}
+.native-youtube #player-controls,.native-youtube #netflix-loader,.native-youtube #trailer-cta-container,.native-youtube .stream-youtube-tap-layer,.native-short .tiktok-progress-container{display:none!important}
+.native-short > .bottom-6{bottom:4.5rem}
+.native-short > .bottom-12{bottom:5rem}
+.native-youtube #mandatory-trailer-overlay{bottom:4rem}
+</style><style>.room-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,150px),1fr));gap:1rem}.room-grid button{overflow:hidden;text-align:left;border-radius:12px;background:#181c23;color:#fff}.room-grid img{width:100%;aspect-ratio:16/9;object-fit:cover}.room-grid strong{display:block;padding:.7rem;overflow-wrap:anywhere}#roomPage{background:#0b0d12;color:#fff;border:0;border-radius:16px;width:min(960px,94vw);max-height:90dvh;margin:auto;overflow:auto}#roomPage::backdrop{background:#000b}#roomPage header,.room-body{padding:1rem clamp(1rem,3vw,2rem)}#roomPage h1{font-size:2rem;font-weight:700}#roomIntro{margin:.5rem 0 1.5rem}#roomBanner :is(img,video){width:100%;max-height:40vh;object-fit:cover}#emptyPortfolio[hidden],#roomShelf[hidden]{display:none!important}</style></head>
+<body class="antialiased flex flex-col min-h-screen" id="app-body"><section id="maintenancePage" role="status"><h1>Estamos atualizando o portfólio</h1><p>Volte em instantes.</p></section>
 
     <!-- NOVA LANDING PAGE (PRIME VIDEO STYLE) -->
     <div id="landing-page" class="fixed inset-0 z-[100000] bg-black overflow-hidden transition-opacity duration-500 flex items-center">
@@ -669,9 +669,7 @@
             </div>
            <nav class="flex gap-4 md:gap-6 text-xs md:text-sm font-medium text-brand-text whitespace-nowrap">
                 <button onclick="navigate('home')" id="nav-home" class="nav-link focusable active pb-1 hover:text-white transition" tabindex="0">INÍCIO</button>
-                <button onclick="navigate('menu1')" id="menu-1-label" class="focusable pb-1 hover:text-white transition" tabindex="0">INTERNACIONAIS</button>
-                <button onclick="navigate('menu2')" id="menu-2-label" class="focusable pb-1 hover:text-white transition" tabindex="0">FILMES</button>
-                <button onclick="navigate('menu3')" id="menu-3-label" class="focusable pb-1 hover:text-white transition" tabindex="0">ORIGINAIS</button>
+                <button onclick="navigate('menu2')" id="menu-2-label" class="focusable pb-1 hover:text-white transition" tabindex="0">CONTEÚDOS</button>
                 <button onclick="navigate('minhaLista')" id="nav-minhaLista" class="nav-link focusable pb-1 hover:text-white transition" tabindex="0">MINHA LISTA</button>
                 <button id="btn-install-header" onclick="triggerInstall()" class="focusable pb-1 hover:text-brand-gold transition flex items-center gap-1 text-brand-gold font-bold" tabindex="0">
                     <i class="ph ph-download-simple"></i> BAIXAR APP
@@ -737,6 +735,8 @@
                 </div>
             </div>
 
+            <section id="roomShelf" class="px-4 md:px-16 my-8"><h2 class="font-bold text-xl mb-4">Categorias</h2><div id="roomTiles" class="room-grid"></div></section>
+            <p id="emptyPortfolio" hidden class="text-center px-6 py-12">Novos conteúdos em breve.</p>
             <!-- Trilhos da Home (Margem negativa removida para não cobrir botões do Hero) -->
             <div class="px-4 md:px-16 mt-4 relative z-30 space-y-12 md:space-y-20 pb-12 md:pb-24">
                 <div id="section-continuar-assistindo" class="hidden">
@@ -767,8 +767,8 @@
         <!-- ========================================== -->
         <section id="view-details" class="hidden w-full min-h-screen bg-[#0B0D12] pb-20">
             <!-- Botão Voltar Global (Fixo e persistente sobre o conteúdo ao scrollar) -->
-            <div class="fixed top-24 md:top-28 left-6 md:left-12 z-[100]">
-                <button onclick="fecharDetalhes()" class="focusable w-12 h-12 bg-black/60 backdrop-blur-lg border border-white/20 rounded-full flex items-center justify-center hover:bg-white/20 hover:border-white transition-all text-white shadow-2xl" tabindex="0">
+            <div class="relative px-4 md:px-12 py-2 z-20">
+                <button aria-label="Voltar ao catálogo" onclick="fecharDetalhes()" class="focusable w-12 h-12 bg-black/60 backdrop-blur-lg border border-white/20 rounded-full flex items-center justify-center hover:bg-white/20 hover:border-white transition-all text-white shadow-2xl" tabindex="0">
                     <i class="ph ph-arrow-left text-2xl"></i>
                 </button>
             </div>
@@ -1002,7 +1002,6 @@
                             <button onclick="window.toggleNavShortcuts()" class="h-full px-3 bg-white/10 rounded-md focusable" tabindex="0"><i class="ph ph-caret-down text-sm"></i></button>
                             <div id="nav-shortcuts-menu" class="hidden absolute top-full right-0 mt-2 w-48 bg-[#121212] border border-white/10 rounded-xl shadow-2xl z-[300] overflow-hidden flex flex-col">
                                 <button onclick="window.fecharPerfilTikTok(); navigate('home')" class="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest hover:bg-white/5 border-b border-white/5 flex items-center gap-3"><i class="ph ph-house text-lg text-brand-gold"></i> Início</button>
-                                <button onclick="window.fecharPerfilTikTok(); navigate('menu1')" class="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest hover:bg-white/5 border-b border-white/5 flex items-center gap-3"><i class="ph ph-globe text-lg text-brand-gold"></i> Internacionais</button>
                                 <button onclick="window.fecharPerfilTikTok(); navigate('menu2')" class="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest hover:bg-white/5 border-b border-white/5 flex items-center gap-3"><i class="ph ph-video-camera text-lg text-brand-gold"></i> Conteúdos</button>
                             </div>
                         </div>
@@ -1319,11 +1318,16 @@
         </div>
     </div>
 
+    <dialog id="roomPage"><header><button id="roomClose" aria-label="Voltar ao portfólio">← Voltar</button></header><div id="roomBanner"></div><div class="room-body"><h1 id="roomTitle"></h1><p id="roomIntro"></p><div class="room-grid" id="roomVideos"></div></div></dialog>
     <!-- PLAYER DE VÍDEO FULLSCREEN ESTILO NETFLIX -->
     <div id="netflix-player" class="hidden fixed inset-0 z-[100] bg-black flex flex-col justify-center items-center">
         <!-- VÍDEO PRINCIPAL COM PRELOAD ULTRA-AGRESSIVO E PRIORIDADE DE REDE MÁXIMA -->
         <video id="main-full-video" class="w-full h-full object-contain absolute inset-0 cursor-pointer transition-opacity duration-1000" playsinline preload="auto" fetchpriority="high" x-webkit-airplay="allow"></video>
 
+        <nav id="youtube-actions" aria-label="Ações do portfólio">
+            <button type="button" onclick="fecharPlayerFull()">Voltar</button>
+            <button type="button" id="youtube-switch-content">Assistir trailer</button>
+        </nav>
         <!-- Netflix Style Loader -->
         <div id="netflix-loader">
             <div class="relative flex items-center justify-center">
@@ -1473,20 +1477,52 @@
         const db = getFirestore(app);
         const appId = firebaseConfig.appId;
 
-        // AWS R2
-        const s3 = new window.AWS.S3({
-            endpoint: 'https://679ab4032c53de6dee298b613e90e0db.r2.cloudflarestorage.com',
-            accessKeyId: '69e552e54ff90a1e889b60d52b7554b6',
-            secretAccessKey: 'c3628552b794067bd258cb7c2777b6614ebe28f57ae3d763b7d55cc02fda99b1',
-            signatureVersion: 'v4',
-            region: 'auto',
-            s3ForcePathStyle: true
-        });
-
         let currentUser = null;
         let selectedProfilePhoto = null;
         let currentProfilePhotoUrl = "";
-        let cacheCatalogo = []; 
+        let cacheCatalogo = [];
+        let roomSettings=Object.create(null), legacyRooms={menu1:'Internacional',menu3:'Edições'}, currentRoom='';
+        const roomPage=document.getElementById('roomPage');
+        document.getElementById('roomClose').onclick=()=>roomPage.close();
+        roomPage.onclose=()=>{currentRoom='';document.getElementById('roomBanner').replaceChildren();};
+        function categoriesFor(item){
+            const names=[item.trilho || 'Outros'];
+            for(const key of ['menu1','menu3']) if(item.menuIds?.includes(key) || item.menuId===key) names.push(legacyRooms[key]);
+            return [...new Set(names)];
+        }
+        function roomTile(name,cover,click){
+            const tile=document.createElement('button');
+            if(cover){const img=new Image();img.alt='';img.loading='lazy';img.src=cover;tile.append(img);}
+            const title=document.createElement('strong');title.textContent=name;tile.append(title);tile.onclick=click;return tile;
+        }
+        function renderRooms(){
+            const groups=new Map(Object.keys(roomSettings).map(n=>[n,[]]));
+            for(const item of cacheCatalogo)for(const n of categoriesFor(item)){
+                if(!groups.has(n))groups.set(n,[]);groups.get(n).push(item);
+            }
+            const tiles=document.getElementById('roomTiles');tiles.replaceChildren();
+            document.getElementById('roomShelf').hidden=!groups.size || window.currentActiveMenu!=='home';
+            function openRoom(name){
+                currentRoom=name;const room=roomSettings[name] || {}, items=groups.get(name)||[];
+                document.getElementById('roomTitle').textContent=name;
+                document.getElementById('roomIntro').textContent=room.description || (items.length?'':'Ainda não há vídeos nesta categoria.');
+                const banner=document.getElementById('roomBanner');banner.replaceChildren();
+                if(room.banner || items[0]?.capaUrl){
+                    const media=document.createElement(room.type==='video'?'video':'img');media.src=room.banner || items[0].capaUrl;
+                    if(media.tagName==='VIDEO'){media.controls=true;media.muted=true;media.playsInline=true;media.autoplay=true;}else media.alt='';
+                    banner.append(media);
+                }
+                document.getElementById('roomVideos').replaceChildren(...items.map(item=>roomTile(item.titulo,item.capaUrl,()=>{
+                    roomPage.close();window.abrirDetalhes(btoa(encodeURIComponent(JSON.stringify(item))));
+                })));
+                document.getElementById('hero-video').pause();
+                if(!roomPage.open)roomPage.showModal();
+            }
+            for(const [name,items] of groups){
+                const room=roomSettings[name] || {};tiles.append(roomTile(name,room.type==='image'?room.banner:items[0]?.capaUrl,()=>openRoom(name)));
+            }
+            if(roomPage.open){if(groups.has(currentRoom))openRoom(currentRoom);else roomPage.close();}
+        } 
         let minhaListaIds = []; 
         let minhaListaDocs = [];
         let curtidasIds = []; 
@@ -1503,6 +1539,167 @@
         window.isWatchingTrailer = false; // TRAVA DO TRAILER ATIVO
         window.trailerStartTime = 0;
         window.trailerDuration = 0;
+
+        // Accept both legacy MP4 links and videos uploaded directly to YouTube.
+        function streamYoutubeId(value) {
+            try {
+                const text = String(value || '').trim().replace(/&amp;/g, '&');
+                if (/^[A-Za-z0-9_-]{11}$/.test(text)) return text;
+                const url = new URL(/^(?:www\.|m\.)?(?:youtube\.com|youtu\.be)\//i.test(text) ? `https://${text}` : text);
+                const host = url.hostname.replace(/^www\./, '');
+                if (host === 'youtu.be') return /^[A-Za-z0-9_-]{11}$/.test(url.pathname.slice(1)) ? url.pathname.slice(1) : '';
+                if (host === 'youtube.com' || host === 'm.youtube.com' || host === 'youtube-nocookie.com') {
+                    const id = url.searchParams.get('v') || url.pathname.match(/^\/(?:embed|shorts|live|v)\/([A-Za-z0-9_-]{11})/)?.[1] || '';
+                    return /^[A-Za-z0-9_-]{11}$/.test(id) ? id : '';
+                }
+            } catch (_) {}
+            return '';
+        }
+        let streamYoutubeApiPromise = null;
+        function loadStreamYoutubeApi() {
+            if (window.YT?.Player) return Promise.resolve();
+            if (streamYoutubeApiPromise) return streamYoutubeApiPromise;
+            streamYoutubeApiPromise = new Promise((resolve, reject) => {
+                const previous = window.onYouTubeIframeAPIReady;
+                const timeout = setTimeout(() => reject(new Error('O player do YouTube demorou para carregar.')), 20000);
+                window.onYouTubeIframeAPIReady = () => { clearTimeout(timeout); try { previous?.(); } catch (_) {} resolve(); };
+                if (!document.querySelector('script[data-stream-youtube-api]')) {
+                    const script = document.createElement('script'); script.src = 'https://www.youtube.com/iframe_api'; script.async = true; script.dataset.streamYoutubeApi = '1';
+                    script.onerror = () => { clearTimeout(timeout); reject(new Error('Não foi possível carregar o player do YouTube.')); };
+                    document.head.appendChild(script);
+                }
+            });
+            return streamYoutubeApiPromise;
+        }
+        function streamNativeDescriptor(element, key) {
+            let proto = Object.getPrototypeOf(element);
+            while (proto) { const descriptor = Object.getOwnPropertyDescriptor(proto, key); if (descriptor) return descriptor; proto = Object.getPrototypeOf(proto); }
+            return null;
+        }
+        function installStreamYoutubeAdapter(video) {
+            if (!video || video.__streamYoutubeAdapter) return video;
+            video.__streamYoutubeAdapter = true;
+            const read = key => streamNativeDescriptor(video, key)?.get?.call(video);
+            const write = (key, value) => streamNativeDescriptor(video, key)?.set?.call(video, value);
+            const isMain = video.id === 'main-full-video';
+            const isShortFeed = video.classList.contains('tiktok-video');
+            const interactive = isMain || isShortFeed;
+            const nativePlay = video.play.bind(video), nativePause = video.pause.bind(video), nativeLoad = video.load.bind(video);
+            const nativeRemove = video.removeAttribute.bind(video), nativeSetAttribute = video.setAttribute.bind(video);
+            const initialSource = read('src') || '';
+            const host = document.createElement('div');
+            host.className = 'stream-youtube-frame';
+            Object.assign(host.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', display: 'none', zIndex: '1', backgroundColor: '#000' });
+            video.parentElement?.insertBefore(host, video.nextSibling);
+            const tapLayer = document.createElement('div'); tapLayer.className = 'stream-youtube-tap-layer';
+            Object.assign(tapLayer.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', display: 'none', zIndex: '2', background: 'transparent' });
+            host.parentElement?.insertBefore(tapLayer, host.nextSibling);
+            tapLayer.addEventListener('click', () => video.dispatchEvent(new Event('click')));
+            host.addEventListener('click', () => video.dispatchEvent(new Event('click')));
+            let youtubeMode = false, source = initialSource, player = null, playerReady = false, pendingPlay = false, pendingSeek = 0, state = -1, ticker = null, metadataSent = false, storedLoop = !!read('loop');
+            const emit = type => { try { video.dispatchEvent(new Event(type)); } catch (_) {} };
+            const activeFrame = () => player?.getIframe?.() || host;
+            const syncHostStyles = () => {
+                const frame = activeFrame(); if (!frame) return;
+                const computed = getComputedStyle(video);
+                Object.assign(frame.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', zIndex: '1' });
+                for (const key of ['opacity', 'transform', 'objectFit', 'objectPosition', 'pointerEvents', 'borderRadius', 'filter']) frame.style[key] = computed[key] || video.style[key];
+                tapLayer.style.pointerEvents = interactive ? 'none' : computed.pointerEvents;
+                if(interactive) frame.style.pointerEvents = 'auto';
+                const poster = read('poster');
+                frame.style.backgroundImage = poster ? `url("${String(poster).replace(/"/g, '%22')}")` : '';
+                frame.style.backgroundSize = 'cover'; frame.style.backgroundPosition = 'center';
+            };
+            const ytId = () => streamYoutubeId(source);
+            const setupPlayer = async () => {
+                if (!youtubeMode || player || host.dataset.loading === '1') return;
+                host.dataset.loading = '1';
+                try {
+                    await loadStreamYoutubeApi();
+                    if (!youtubeMode || !host.isConnected) { host.dataset.loading = '0'; return; }
+                    const id = ytId(); if (!id) return;
+                    host.style.display = 'block'; video.style.visibility = 'hidden'; syncHostStyles();
+                    player = new window.YT.Player(host, {
+                        width: '100%', height: '100%', videoId: id,
+                        playerVars: { autoplay: 0, controls: interactive ? 1 : 0, disablekb: interactive ? 0 : 1, fs: interactive ? 1 : 0, rel: 0, playsinline: 1, iv_load_policy: 3, origin: location.origin },
+                        events: {
+                            onReady: event => {
+                                playerReady = true; state = window.YT.PlayerState?.CUED ?? 5;
+                                event.target.setVolume(Math.round((read('volume') ?? 1) * 100));
+                                if (read('muted')) event.target.mute();
+                                if (pendingSeek > 0) event.target.seekTo(pendingSeek, true);
+                                if (!youtubeMode) { event.target.stopVideo(); return; }
+                                if (event.target.getVideoData()?.video_id !== ytId()) event.target.cueVideoById(ytId());
+                                if (pendingPlay || ['hero-video','details-video'].includes(video.id)) event.target.playVideo();
+                                syncHostStyles();
+                            },
+                            onStateChange: event => {
+                                state = event.data;
+                                const Y = window.YT.PlayerState || {};
+                                if (state === (Y.CUED ?? 5) && !metadataSent && event.target.getDuration() > 0) { metadataSent = true; emit('loadedmetadata'); emit('canplay'); }
+                                if (state === (Y.PLAYING ?? 1)) {
+                                    if (!metadataSent && event.target.getDuration() > 0) { metadataSent = true; emit('loadedmetadata'); }
+                                    emit('canplay'); emit('playing');
+                                    if (!ticker) ticker = setInterval(() => { if (youtubeMode && playerReady && state === (window.YT.PlayerState?.PLAYING ?? 1)) { if (!metadataSent && player.getDuration() > 0) { metadataSent = true; emit('loadedmetadata'); } emit('timeupdate'); emit('progress'); } }, 400);
+                                } else if (state === (Y.PAUSED ?? 2)) emit('pause');
+                                else if (state === (Y.BUFFERING ?? 3)) emit('waiting');
+                                else if (state === (Y.ENDED ?? 0)) {
+                                    emit('timeupdate'); emit('ended');
+                                    if (storedLoop) { event.target.seekTo(0, true); event.target.playVideo(); }
+                                }
+                            },
+                            onAutoplayBlocked: () => {
+                                if (!youtubeMode) return;
+                                if (!player.isMuted()) { player.mute(); player.playVideo(); }
+                                else { activeFrame().style.pointerEvents = 'auto'; tapLayer.style.display = 'none'; player.getIframe().setAttribute('title','Toque para reproduzir'); }
+                            },
+                            onError: () => emit('error')
+                        }
+                    });
+                } catch (error) { host.dataset.loading = '0'; console.warn('YouTube player:', error); emit('error'); }
+            };
+            const setSource = value => {
+                const next = String(value || '');
+                source = next;
+                const id = streamYoutubeId(next);
+                youtubeMode = !!id;
+                if(isMain) video.parentElement.classList.toggle('native-youtube',youtubeMode);
+                if(isShortFeed) video.parentElement.classList.toggle('native-short',youtubeMode);
+                metadataSent = false; pendingSeek = 0; state = -1;
+                if (ticker) { clearInterval(ticker); ticker = null; }
+                if (youtubeMode) {
+                    nativePause(); nativeRemove('src'); activeFrame().style.display = 'block'; tapLayer.style.display = interactive ? 'none' : 'block'; video.style.visibility = 'hidden'; syncHostStyles();
+                    if (playerReady && player) { if (pendingPlay) player.loadVideoById(id); else if(['details-video','hero-video'].includes(video.id)) player.loadVideoById(id); else player.cueVideoById(id); }
+                    else if (!video.classList.contains('tiktok-video')) setupPlayer();
+                } else {
+                    try { player?.stopVideo?.(); } catch (_) {}
+                    activeFrame().style.display = 'none'; tapLayer.style.display = 'none'; video.style.visibility = '';
+                    if (next) write('src', next); else nativeRemove('src');
+                }
+            };
+            Object.defineProperties(video, {
+                src: { configurable: true, get: () => youtubeMode ? source : read('src'), set: setSource },
+                currentSrc: { configurable: true, get: () => youtubeMode ? source : read('currentSrc') },
+                currentTime: { configurable: true, get: () => youtubeMode ? (playerReady ? player.getCurrentTime() : pendingSeek) : read('currentTime'), set: value => { const time = Math.max(0, Number(value) || 0); if (youtubeMode) { pendingSeek = time; if (playerReady) player.seekTo(time, true); } else write('currentTime', time); } },
+                duration: { configurable: true, get: () => youtubeMode ? (playerReady ? player.getDuration() || 0 : 0) : read('duration') },
+                paused: { configurable: true, get: () => youtubeMode ? ![1, 3].includes(state) : read('paused') },
+                ended: { configurable: true, get: () => youtubeMode ? state === 0 : read('ended') },
+                volume: { configurable: true, get: () => youtubeMode && playerReady ? player.getVolume() / 100 : read('volume'), set: value => { const volume = Math.max(0, Math.min(1, Number(value) || 0)); write('volume', volume); if (youtubeMode && playerReady) player.setVolume(Math.round(volume * 100)); } },
+                muted: { configurable: true, get: () => youtubeMode && playerReady ? player.isMuted() : read('muted'), set: value => { write('muted', !!value); if (youtubeMode && playerReady) value ? player.mute() : player.unMute(); } },
+                loop: { configurable: true, get: () => youtubeMode ? storedLoop : read('loop'), set: value => { storedLoop = !!value; write('loop', !!value); } },
+                buffered: { configurable: true, get: () => youtubeMode ? { length: 0, start: () => 0, end: () => 0 } : read('buffered') },
+                play: { configurable: true, value: () => { if(document.documentElement.classList.contains('maintenance')) return Promise.resolve(); if (!youtubeMode) return nativePlay(); pendingPlay = true; if (playerReady) player.playVideo(); else setupPlayer(); return Promise.resolve(); } },
+                pause: { configurable: true, value: () => { if (!youtubeMode) return nativePause(); pendingPlay = false; if (playerReady) player.pauseVideo(); } },
+                load: { configurable: true, value: () => { if (!youtubeMode) return nativeLoad(); setupPlayer(); } },
+                removeAttribute: { configurable: true, value: name => { if (String(name).toLowerCase() === 'src' && youtubeMode) { setSource(''); return; } return nativeRemove(name); } },
+                setAttribute: { configurable: true, value: (name, value) => { if (String(name).toLowerCase() === 'src') { setSource(value); return; } return nativeSetAttribute(name, value); } }
+            });
+            const originalStyle = video.style;
+            Object.defineProperty(video, 'style', { configurable: true, get: () => new Proxy(originalStyle, { set(target, key, value) { target[key] = value; if (youtubeMode) syncHostStyles(); return true; }, get(target, key) { return target[key]; } }) });
+            if (streamYoutubeId(initialSource)) setSource(initialSource);
+            return video;
+        }
+        document.querySelectorAll('video').forEach(installStreamYoutubeAdapter);
         
         let userProfileUnsubscribe = null;
 
@@ -1532,7 +1729,17 @@
         // Força a persistência local para que o login não expire ao fechar o navegador
         setPersistence(auth, browserLocalPersistence);
 
+        let stopMaintenance;
         onAuthStateChanged(auth, (user) => {
+            stopMaintenance?.();
+            if(user) stopMaintenance = onSnapshot(doc(db,'artifacts',appId,'public','data','configuracoes','maintenance'), snap => {
+                const active = snap.data()?.active === true;
+                document.documentElement.classList.toggle('maintenance', active);
+                if(active) {
+                    document.exitFullscreen?.()?.catch(()=>{});
+                    document.querySelectorAll('video,audio').forEach(v=>v.pause()); introAudioSetup.pause();
+                }
+            });
             currentUser = user;
             if (user) {
                 if (!user.isAnonymous) {
@@ -1584,6 +1791,7 @@
                 }
 
                 window.carregarBrandingRealtime();
+                onSnapshot(doc(db,'artifacts',appId,'public','data','configuracoes','salas'),snap=>{roomSettings=Object.assign(Object.create(null),snap.data());renderRooms();});
                 window.carregarMenusRealtime();
                 window.carregarOrdemCategorias();
                 window.carregarCatalogoRealtime();
@@ -1779,7 +1987,7 @@
             }
 
             if(['home', 'menu1', 'menu2', 'menu3', 'minhaLista'].includes(viewId)) {
-                window.currentActiveMenu = viewId;
+                window.currentActiveMenu = viewId; renderRooms();
                 document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
                 
                 // Esconde todas as views principais
@@ -1792,7 +2000,7 @@
                     document.getElementById('view-home').classList.remove('hidden');
                 }
                 else if(viewId === 'menu1') {
-                    document.getElementById('menu-1-label').classList.add('active');
+                    document.getElementById('menu-1-label')?.classList.add('active');
                     document.getElementById('view-home').classList.remove('hidden');
                 }
                 else if(viewId === 'menu2') {
@@ -1802,7 +2010,7 @@
                     window.renderTikTokMode();
                 }
                 else if(viewId === 'menu3') {
-                    document.getElementById('menu-3-label').classList.add('active');
+                    document.getElementById('menu-3-label')?.classList.add('active');
                     document.getElementById('view-home').classList.remove('hidden');
                 }
                 else if(viewId === 'minhaLista') {
@@ -2021,6 +2229,9 @@
 
                     </div>`;
             }).join('');
+
+            // Os itens de Shorts e do feed podem vir de YouTube ou de vídeos antigos no R2.
+            feed.querySelectorAll('video').forEach(installStreamYoutubeAdapter);
 
             if (window.tiktokObserver) window.tiktokObserver.disconnect();
             window.tiktokObserver = new IntersectionObserver((entries) => {
@@ -2743,6 +2954,16 @@
             }
         };
 
+        async function profilePhotoToDataUrl(file) {
+            const image = await createImageBitmap(file);
+            const ratio = Math.min(1, 480 / Math.max(image.width, image.height));
+            const canvas = document.createElement('canvas'); canvas.width = Math.max(1, Math.round(image.width * ratio)); canvas.height = Math.max(1, Math.round(image.height * ratio));
+            canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height); image.close?.();
+            const value = canvas.toDataURL('image/jpeg', 0.72);
+            if (value.length > 700000) throw new Error('A imagem do perfil ficou grande demais. Escolha uma foto menor.');
+            return value;
+        }
+
         window.handleRegistration = async (e) => {
             e.preventDefault();
             if(!currentUser || currentUser.isAnonymous) return window.showToast("Faça login primeiro.", true);
@@ -2757,15 +2978,7 @@
                 let finalPhotoUrl = currentProfilePhotoUrl;
                 
                 if (selectedProfilePhoto) {
-                    const ext = selectedProfilePhoto.name.split('.').pop();
-                    const fileName = `profiles/${currentUser.uid}_${Date.now()}.${ext}`;
-                    await s3.putObject({ 
-                        Bucket: "aem", 
-                        Key: fileName, 
-                        Body: selectedProfilePhoto, 
-                        ContentType: selectedProfilePhoto.type 
-                    }).promise();
-                    finalPhotoUrl = `https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev/${fileName}`;
+                    finalPhotoUrl = await profilePhotoToDataUrl(selectedProfilePhoto);
                 }
 
                 const payload = {
@@ -2898,20 +3111,7 @@
             onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'configuracoes', 'menus'), (snap) => {
                 if(snap.exists()) {
                     const d = snap.data();
-                    ['1','2','3'].forEach(i => {
-                        const btn = document.getElementById(`menu-${i}-label`);
-                        if(btn) {
-                            const nome = d[`menu${i}`] || '';
-                            const logo = d[`menu${i}Logo`] || '';
-                            const ocultar = d[`menu${i}Ocultar`] || false;
-                            
-                            let html = "";
-                            if(logo) html += `<img src="${logo}" class="h-5 md:h-6 object-contain inline-block">`;
-                            if(!ocultar || !logo) html += `<span class="${logo ? 'ml-2' : ''}">${nome.toUpperCase()}</span>`;
-                            
-                            btn.innerHTML = html;
-                        }
-                    });
+                    legacyRooms = {menu1:d.menu1 || 'Internacional',menu3:d.menu3 || 'Edições'}; renderRooms();
                 }
             });
         }
@@ -3007,6 +3207,11 @@
             onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'catalog'), (snap) => {
                 cacheCatalogo = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => a.createdAt - b.createdAt);
                 
+                renderRooms();
+                const empty=!cacheCatalogo.length;
+                document.getElementById('hero-img').parentElement.style.display=empty?'none':'';
+                document.getElementById('emptyPortfolio').hidden=!empty;
+                if(empty){window.currentDestaqueData=null;document.getElementById('hero-video').pause();document.getElementById('landing-grid').replaceChildren();}
                 // Preenche a Landing Page na primeira vez que os dados chegam
                 window.renderLandingGrid(cacheCatalogo);
                 
@@ -3523,7 +3728,7 @@
             }
 
             // Só roda o trailer na home se solicitado via clique (forcePlay), se não estiver no player e NÃO estiver na aba de detalhes
-            if (forcePlay && urlDoTrailerParaTocar && urlDoTrailerParaTocar.trim() !== "" && !isPlayerOpen && !isDetailsOpen) {
+            if ((forcePlay || streamYoutubeId(urlDoTrailerParaTocar)) && urlDoTrailerParaTocar && urlDoTrailerParaTocar.trim() !== "" && !isPlayerOpen && !isDetailsOpen) {
                 window.heroTimeout = setTimeout(() => {
                     heroVideo.src = urlDoTrailerParaTocar; 
                     heroVideo.preload = "auto"; // Preload auto para preview instantâneo na home
@@ -4047,6 +4252,12 @@
             }, { merge: true }).catch(()=>{});
         };
 
+        const youtubeSwitch = document.getElementById('youtube-switch-content');
+        youtubeSwitch.onclick = () => {
+            if (window.isMandatoryTrailer) return;
+            if (window.isWatchingTrailer) window.assistirVideoCompleto();
+            else window.abrirPlayerFull(true);
+        };
         window.abrirPlayerFull = function(isTrailer = false, specificUrl = null) {
             const isAnon = (!currentUser || currentUser.isAnonymous);
             const isOffline = !navigator.onLine;
@@ -4083,6 +4294,9 @@
 
             if(!window.currentDestaqueData || !window.currentDestaqueData.videoUrl) return window.showToast("Vídeo não registado!", true);
             
+            mainVid.removeEventListener('timeupdate', window.currentTrailerListener);
+            mainVid.onloadedmetadata = null;
+            youtubeSwitch.textContent = isTrailer ? 'Assistir vídeo completo' : 'Assistir trailer';
             window.isWatchingTrailer = isTrailer;
 
             // Incrementa contador de visualizações globais se for o filme completo
@@ -4104,7 +4318,7 @@
             const ang = parseInt(window.currentDestaqueData.orientacao) || 0;
             mainVid.style.transform = `rotate(${ang}deg) scale(${(ang === 90 || ang === 270) ? (window.innerHeight / window.innerWidth).toFixed(2) : 1})`;
 
-            history.pushState({ playerOpen: true }, null);
+            if (!history.state?.playerOpen) history.pushState({ playerOpen: true }, null);
             document.getElementById('hero-video').pause();
             
             const detailsVid = document.getElementById('details-video');
@@ -4268,6 +4482,10 @@
         };
 
         window.assistirVideoCompleto = function() {
+            if (playerDiv.classList.contains('native-youtube') || streamYoutubeId(window.currentDestaqueData?.videoUrl)) {
+                window.abrirPlayerFull(false, window.currentDestaqueData.videoUrl);
+                return;
+            }
             const isAnon = (!currentUser || currentUser.isAnonymous);
             
             
@@ -4666,7 +4884,7 @@
         };
 
         window.iniciarTrailerObrigatorio = function(proximoDestino) {
-            window.isMandatoryTrailer = true;
+            window.isMandatoryTrailer = true; document.getElementById('youtube-actions').inert = true;
 
             // Mostra o carregamento ao iniciar anúncio
             const loader = document.getElementById('netflix-loader');
@@ -4767,7 +4985,7 @@
                         clearInterval(window.mandatoryInterval);
                         if (mainVid._fadeInterval) clearInterval(mainVid._fadeInterval);
                         
-                        window.isMandatoryTrailer = false;
+                        window.isMandatoryTrailer = false; document.getElementById('youtube-actions').inert = false;
                         document.getElementById('mandatory-trailer-overlay').classList.add('hidden');
                         
                         // RESET TOTAL PARA O FILME
@@ -5120,6 +5338,10 @@
             const isDetailsOpen = !document.getElementById('view-details').classList.contains('hidden');
             const isEnterKey = [13, 29443, 117, 65376].includes(e.keyCode);
 
+            if (isPlayerOpen && playerDiv.classList.contains('native-youtube') && !window.isMandatoryTrailer) {
+                if (e.key === 'Escape') window.fecharPlayerFull();
+                return;
+            }
             // Bloqueio Total se for Trailer Obrigatório
             if(window.isMandatoryTrailer) {
                 if([13, 37, 38, 39, 40, 27, 8, 461, 10009].includes(e.keyCode)) {
@@ -5251,8 +5473,8 @@
                 
                 // Ativos essenciais do vídeo
                 const urls = [data.capaUrl];
-                if(data.videoUrl && data.videoUrl.trim() !== "") urls.push(data.videoUrl);
-                if(data.trailerUrl && data.trailerUrl.trim() !== "") urls.push(data.trailerUrl);
+                if(data.videoUrl && data.videoUrl.trim() !== "" && !streamYoutubeId(data.videoUrl)) urls.push(data.videoUrl);
+                if(data.trailerUrl && data.trailerUrl.trim() !== "" && !streamYoutubeId(data.trailerUrl)) urls.push(data.trailerUrl);
                 
                 // Download silencioso de ativos de marca se ainda não existirem no cache
                 const systemAssets = [
@@ -5301,6 +5523,8 @@
                     progressText.innerText = pct + '%';
                 }
 
+                const hasYoutubeMedia = !!(streamYoutubeId(data.videoUrl) || streamYoutubeId(data.trailerUrl));
+
                 // Salva metadados no localStorage para reconstrução da UI em modo avião
                 let offlineList = JSON.parse(localStorage.getItem('am_offline_metadata') || '[]');
                 if (!offlineList.find(i => i.id === data.id)) {
@@ -5316,7 +5540,7 @@
                     });
                 }
 
-                window.showToast("Conteúdo disponível offline!");
+                window.showToast(hasYoutubeMedia ? 'Capa e dados salvos offline. O vídeo do YouTube requer conexão.' : 'Conteúdo disponível offline!');
                 setTimeout(() => progressCont.classList.add('hidden'), 2000);
             } catch (err) {
                 console.error(err);
