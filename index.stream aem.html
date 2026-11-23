@@ -585,7 +585,12 @@
 .native-short > .bottom-6{bottom:4.5rem}
 .native-short > .bottom-12{bottom:5rem}
 .native-youtube #mandatory-trailer-overlay{bottom:4rem}
-</style><style>.room-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,150px),1fr));gap:1rem}.room-grid button{overflow:hidden;text-align:left;border-radius:12px;background:#181c23;color:#fff}.room-grid img{width:100%;aspect-ratio:16/9;object-fit:cover}.room-grid strong{display:block;padding:.7rem;overflow-wrap:anywhere}#roomPage{background:#0b0d12;color:#fff;border:0;border-radius:16px;width:min(960px,94vw);max-height:90dvh;margin:auto;overflow:auto}#roomPage::backdrop{background:#000b}#roomPage header,.room-body{padding:1rem clamp(1rem,3vw,2rem)}#roomPage h1{font-size:2rem;font-weight:700}#roomIntro{margin:.5rem 0 1.5rem}#roomBanner :is(img,video){width:100%;max-height:40vh;object-fit:cover}#emptyPortfolio[hidden],#roomShelf[hidden]{display:none!important}</style></head>
+</style><style>.room-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,150px),1fr));gap:1rem}.room-grid button{overflow:hidden;text-align:left;border-radius:12px;background:#181c23;color:#fff}.room-grid img{width:100%;aspect-ratio:16/9;object-fit:cover}.room-grid strong{display:block;padding:.7rem;overflow-wrap:anywhere}#roomPage{background:#0b0d12;color:#fff;border:0;border-radius:16px;width:min(960px,94vw);max-height:90dvh;margin:auto;overflow:auto}#roomPage::backdrop{background:#000b}#roomPage header,.room-body{padding:1rem clamp(1rem,3vw,2rem)}#roomPage h1{font-size:2rem;font-weight:700}#roomIntro{margin:.5rem 0 1.5rem}#roomBanner :is(img,video){width:100%;max-height:40vh;object-fit:cover}#emptyPortfolio[hidden],#roomShelf[hidden]{display:none!important}</style><style>
+.yt-backdrop>iframe{inset:50% auto auto 50%!important;width:var(--frame-width,100%)!important;height:auto!important;aspect-ratio:16/9;transform:translate(-50%,-50%)!important;opacity:0!important;pointer-events:none!important;border:0;}
+.yt-backdrop.preview-playing>iframe{opacity:1!important}
+.yt-backdrop>img{opacity:.75!important}
+.yt-backdrop.preview-playing>img{opacity:0!important}
+</style></head>
 <body class="antialiased flex flex-col min-h-screen" id="app-body"><section id="maintenancePage" role="status"><h1>Estamos atualizando o portfólio</h1><p>Volte em instantes.</p></section>
 
     <!-- NOVA LANDING PAGE (PRIME VIDEO STYLE) -->
@@ -1571,6 +1576,21 @@
             });
             return streamYoutubeApiPromise;
         }
+        function startBackgroundPreview(video,url,official){
+            let end=Infinity;
+            const chooseClip=()=>{
+                const duration=video.duration;
+                if(!Number.isFinite(duration)||duration<=0)return;
+                const length=official?duration:Math.min(15,duration);
+                const start=official?0:Math.random()*Math.max(0,duration-length);
+                end=start+length;
+                video.currentTime=start;
+            };
+            video.onloadedmetadata=chooseClip;
+            video.ontimeupdate=()=>{if(!Number.isFinite(end)||video.currentTime>=end)chooseClip();};
+            video.onended=()=>{if(video.offsetParent && !document.hidden && document.getElementById('netflix-player').classList.contains('hidden')){chooseClip();video.play();}};
+            video.muted=true;video.volume=1;video.src=url;video.play();
+        }
         function streamNativeDescriptor(element, key) {
             let proto = Object.getPrototypeOf(element);
             while (proto) { const descriptor = Object.getOwnPropertyDescriptor(proto, key); if (descriptor) return descriptor; proto = Object.getPrototypeOf(proto); }
@@ -1584,6 +1604,7 @@
             const isMain = video.id === 'main-full-video';
             const isShortFeed = video.classList.contains('tiktok-video');
             const interactive = isMain || isShortFeed;
+            const background = ['hero-video','details-video'].includes(video.id);
             const nativePlay = video.play.bind(video), nativePause = video.pause.bind(video), nativeLoad = video.load.bind(video);
             const nativeRemove = video.removeAttribute.bind(video), nativeSetAttribute = video.setAttribute.bind(video);
             const initialSource = read('src') || '';
@@ -1630,11 +1651,16 @@
                                 if (pendingSeek > 0) event.target.seekTo(pendingSeek, true);
                                 if (!youtubeMode) { event.target.stopVideo(); return; }
                                 if (event.target.getVideoData()?.video_id !== ytId()) event.target.cueVideoById(ytId());
-                                if (pendingPlay || ['hero-video','details-video'].includes(video.id)) event.target.playVideo();
+                                if (pendingPlay) event.target.playVideo();
                                 syncHostStyles();
                             },
                             onStateChange: event => {
+                                if(!youtubeMode) return;
                                 state = event.data;
+                                if(background) {
+                                    if(state===1 && !pendingPlay){event.target.pauseVideo();return;}
+                                    video.parentElement.classList.toggle('preview-playing',state===1);
+                                }
                                 const Y = window.YT.PlayerState || {};
                                 if (state === (Y.CUED ?? 5) && !metadataSent && event.target.getDuration() > 0) { metadataSent = true; emit('loadedmetadata'); emit('canplay'); }
                                 if (state === (Y.PLAYING ?? 1)) {
@@ -1653,7 +1679,7 @@
                                 if (!player.isMuted()) { player.mute(); player.playVideo(); }
                                 else { activeFrame().style.pointerEvents = 'auto'; tapLayer.style.display = 'none'; player.getIframe().setAttribute('title','Toque para reproduzir'); }
                             },
-                            onError: () => emit('error')
+                            onError: () => { if(background) video.parentElement.classList.remove('preview-playing');emit('error'); }
                         }
                     });
                 } catch (error) { host.dataset.loading = '0'; console.warn('YouTube player:', error); emit('error'); }
@@ -1665,11 +1691,12 @@
                 youtubeMode = !!id;
                 if(isMain) video.parentElement.classList.toggle('native-youtube',youtubeMode);
                 if(isShortFeed) video.parentElement.classList.toggle('native-short',youtubeMode);
+                if(background){video.parentElement.classList.toggle('yt-backdrop',youtubeMode);video.parentElement.classList.remove('preview-playing');}
                 metadataSent = false; pendingSeek = 0; state = -1;
                 if (ticker) { clearInterval(ticker); ticker = null; }
                 if (youtubeMode) {
                     nativePause(); nativeRemove('src'); activeFrame().style.display = 'block'; tapLayer.style.display = interactive ? 'none' : 'block'; video.style.visibility = 'hidden'; syncHostStyles();
-                    if (playerReady && player) { if (pendingPlay) player.loadVideoById(id); else if(['details-video','hero-video'].includes(video.id)) player.loadVideoById(id); else player.cueVideoById(id); }
+                    if (playerReady && player) { if (pendingPlay) player.loadVideoById(id); else player.cueVideoById(id); }
                     else if (!video.classList.contains('tiktok-video')) setupPlayer();
                 } else {
                     try { player?.stopVideo?.(); } catch (_) {}
@@ -1677,6 +1704,12 @@
                     if (next) write('src', next); else nativeRemove('src');
                 }
             };
+            if(background){
+                new ResizeObserver(([entry])=>{
+                    const {width,height}=entry.contentRect;
+                    if(width && height) video.parentElement.style.setProperty('--frame-width',Math.ceil(Math.max(width,height*16/9))+'px');
+                }).observe(video.parentElement);
+            }
             Object.defineProperties(video, {
                 src: { configurable: true, get: () => youtubeMode ? source : read('src'), set: setSource },
                 currentSrc: { configurable: true, get: () => youtubeMode ? source : read('currentSrc') },
@@ -1942,7 +1975,12 @@
             grid.appendChild(fragment);
         };
 
+        function resumeHomePreview(){
+            const hero=document.getElementById('hero-video');
+            if(streamYoutubeId(hero.src) && document.getElementById('netflix-player').classList.contains('hidden') && !document.getElementById('view-home').classList.contains('hidden')) hero.play().catch(()=>{});
+        }
         window.startAppFromLanding = function() {
+            resumeHomePreview();
             const landing = document.getElementById('landing-page');
             const introContainer = document.getElementById('intro-container');
             const hiddenVideo = document.getElementById('hidden-intro-video');
@@ -3730,6 +3768,10 @@
             // Só roda o trailer na home se solicitado via clique (forcePlay), se não estiver no player e NÃO estiver na aba de detalhes
             if ((forcePlay || streamYoutubeId(urlDoTrailerParaTocar)) && urlDoTrailerParaTocar && urlDoTrailerParaTocar.trim() !== "" && !isPlayerOpen && !isDetailsOpen) {
                 window.heroTimeout = setTimeout(() => {
+                    if(streamYoutubeId(urlDoTrailerParaTocar)){
+                        startBackgroundPreview(heroVideo,urlDoTrailerParaTocar,isOficialTrailer);btnMute.classList.remove('hidden');return;
+                    }
+                    heroVideo.onended=null;
                     heroVideo.src = urlDoTrailerParaTocar; 
                     heroVideo.preload = "auto"; // Preload auto para preview instantâneo na home
                     heroVideo.setAttribute('fetchpriority', 'low'); // Prioridade baixa para não competir com a UI
@@ -4010,7 +4052,10 @@
                 isOficialTrailer = true;
             }
 
-            if (urlDoTrailerParaTocar) {
+            if(streamYoutubeId(urlDoTrailerParaTocar)){
+                startBackgroundPreview(vid,urlDoTrailerParaTocar,isOficialTrailer);
+            } else if (urlDoTrailerParaTocar) {
+                vid.onended=null;
                 vid.src = urlDoTrailerParaTocar;
                 vid.preload = "auto"; // Carregamento agressivo para exibição imediata
                 vid.setAttribute('fetchpriority', 'high'); 
@@ -4080,7 +4125,7 @@
                 history.back();
             }
 
-            window.startHeroAutoCycle();
+            resumeHomePreview();window.startHeroAutoCycle();
         };
 
         window.playTrailerDetails = function(url = null) {
@@ -4570,7 +4615,7 @@
                 const detailsVid = document.getElementById('details-video');
                 if(detailsVid.src) detailsVid.play().catch(()=>{});
             } else {
-                window.startHeroAutoCycle();
+                resumeHomePreview();window.startHeroAutoCycle();
             }
         };
 
