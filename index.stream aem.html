@@ -1580,11 +1580,17 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             return item.isShort === true || item.menuIds?.includes('menu2') || item.menuId === 'menu2' ||
                 ['conteúdos','conteudos'].includes(categoryKey(categoryName(item)));
         }
+        function filmTrailers(item) {
+            const ordered = Array.isArray(item?.trailers) ? item.trailers.filter(t=>typeof t?.url==='string' && t.url.trim()) : [];
+            if(ordered.length) return ordered;
+            return item?.trailerUrl ? [{nome:'Trailer 1',url:item.trailerUrl}] : [];
+        }
         function partitionCatalog(items) {
             cacheCatalogo = [];
             contentFeed = [];
             contentProfiles = new Map();
             for (const item of items) {
+                item.trailers=filmTrailers(item);
                 if (!isFeedContent(item)) { cacheCatalogo.push(item); continue; }
                 if (!item.videoUrl && !item.trailerUrl) continue;
                 contentFeed.push(item);
@@ -1603,14 +1609,12 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             return !isFeedContent(item) && !contentFeed.some(video=>video.id===item.id);
         }
 
-        let roomSettings=Object.create(null), legacyRooms={menu1:'Internacional',menu3:'Edições'}, currentRoom='';
+        let roomSettings=Object.create(null), currentRoom='';
         const roomPage=document.getElementById('roomPage');
         document.getElementById('roomClose').onclick=()=>roomPage.close();
         roomPage.onclose=()=>{currentRoom='';document.getElementById('roomBanner').replaceChildren();};
         function categoriesFor(item){
-            const names=[item.trilho || 'Outros'];
-            for(const key of ['menu1','menu3']) if(item.menuIds?.includes(key) || item.menuId===key) names.push(legacyRooms[key]);
-            return [...new Set(names)];
+            return [item.trilho || 'Outros'];
         }
         function roomTile(name,cover,click){
             const tile=document.createElement('button');
@@ -1972,7 +1976,6 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
 
                 window.carregarBrandingRealtime();
                 onSnapshot(doc(db,'artifacts',appId,'public','data','configuracoes','salas'),snap=>{roomSettings=Object.assign(Object.create(null),snap.data());renderRooms();});
-                window.carregarMenusRealtime();
                 window.carregarOrdemCategorias();
                 window.carregarCatalogoRealtime();
                 window.carregarMinhaListaRealtime();
@@ -2174,6 +2177,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
         // ==========================================
         window.currentActiveMenu = 'home';
         window.navigate = function(viewId) {
+            if(viewId==='menu1' || viewId==='menu3') viewId='home';
             // TRAVA DE SEGURANÇA: Se tentar acessar a Minha Lista e não estiver logado, exibe o painel de Login.
             if (viewId === 'minhaLista' && (!currentUser || currentUser.isAnonymous)) {
                 window.openLoginPrompt('login');
@@ -3319,15 +3323,6 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             });
         };
 
-        window.carregarMenusRealtime = function() {
-            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'configuracoes', 'menus'), (snap) => {
-                if(snap.exists()) {
-                    const d = snap.data();
-                    legacyRooms = {menu1:d.menu1 || 'Internacional',menu3:d.menu3 || 'Edições'}; renderRooms();
-                }
-            });
-        }
-
         window.cacheOrdemCategorias = {};
         window.cacheLogosCategorias = {};
         window.cacheOcultarCategorias = {};
@@ -3582,8 +3577,8 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                     playerTitle.innerText = window.isWatchingTrailer ? `Trailer: ${itemAtualizado.titulo}` : itemAtualizado.titulo;
                 }
 
-                // A MÁGICA AQUI: Hot-swap do arquivo de vídeo!
-                if (videoMudou) {
+                // Mantém a sequência de trailers já iniciada.
+                if (videoMudou && !window.isWatchingTrailer) {
                     const mainVid = document.getElementById('main-full-video');
                     let novaUrl = itemAtualizado.videoUrl;
                     if (window.isWatchingTrailer) {
@@ -4208,14 +4203,13 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             const trailersDiv = document.getElementById('dynamic-trailers-container');
             trailersDiv.innerHTML = '';
             
-            if (data.trailers && data.trailers.length > 0) {
-                data.trailers.forEach((t, i) => {
-                    trailersDiv.innerHTML += `<button onclick="playTrailerDetails('${t.url}')" title="${t.nome || 'Trailer '+(i+1)}" class="focusable bg-black/50 border-2 border-white/40 hover:border-white hover:bg-white/20 transition-all rounded-full h-[44px] px-4 flex items-center gap-2 backdrop-blur-sm" tabindex="0"><i class="ph ph-film-strip text-xl text-white"></i><span class="text-xs text-white font-bold whitespace-nowrap">${t.nome || 'Trailer '+(i+1)}</span></button>`;
-                });
-            } else if (data.trailerUrl) {
-                trailersDiv.innerHTML = `<button onclick="playTrailerDetails('${data.trailerUrl}')" title="Ver Trailer Oficial" class="prime-btn focusable" tabindex="0"><i class="ph ph-film-strip text-xl text-white"></i></button>`;
-            } else {
-                trailersDiv.innerHTML = `<button onclick="playTrailerDetails(null)" title="Ver Trecho" class="prime-btn focusable" tabindex="0"><i class="ph ph-film-strip text-xl text-white"></i></button>`;
+            const choices=filmTrailers(data);
+            for(const [i,trailer] of (choices.length ? choices : [{nome:'Ver trecho',url:null}]).entries()){
+                const button=document.createElement('button');
+                button.type='button';button.className='prime-btn focusable px-4 text-sm text-white';
+                button.style.width='auto';button.textContent=trailer.nome || 'Trailer '+(i+1);
+                button.onclick=()=>window.playTrailerDetails(trailer.url);
+                trailersDiv.append(button);
             }
 
             // 3. Sistema de Vídeo e Imagem de Fundo
@@ -4490,7 +4484,9 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             if (window.isWatchingTrailer) window.assistirVideoCompleto();
             else window.abrirPlayerFull(true);
         };
-        window.abrirPlayerFull = function(isTrailer = false, specificUrl = null) {
+        window.abrirPlayerFull = function(isTrailer = false, specificUrl = null, remainingTrailers = []) {
+            mainVid.onended=null;mainVid.onerror=null;
+            if(mainVid._fadeInterval)clearInterval(mainVid._fadeInterval);
             const isAnon = (!currentUser || currentUser.isAnonymous);
             const isOffline = !navigator.onLine;
 
@@ -4517,6 +4513,8 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                 // Se o usuário apertou "Assistir" (isTrailer = false), e o filme tem trailer, e NÃO estamos retomando pela metade... joga o trailer na tela!
                 if (!isTrailer && hasTrailer && !isOffline && !isResuming && !specificUrl) {
                     isTrailer = true;
+                    const [first,...rest]=filmTrailers(window.currentDestaqueData);
+                    specificUrl=first.url;remainingTrailers=rest;
                 }
             }
 
@@ -4574,6 +4572,19 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                 }
             }
             
+            let trailerFinished=false;
+            function finishTrailer() {
+                if(trailerFinished || !window.isWatchingTrailer || playerDiv.classList.contains('hidden'))return;
+                trailerFinished=true;
+                if(remainingTrailers.length){
+                    const [next,...rest]=remainingTrailers;
+                    window.abrirPlayerFull(true,next.url,rest);
+                }else window.assistirVideoCompleto();
+            }
+            if(isTrailer){
+                mainVid.onended=finishTrailer;
+                mainVid.onerror=()=>{window.showToast('Trailer indisponível. Continuando a reprodução.');finishTrailer();};
+            }
             mainVid.src = urlParaTocar;
             
             // Força o play imediato antes da renderização da interface para ganhar milissegundos
@@ -4684,12 +4695,12 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                             window.fadeAudio(mainVid, mainVid.volume, 0, 1000);
                         }
 
-                        if (mainVid.currentTime >= startPos + durationToPlay || mainVid.ended) {
+                        if (!isOficialTrailer && mainVid.currentTime >= startPos + durationToPlay) {
                             mainVid.removeEventListener('timeupdate', checkTrailerEnd);
                             if(document.getElementById('trailer-cta-container').classList.contains('hidden')) return; // Usuário já clicou em assistir completo
                             
                             // Inicia o filme principal automaticamente assim que o trailer acaba
-                            window.assistirVideoCompleto(); 
+                            finishTrailer(); 
                         }
                     };
                     mainVid.addEventListener('timeupdate', checkTrailerEnd);
@@ -4714,55 +4725,13 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
         };
 
         window.assistirVideoCompleto = function() {
-            if (playerDiv.classList.contains('native-youtube') || streamYoutubeId(window.currentDestaqueData?.videoUrl)) {
-                window.abrirPlayerFull(false, window.currentDestaqueData.videoUrl);
-                return;
-            }
-            const isAnon = (!currentUser || currentUser.isAnonymous);
-            
-            
-
-            mainVid.removeEventListener('timeupdate', window.currentTrailerListener);
-            
-            // Transição direta sem vinheta - Restaura a interface completa do filme
-            document.getElementById('trailer-cta-container').classList.add('hidden');
-            const trailerTimeLabel = document.getElementById('trailer-time-label');
-            if(trailerTimeLabel) trailerTimeLabel.classList.add('hidden');
-            
-            // Restaura o estilo original da barra de progresso (Vermelho)
-            const progressBar = document.getElementById('progress-bar');
-            const progressThumb = document.getElementById('netflix-progress-thumb');
-            if(progressBar) progressBar.classList.replace('bg-[var(--brand-gold)]', 'bg-red-600');
-            if(progressThumb) progressThumb.classList.replace('bg-[var(--brand-gold)]', 'bg-red-600');
-            
-            const topBar = document.getElementById('player-top-bar');
-            const buttonsBar = document.getElementById('player-buttons-bar');
-            if(topBar) topBar.classList.remove('hidden');
-            if(buttonsBar) buttonsBar.classList.remove('hidden');
-            
-            controlsUI.classList.remove('hidden');
-            controlsUI.style.opacity = '1';
-            controlsUI.style.pointerEvents = 'auto';
-            
-            mainVid.style.opacity = '1';
-            window.fadeAudio(mainVid, 0, 1, 500);
-
-            if (mainVid.src !== window.currentDestaqueData.videoUrl) {
-                mainVid.src = window.currentDestaqueData.videoUrl;
-                mainVid.load();
-                mainVid.play().catch(e => {});
-            } else {
-                mainVid.currentTime = 0;
-                mainVid.play().catch(e => {});
-            }
-            
-            document.getElementById('player-full-title').innerText = window.currentDestaqueData.titulo;
-            showPlayerControls();
+            if(window.currentDestaqueData?.videoUrl)window.abrirPlayerFull(false,window.currentDestaqueData.videoUrl);
         };
 
         window.fecharPlayerFull = function(fromPopstate = false) {
             if(window.isMandatoryTrailer) return; // Impede fechar durante o anúncio
             
+            mainVid.onended=null;mainVid.onerror=null;
             // Salva progresso ao fechar o player
             if (!window.isWatchingTrailer && mainVid.duration > 0) {
                 window.saveProgress(window.currentDestaqueData.id, mainVid.currentTime, mainVid.duration);
