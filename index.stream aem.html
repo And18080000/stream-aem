@@ -409,7 +409,7 @@
             0% { transform: scale3d(0.5, 0.5, 1); opacity: 0; }
             10% { transform: scale3d(1, 1, 1); opacity: 1; }
             50% { transform: scale3d(1.12, 1.12, 1); opacity: 1; }
-            75%, 100% { transform: scale3d(40, 40, 1); opacity: 0; }
+            100% { transform: scale3d(1.16, 1.16, 1); opacity: 1; }
         }
 
         /* Netflix Style Loader */
@@ -579,9 +579,9 @@
 .native-youtube #mandatory-trailer-overlay{bottom:4rem}
 </style><style>.room-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,150px),1fr));gap:1rem}.room-grid button{overflow:hidden;text-align:left;border-radius:12px;background:#181c23;color:#fff}.room-grid img{width:100%;aspect-ratio:16/9;object-fit:cover}.room-grid strong{display:block;padding:.7rem;overflow-wrap:anywhere}#roomPage{background:#0b0d12;color:#fff;border:0;border-radius:16px;width:min(960px,94vw);max-height:90dvh;margin:auto;overflow:auto}#roomPage::backdrop{background:#000b}#roomPage header,.room-body{padding:1rem clamp(1rem,3vw,2rem)}#roomPage h1{font-size:2rem;font-weight:700}#roomIntro{margin:.5rem 0 1.5rem}#roomBanner :is(img,video){width:100%;max-height:40vh;object-fit:cover}#emptyPortfolio[hidden],#roomShelf[hidden]{display:none!important}</style><style>
 .yt-backdrop>iframe{inset:50% auto auto 50%!important;width:var(--frame-width,100%)!important;height:auto!important;aspect-ratio:16/9;transform:translate(-50%,-50%)!important;opacity:0!important;pointer-events:none!important;border:0;}
-.yt-backdrop.preview-playing>iframe{opacity:1!important}
+.yt-backdrop.preview-playing.preview-hd>iframe{opacity:1!important}
 .yt-backdrop>img{opacity:.75!important}
-.yt-backdrop.preview-playing>img{opacity:0!important}
+.yt-backdrop.preview-playing.preview-hd>img{opacity:0!important}
 </style><style>
 html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior:none}
 .in-shorts #main-footer{display:none!important}
@@ -662,6 +662,33 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
  #tiktok-feed .short-actions>button[title]{display:none}
  #tiktok-feed .short-layout>[id^="reco-prompt"]{top:calc(var(--shorts-top,72px) + 1rem)}
 }
+
+#intro-container{transition:opacity .5s ease}
+#intro-skip{position:absolute;right:5%;bottom:6%;z-index:20;color:white;border:1px solid #ffffff55;border-radius:2rem;padding:.55rem 1rem;background:#151821}
+.feature-picture:not(.yt-backdrop):not(.preview-hd)>video{opacity:0!important}
+.feature-picture:not(.yt-backdrop):not(.preview-hd)>img{opacity:.75!important}
+.feed-transport{display:none}
+@media(min-width:1024px){
+ .in-shorts{--feed-rail:clamp(190px,16vw,290px)}
+ .in-shorts #main-header{inset:0 auto 0 0;width:var(--feed-rail);height:100%;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:30px;padding:32px 18px;background:#080c13;border:0;border-right:1px solid #253244;overflow:auto;transition:none}
+ .in-shorts #main-header>div:first-child,.in-shorts #main-header nav{display:flex;flex-direction:column;align-items:stretch;gap:8px;overflow:visible}
+ .in-shorts #main-header nav{margin-top:28px}
+ .in-shorts #main-header nav button{text-align:left;padding:12px;border-radius:9px}
+ .in-shorts #menu-2-label{background:#12314a;color:#64caff;border-left:3px solid #00a8e1}
+ .in-shorts #main-header>div:nth-child(2){padding:12px;background:transparent;border-top:1px solid #253244}
+ .in-shorts #view-tiktok{inset:14px 14px 14px calc(var(--feed-rail) + 14px);width:auto;border-radius:18px;overflow:hidden}
+ #tiktok-feed .short-layout{display:block;width:100%;height:100%;background:radial-gradient(ellipse at center,#203049,#10151e 75%)}
+ #tiktok-feed .short-media{position:absolute;left:50%;top:0;transform:translateX(-50%);height:100%;width:min(100%,56.25cqh);border-radius:0}
+ #tiktok-feed .short-media video{border-radius:0}
+ #tiktok-feed .short-caption{position:absolute;bottom:66px;left:24px;max-width:min(52%,460px);padding:12px 16px;background:#080e18db;border-left:3px solid var(--prime-blue);border-radius:5px;color:white}
+ #tiktok-feed .short-caption>div:first-child{display:flex;margin:0 0 6px}
+ #tiktok-feed .short-caption>p{display:-webkit-box}
+ #tiktok-feed .short-actions{position:absolute;right:14px;bottom:62px;max-height:calc(100% - 84px);padding:8px;gap:8px;background:#080e18ce;border-radius:18px}
+ #tiktok-feed .short-actions>button[title]{order:-1;background:#263647;border-radius:50%}
+ #tiktok-feed .tiktok-progress-container{display:block;bottom:42px}
+ .feed-transport{display:flex;align-items:center;gap:15px;position:absolute;inset:auto 0 0;height:42px;padding:0 16px;background:#090e16ed;color:white;z-index:10;font-size:13px;font-variant-numeric:tabular-nums}
+ .feed-transport button:last-child{margin-left:auto}
+}
 </style></head>
 <body class="antialiased flex flex-col min-h-screen" id="app-body"><section id="maintenancePage" role="status"><h1>Estamos atualizando o portfólio</h1><p>Volte em instantes.</p></section>
 
@@ -731,6 +758,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
 
     <!-- INTRO CINEMÁTICA -->
     <div id="intro-container">
+        <button id="intro-skip" type="button">Pular abertura</button>
         <div id="red-flash"></div>
         <div class="am-logo-wrapper flex items-center justify-center" id="am-logo">
             <!-- NOME ESTILIZADO EM INTRO -->
@@ -1763,6 +1791,12 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                                 if (pendingPlay) event.target.playVideo();
                                 syncHostStyles();
                             },
+                            onPlaybackQualityChange: event => {
+                                if (!background || !youtubeMode || event.target.getVideoData()?.video_id !== ytId()) return;
+                                const quality = String(event.data);
+                                const hd = quality === 'highres' || /^hd(\d+)$/.test(quality) && Number(quality.slice(2)) >= 720;
+                                video.parentElement.classList.toggle('preview-hd', hd);
+                            },
                             onStateChange: event => {
                                 if(!youtubeMode) return;
                                 state = event.data;
@@ -1804,7 +1838,10 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                 youtubeMode = !!id;
                 if(isMain) video.parentElement.classList.toggle('native-youtube',youtubeMode);
                 if(isShortFeed) video.parentElement.classList.toggle('native-short',youtubeMode);
-                if(background){video.parentElement.classList.toggle('yt-backdrop',youtubeMode);video.parentElement.classList.remove('preview-playing');}
+                if (background) {
+                    video.parentElement.classList.toggle('yt-backdrop', youtubeMode);
+                    video.parentElement.classList.remove('preview-playing', 'preview-hd');
+                }
                 metadataSent = false; pendingSeek = 0; state = -1;
                 if (ticker) { clearInterval(ticker); ticker = null; }
                 if (youtubeMode) {
@@ -1818,6 +1855,11 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                 }
             };
             if(background){
+                const updateNativeResolution = () => {
+                    if (!youtubeMode) video.parentElement.classList.toggle('preview-hd', Math.min(video.videoWidth, video.videoHeight) >= 720);
+                };
+                video.addEventListener('loadeddata', updateNativeResolution);
+                video.addEventListener('resize', updateNativeResolution);
                 new ResizeObserver(([entry])=>{
                     const {width,height}=entry.contentRect;
                     if(width && height) video.parentElement.style.setProperty('--frame-width',Math.ceil(Math.max(width,height*16/9))+'px');
@@ -2083,40 +2125,34 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             if(streamYoutubeId(hero.src) && document.getElementById('netflix-player').classList.contains('hidden') && !document.getElementById('view-home').classList.contains('hidden')) hero.play().catch(()=>{});
         }
         window.startAppFromLanding = function() {
-            resumeHomePreview();
             const landing = document.getElementById('landing-page');
-            const introContainer = document.getElementById('intro-container');
-            if (!navigator.connection?.saveData && cacheCatalogo.some(item => streamYoutubeId(item.videoUrl || item.trailerUrl))) {
-                loadStreamYoutubeApi().catch(() => {});
-            }
-            
-            // Prioridade de rede para o vídeo de intro e logo
-
-            
-            landing.style.opacity = '0';
-            landing.style.pointerEvents = 'none';
-            
-            setTimeout(() => {
-                landing.style.display = 'none';
-                document.getElementById('intro-container').style.display = 'flex';
-                document.getElementById('am-logo').classList.add('animate-logo');
-                const audioPlay = introAudioSetup.play();
-                if (audioPlay !== undefined) {
-                    audioPlay.catch(err => {});
-                }
+            const intro = document.getElementById('intro-container');
+            const skip = document.getElementById('intro-skip');
+            landing.style.display = 'none';
+            intro.style.display = 'flex';
+            document.getElementById('am-logo').classList.add('animate-logo');
+            skip.focus();
+            let finished = false;
+            function finishIntro() {
+                if (finished) return;
+                finished = true;
+                introAudioSetup.pause();
+                intro.style.opacity = '0';
                 setTimeout(() => {
-                    document.getElementById('intro-container').style.opacity = '0';
-                    setTimeout(() => {
-                        document.getElementById('intro-container').style.display = 'none';
-                        introAudioSetup.pause();
-                        document.body.style.overflow = '';
-                        ['main-header', 'main-content', 'main-footer'].forEach(id => {
-                            document.getElementById(id).classList.remove('opacity-0', 'pointer-events-none');
-                            document.getElementById(id).classList.add('opacity-100');
-                        });
-                    }, 500);
-                }, 1500);
-            }, 500);
+                    intro.style.display = 'none';
+                    document.body.style.overflow = '';
+                    for (const id of ['main-header', 'main-content', 'main-footer']) {
+                        const element = document.getElementById(id);
+                        element.classList.remove('opacity-0', 'pointer-events-none');
+                        element.classList.add('opacity-100');
+                    }
+                    resumeHomePreview();
+                }, 500);
+            }
+            skip.onclick = finishIntro;
+            introAudioSetup.onended = finishIntro;
+            introAudioSetup.onerror = finishIntro;
+            introAudioSetup.play().catch(finishIntro);
         };
 
         // ==========================================
@@ -2316,6 +2352,11 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                             <div class="tiktok-progress-fill" id="tk-progress-${item.id}"></div>
                         </div>
 
+                        <div class="feed-transport">
+                            <button type="button" class="feed-toggle">Reproduzir</button>
+                            <span class="feed-clock">0:00 / –</span>
+                            <button type="button" class="feed-sound">Ativar som</button>
+                        </div>
                         <!-- GRADIENTE FUNDO (Info e Botões) -->
                         <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none"></div>
 
@@ -2428,6 +2469,18 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             feed.querySelectorAll('.tiktok-item').forEach((el,index)=>{
                 el.querySelector('.short-description').textContent=tiktokItems[index].descricao || 'Sem descrição cadastrada.';
                 const video = el.querySelector('video');
+                const toggle = el.querySelector('.feed-toggle');
+                const sound = el.querySelector('.feed-sound');
+                const clock = el.querySelector('.feed-clock');
+                const formatClock = seconds => Number.isFinite(seconds) ? Math.floor(seconds / 60) + ':' + String(Math.floor(seconds % 60)).padStart(2, '0') : '–';
+                const updateControls = () => {
+                    toggle.textContent = video.paused ? 'Reproduzir' : 'Pausar';
+                    sound.textContent = video.muted ? 'Ativar som' : 'Silenciar';
+                    clock.textContent = formatClock(video.currentTime) + ' / ' + formatClock(video.duration);
+                };
+                toggle.onclick = () => window.toggleTikTokVideo(video);
+                sound.onclick = () => { video.muted = !video.muted; updateControls(); };
+                for (const type of ['playing', 'pause', 'volumechange', 'timeupdate']) video.addEventListener(type, updateControls);
                 video.dataset.feedSource = tiktokItems[index].videoUrl || tiktokItems[index].trailerUrl || '';
                 video.dataset.feedPoster = tiktokItems[index].capaUrl || '';
                 const bar=el.querySelector('.short-actions');
@@ -3945,8 +3998,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                 isOficialTrailer = true;
             }
 
-            // Só roda o trailer na home se solicitado via clique (forcePlay), se não estiver no player e NÃO estiver na aba de detalhes
-            if ((forcePlay || streamYoutubeId(urlDoTrailerParaTocar)) && urlDoTrailerParaTocar && urlDoTrailerParaTocar.trim() !== "" && !isPlayerOpen && !isDetailsOpen) {
+            if (urlDoTrailerParaTocar && urlDoTrailerParaTocar.trim() !== "" && !isPlayerOpen && !isDetailsOpen) {
                 window.heroTimeout = setTimeout(() => {
                     if(streamYoutubeId(urlDoTrailerParaTocar)){
                         startBackgroundPreview(heroVideo,urlDoTrailerParaTocar,isOficialTrailer);btnMute.classList.remove('hidden');return;
@@ -3954,7 +4006,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                     heroVideo.onended=null;
                     heroVideo.src = urlDoTrailerParaTocar; 
                     heroVideo.preload = "auto"; // Preload auto para preview instantâneo na home
-                    heroVideo.setAttribute('fetchpriority', 'low'); // Prioridade baixa para não competir com a UI
+                    heroVideo.setAttribute('fetchpriority', 'high');
                     heroVideo.muted = true;
                     heroVideo.volume = 0; // Prepara para fade in caso desmute
                     
