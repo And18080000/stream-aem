@@ -185,40 +185,6 @@
                 box-shadow: 0 20px 50px rgba(0,0,0,0.5);
             }
         }
-        .tiktok-progress-container {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 6px;
-            background: rgba(255,255,255,0.1);
-            z-index: 50;
-            cursor: pointer;
-            transition: height 0.2s;
-        }
-        .tiktok-progress-container:hover { height: 10px; }
-        .tiktok-progress-fill {
-            height: 100%;
-            background: var(--brand-gold);
-            width: 0%;
-            position: relative;
-            pointer-events: none;
-        }
-        .tiktok-progress-fill::after {
-            content: '';
-            position: absolute;
-            right: -5px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 12px;
-            height: 12px;
-            background: white;
-            border-radius: 50%;
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
-        .tiktok-progress-container:hover .tiktok-progress-fill::after { opacity: 1; }
-
         /* Gavetas TikTok (Comentários e Info) */
         .tiktok-comments-drawer {
             position: absolute;
@@ -565,7 +531,7 @@
 .native-youtube #youtube-actions{position:absolute;inset:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:.75rem;height:var(--action-height);padding:env(safe-area-inset-top) 1rem 0;z-index:3;background:#101216}
 #youtube-actions button{padding:.5rem .9rem;color:white;background:#272b32;border-radius:2rem;font-size:.9rem}
 #netflix-player.native-youtube > iframe{top:var(--action-height)!important;height:calc(100% - var(--action-height))!important;transform:none!important;opacity:1!important;pointer-events:auto!important}
-.native-youtube #player-controls,.native-youtube #netflix-loader,.native-youtube #trailer-cta-container,.native-youtube .stream-youtube-tap-layer,.native-short .tiktok-progress-container{display:none!important}
+.native-youtube #player-controls,.native-youtube #netflix-loader,.native-youtube #trailer-cta-container,.native-youtube .stream-youtube-tap-layer{display:none!important}
 .native-short > .bottom-6{bottom:4.5rem}
 .native-short > .bottom-12{bottom:5rem}
 .native-youtube #mandatory-trailer-overlay{bottom:4rem}
@@ -593,7 +559,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
     aspect-ratio:9/16;height:auto;width:100%;overflow:hidden;background:black;border-radius:14px;
 }
 .short-media video,.short-media iframe{width:100%!important;height:100%!important;object-fit:contain}
-.short-media~.tiktok-progress-container,.short-media~.bg-gradient-to-t{display:none}
+.short-media~.bg-gradient-to-t{display:none}
 .short-layout .short-caption{grid-area:2 / 1;align-self:center;min-width:0;padding:0 8px}
 .short-caption>div,.short-caption>p{display:none}
 .short-caption h2{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0}
@@ -602,6 +568,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
     max-height:100%;overflow:auto;gap:8px;padding:2px 0;scrollbar-width:none
 }
 .short-actions>*{flex:none}
+.tiktok-item:first-child .short-actions>button[title="Anterior"],.tiktok-item:last-child .short-actions>button[title="Próximo"]{display:none}
 .short-layout .short-actions button{margin:0;min-width:34px;height:34px}
 .short-layout .short-actions i{font-size:22px}
 @media (max-width:600px) and (orientation:portrait){
@@ -659,7 +626,6 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
 #intro-skip{position:absolute;right:5%;bottom:6%;z-index:20;color:white;border:1px solid #ffffff55;border-radius:2rem;padding:.55rem 1rem;background:#151821}
 .feature-picture:not(.yt-backdrop):not(.preview-hd)>video{opacity:0!important}
 .feature-picture:not(.yt-backdrop):not(.preview-hd)>img{opacity:.75!important}
-.feed-transport{display:none}
 @media(min-width:1024px){
  .in-shorts{--feed-rail:clamp(190px,16vw,290px)}
  .in-shorts #main-header{inset:0 auto 0 0;width:var(--feed-rail);height:100%;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:30px;padding:32px 18px;background:#080c13;border:0;border-right:1px solid #253244;overflow:auto;transition:none}
@@ -677,9 +643,6 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
  #tiktok-feed .short-caption>p{display:-webkit-box}
  #tiktok-feed .short-actions{position:absolute;right:14px;bottom:62px;max-height:calc(100% - 84px);padding:8px;gap:8px;background:#080e18ce;border-radius:18px}
  #tiktok-feed .short-actions>button[title]{order:-1;background:#263647;border-radius:50%}
- #tiktok-feed .tiktok-progress-container{display:block;bottom:42px}
- .feed-transport{display:flex;align-items:center;gap:15px;position:absolute;inset:auto 0 0;height:42px;padding:0 16px;background:#090e16ed;color:white;z-index:10;font-size:13px;font-variant-numeric:tabular-nums}
- .feed-transport button:last-child{margin-left:auto}
 }
 </style></head>
 <body class="antialiased flex flex-col min-h-screen" id="app-body"><section id="maintenancePage" role="status"><h1>Estamos atualizando o portfólio</h1><p>Volte em instantes.</p></section>
@@ -2265,12 +2228,28 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                 promoteUpcoming();
             },()=>{window.preferredTikTokCategory=localStorage.getItem('feed-category:'+user.uid);promoteUpcoming();});
         });
+        // Cada vídeo recebe um sorteio por sessão. Atualizações de curtidas preservam a ordem.
+        const feedDraws = new Map();
+        function mixFeed(items, idOf, categoryOf, preferred) {
+            return items.map(item => {
+                const id = idOf(item);
+                if (!feedDraws.has(id)) feedDraws.set(id, -Math.log(1 - Math.random()));
+                const weight = preferred && categoryOf(item) === preferred ? 1.5 : 1;
+                return {item, rank: feedDraws.get(id) / weight};
+            }).sort((a,b) => a.rank - b.rank).map(entry => entry.item);
+        }
         function promoteUpcoming(){
-            const feed=document.getElementById('tiktok-feed'),list=[...feed.querySelectorAll('.tiktok-item')];
-            if(!window.preferredTikTokCategory || !list.length)return;
-            const pos=Math.round(feed.scrollTop/Math.max(1,feed.clientHeight));
-            const rest=list.slice(pos+1),same=rest.filter(el=>el.dataset.category===window.preferredTikTokCategory), other=rest.filter(el=>el.dataset.category!==window.preferredTikTokCategory);
-            let n=0;while(same.length || other.length){const el=(same.length && (!other.length || n%3!==2)?same:other).shift();feed.append(el);n++;}
+            const feed = document.getElementById('tiktok-feed');
+            const items = [...feed.querySelectorAll('.tiktok-item')];
+            const pos = Math.round(feed.scrollTop / Math.max(1,feed.clientHeight));
+            const next = mixFeed(items.slice(pos+1), el=>el.dataset.id, el=>el.dataset.category, window.preferredTikTokCategory);
+            next.forEach((el,index) => {
+                const target = feed.children[pos+1+index];
+                if (el !== target) {
+                    if (feed.moveBefore) feed.moveBefore(el,target);
+                    else feed.insertBefore(el,target);
+                }
+            });
         }
         async function reserveSurvey(){
             const uid=auth.currentUser?.uid;if(!uid)return false;
@@ -2314,16 +2293,8 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                 delete window.statsObservers[id];
                 clearTimeout(window['timer_reco_' + id]);
             });
-            // 2. ORDEM ALEATÓRIA: Embaralha o array para que nunca seja a mesma ordem do admin
-            tiktokItems = tiktokItems.sort(() => Math.random() - 0.5);
+            tiktokItems = mixFeed(tiktokItems, item=>item.id, item=>item.trilho, window.preferredTikTokCategory);
 
-            // 3. ALGORITMO DE RECOMENDAÇÃO: Se o utilizador aceitou ver mais de uma categoria, trazemos esses para o topo
-            if (window.preferredTikTokCategory) {
-                const related = tiktokItems.filter(i => i.trilho === window.preferredTikTokCategory);
-                const others = tiktokItems.filter(i => i.trilho !== window.preferredTikTokCategory);
-                tiktokItems=[]; while(related.length || others.length){tiktokItems.push((related.length && (!others.length || tiktokItems.length%3!==2)?related:others).shift());}
-            }
-            
             if (tiktokItems.length === 0) {
                 feed.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-brand-text gap-4">
                     <i class="ph ph-video-camera-slash text-5xl opacity-20"></i>
@@ -2340,13 +2311,11 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
 
 
                 return `
-                <div class="tiktok-item flex flex-col md:flex-row md:items-center md:justify-center md:gap-12 md:px-16" data-id="${item.id}" data-category="${item.trilho}">
+                <div class="tiktok-item flex flex-col md:flex-row md:items-center md:justify-center md:gap-12 md:px-16" data-id="${item.id}" data-category="${catalogText(item.trilho)}">
                     
                     <!-- VÍDEO E SOBREPOSIÇÃO ESTILO TIKTOK -->
                     <div class="short-layout">
-                        <div class="short-media"><video class="tiktok-video" preload="none" loop playsinline muted 
-                               onclick="window.toggleTikTokVideo(this)" 
-                               ontimeupdate="window.updateTikTokProgress(this, '${item.id}')"
+                        <div class="short-media"><video controls class="tiktok-video" preload="none" loop playsinline muted 
                                onwaiting="document.getElementById('tk-loader-${item.id}').classList.remove('hidden')"
                                onplaying="document.getElementById('tk-loader-${item.id}').classList.add('hidden')"
                                oncanplay="document.getElementById('tk-loader-${item.id}').classList.add('hidden')"></video></div>
@@ -2360,20 +2329,11 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                         <div id="reco-prompt-${item.id}" class="absolute top-10 left-1/2 -translate-x-1/2 z-[110] bg-black/60 backdrop-blur-md border border-white/20 px-4 py-2.5 rounded-full flex items-center gap-4 opacity-0 transition-all duration-700 pointer-events-none transform -translate-y-4">
                             <span class="text-[9px] font-black text-white uppercase tracking-widest whitespace-nowrap">Ver mais como este?</span>
                             <div class="flex items-center gap-2 pointer-events-auto">
-                                <button onclick="window.acceptRecommendation('${item.id}', '${item.trilho}')" class="text-[9px] bg-brand-gold text-black px-3 py-1 rounded-full font-black hover:scale-110 transition">SIM</button>
+                                <button onclick="window.acceptRecommendation('${item.id}', this.closest('.tiktok-item').dataset.category)" class="text-[9px] bg-brand-gold text-black px-3 py-1 rounded-full font-black hover:scale-110 transition">SIM</button>
                                 <button onclick="window.rejectRecommendation('${item.id}')" class="text-[9px] text-white/60 hover:text-white font-bold px-2">NÃO</button>
                             </div>
                         </div>
 
-                        <div class="tiktok-progress-container" onmousedown="window.startScrubTikTok(event, '${item.id}')" ontouchstart="window.startScrubTikTok(event, '${item.id}')">
-                            <div class="tiktok-progress-fill" id="tk-progress-${item.id}"></div>
-                        </div>
-
-                        <div class="feed-transport">
-                            <button type="button" class="feed-toggle">Reproduzir</button>
-                            <span class="feed-clock">0:00 / –</span>
-                            <button type="button" class="feed-sound">Ativar som</button>
-                        </div>
                         <!-- GRADIENTE FUNDO (Info e Botões) -->
                         <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none"></div>
 
@@ -2486,23 +2446,11 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             feed.querySelectorAll('.tiktok-item').forEach((el,index)=>{
                 el.querySelector('.short-description').textContent=tiktokItems[index].descricao || 'Sem descrição cadastrada.';
                 const video = el.querySelector('video');
-                const toggle = el.querySelector('.feed-toggle');
-                const sound = el.querySelector('.feed-sound');
-                const clock = el.querySelector('.feed-clock');
-                const formatClock = seconds => Number.isFinite(seconds) ? Math.floor(seconds / 60) + ':' + String(Math.floor(seconds % 60)).padStart(2, '0') : '–';
-                const updateControls = () => {
-                    toggle.textContent = video.paused ? 'Reproduzir' : 'Pausar';
-                    sound.textContent = video.muted ? 'Ativar som' : 'Silenciar';
-                    clock.textContent = formatClock(video.currentTime) + ' / ' + formatClock(video.duration);
-                };
-                toggle.onclick = () => window.toggleTikTokVideo(video);
-                sound.onclick = () => { video.muted = !video.muted; updateControls(); };
-                for (const type of ['playing', 'pause', 'volumechange', 'timeupdate']) video.addEventListener(type, updateControls);
                 video.dataset.feedSource = tiktokItems[index].videoUrl || tiktokItems[index].trailerUrl || '';
                 video.dataset.feedPoster = tiktokItems[index].capaUrl || '';
                 const bar=el.querySelector('.short-actions');
                 for(const [direction,label] of [[-1,'Anterior'],[1,'Próximo']]){
-                    if(index+direction<0 || index+direction>=tiktokItems.length)continue;
+
                     const btn=document.createElement('button');btn.textContent=direction<0?'↑':'↓';btn.setAttribute('aria-label',label);btn.title=label;
                     btn.onclick=()=>{const sibling=direction<0?el.previousElementSibling:el.nextElementSibling;if(sibling)feed.scrollTo({top:sibling.offsetTop-feed.firstElementChild.offsetTop,behavior:'smooth'});};bar.append(btn);
                 }
@@ -2807,65 +2755,6 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             if(num >= 1000000) return (num/1000000).toFixed(1) + 'M';
             if(num >= 1000) return (num/1000).toFixed(1) + 'k';
             return num < 0 ? 0 : num;
-        };
-
-        window.toggleTikTokVideo = function(video) {
-            const container = video.parentElement;
-            if (video.paused) {
-                const playPromise = video.play();
-                if (playPromise !== undefined) playPromise.catch(e => {});
-                container.classList.remove('paused');
-            } else {
-                video.pause();
-                container.classList.add('paused');
-            }
-        };
-
-        window.updateTikTokProgress = function(video, id) {
-            if (window.isScrubbingTikTok === id) return; // Não atualiza enquanto o user arrasta
-            const bar = document.getElementById(`tk-progress-${id}`);
-            if (bar && video.duration) {
-                const pct = (video.currentTime / video.duration) * 100;
-                bar.style.width = pct + '%';
-            }
-        };
-
-        window.isScrubbingTikTok = null;
-        window.startScrubTikTok = function(e, id) {
-            window.isScrubbingTikTok = id;
-            window.handleScrubTikTok(e);
-            
-            const moveHandler = (event) => window.handleScrubTikTok(event);
-            const stopHandler = () => {
-                window.isScrubbingTikTok = null;
-                window.removeEventListener('mousemove', moveHandler);
-                window.removeEventListener('mouseup', stopHandler);
-                window.removeEventListener('touchmove', moveHandler);
-                window.removeEventListener('touchend', stopHandler);
-            };
-
-            window.addEventListener('mousemove', moveHandler);
-            window.addEventListener('mouseup', stopHandler);
-            window.addEventListener('touchmove', moveHandler, { passive: false });
-            window.addEventListener('touchend', stopHandler);
-        };
-
-        window.handleScrubTikTok = function(e) {
-            if (!window.isScrubbingTikTok) return;
-            const id = window.isScrubbingTikTok;
-            const container = document.querySelector(`[data-id="${id}"] .tiktok-progress-container`);
-            const video = document.querySelector(`[data-id="${id}"] video`);
-            const bar = document.getElementById(`tk-progress-${id}`);
-
-            if (container && video && bar) {
-                const rect = container.getBoundingClientRect();
-                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-                let pos = (clientX - rect.left) / rect.width;
-                pos = Math.max(0, Math.min(1, pos));
-                
-                bar.style.width = (pos * 100) + '%';
-                video.currentTime = pos * video.duration;
-            }
         };
 
         window.abrirDetalhesTikTok = function(dataStr, id) {
