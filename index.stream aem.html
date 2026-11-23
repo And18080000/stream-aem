@@ -5,6 +5,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>A&amp;M Streaming</title>
     
+    <meta name="application-name" content="A&amp;M Streaming">
+    <script>
+        (() => {
+            if (!['https:', 'http:'].includes(location.protocol)) return;
+            const page = new URL(location.href);
+            if (page.searchParams.has('_am_update')) {
+                page.searchParams.delete('_am_update');
+                history.replaceState(history.state, '', page);
+            }
+            page.hash = '';
+            let previousHTML, checking = false, navigating = false;
+            async function checkVersion() {
+                if (checking || navigating || document.hidden || !navigator.onLine) return;
+                checking = true;
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 12000);
+                try {
+                    const response = await fetch(page, {cache:'no-cache', signal:controller.signal, redirect:'error'});
+                    if (!response.ok || !response.headers.get('content-type')?.includes('text/html')) return;
+                    const html = await response.text();
+                    if (!html.includes('<meta name="application-name" content="A&amp;M Streaming">') || !html.includes('</html>')) return;
+                    if (previousHTML !== undefined && html !== previousHTML) {
+                        const next = new URL(location.href);
+                        next.searchParams.set('_am_update', String(Date.now()));
+                        navigating = true;
+                        location.replace(next.href);
+                    }
+                    previousHTML = html;
+                } catch { /* Uma falha temporária será verificada no próximo ciclo. */ }
+                finally { clearTimeout(timeout); checking = false; }
+            }
+            checkVersion();
+            setInterval(checkVersion, 30000);
+            window.addEventListener('online', checkVersion);
+            document.addEventListener('visibilitychange', checkVersion);
+        })();
+    </script>
     <!-- Otimização de Performance e Fontes -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -650,6 +687,12 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
 #profile-grid button{position:relative;aspect-ratio:3/4;background:#141c28;overflow:hidden}
 #profile-grid img{width:100%;height:100%;object-fit:cover}
 #profile-grid button span{position:absolute;bottom:0;left:0;right:0;text-align:left;padding:.65rem;color:white;background:linear-gradient(transparent,#070d16e6);overflow-wrap:anywhere}
+#view-details button[id^="tab-"].focusable{outline:none!important;border:0!important;border-radius:0}
+#view-details button[id^="tab-"][aria-pressed="true"]{box-shadow:inset 0 -2px white}
+#view-details button[id^="tab-"]:focus-visible{text-decoration:underline;text-underline-offset:4px}
+.trailer-card{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;background:#121822;border-radius:.75rem;text-align:left}
+.trailer-card img,.trailer-card video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.trailer-card strong{position:absolute;inset:auto 0 0;padding:1.4rem .7rem .55rem;background:linear-gradient(transparent,rgba(0,0,0,.93));color:white;font-size:.85rem;line-height:1.25;overflow-wrap:anywhere}
 </style></head>
 <body class="antialiased flex flex-col min-h-screen" id="app-body"><section id="maintenancePage" role="status"><h1>Estamos atualizando o portfólio</h1><p>Volte em instantes.</p></section>
 
@@ -967,7 +1010,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                 </div>
 
                 <section id="content-trailers" aria-labelledby="tab-trailers" class="hidden animate-fadeIn">
-                    <div id="dynamic-trailers-container" class="grid gap-3 sm:grid-cols-2"></div>
+                    <div id="dynamic-trailers-container" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4"></div>
                 </section>
 
                 <!-- Aba: Detalhes -->
@@ -4314,7 +4357,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             const list = document.getElementById('dynamic-trailers-container');
             const tab = document.getElementById('tab-trailers');
             const trailers = filmTrailers(film);
-            const signature = JSON.stringify([film.id,trailers]);
+            const signature = JSON.stringify([film.id,film.capaUrl,trailers]);
             if (list.dataset.signature === signature) return;
             list.dataset.signature = signature;
             tab.classList.toggle('hidden', !trailers.length);
@@ -4324,22 +4367,48 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             list.replaceChildren(...trailers.map((trailer,index) => {
                 const button = document.createElement('button');
                 button.type = 'button';
-                button.className = 'focusable rounded-xl bg-[#1a1c23] border border-white/10 p-4 text-left text-white hover:border-white/50';
+                button.className = 'trailer-card focusable';
                 const label = 'Trailer ' + (index + 1);
                 const title = document.createElement('strong');
-                title.textContent = label;
-                button.append(title);
-                if (trailer.nome && trailer.nome !== label) {
-                    const name = document.createElement('span');
-                    name.className = 'block mt-1 text-sm text-gray-300';
-                    name.textContent = trailer.nome;
-                    button.append(name);
+                title.textContent = trailer.nome || label;
+                button.setAttribute('aria-label', 'Assistir '+label+' — '+title.textContent);
+                const id = streamYoutubeId(trailer.url);
+                const cover = document.createElement('img');
+                cover.alt = '';
+                cover.loading = 'lazy';
+                const sources = [trailer.capaUrl, id && 'https://i.ytimg.com/vi/'+id+'/hq2.jpg',
+                    id && 'https://i.ytimg.com/vi/'+id+'/hqdefault.jpg', film.capaUrl].filter(Boolean);
+                function nextCover(){
+                    if (sources.length) cover.src=sources.shift();
+                    else cover.hidden=true;
                 }
+                cover.onerror=nextCover;
+                cover.onload=()=>{if(id && cover.naturalWidth<=120 && sources.length)nextCover();};
+                nextCover();
+                button.append(cover);
+                if(!id && !trailer.capaUrl){
+                    const preview=document.createElement('video');
+                    preview.muted=true;preview.playsInline=true;preview.preload='none';
+                    preview.dataset.previewUrl=trailer.url;preview.style.opacity='0';
+                    preview.onloadedmetadata=()=>{
+                        if(Number.isFinite(preview.duration) && preview.duration>0)preview.currentTime=preview.duration/2;
+                    };
+                    preview.onseeked=()=>{preview.style.opacity='1';};
+                    button.append(preview);
+                }
+                button.append(title);
                 button.onclick = () => window.playTrailerDetails(trailer.url);
                 return button;
             }));
+            if(!document.getElementById('content-trailers').classList.contains('hidden')) loadTrailerFrames();
+        }
+        function loadTrailerFrames() {
+            for(const video of document.querySelectorAll('#content-trailers video[data-preview-url]')){
+                video.preload='metadata';video.src=video.dataset.previewUrl;delete video.dataset.previewUrl;
+            }
         }
         window.switchDetailsTab = function(tabName) {
+            if(tabName==='trailers')loadTrailerFrames();
             for (const name of ['relacionados','detalhes','trailers']) {
                 const selected = name === tabName;
                 const button = document.getElementById('tab-' + name);
@@ -5832,72 +5901,3 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             } else {
                 // RESTAURA TUDO AO VOLTAR ONLINE
                 if (searchIcon) searchIcon.classList.remove('hidden');
-                if(window.renderizarTrilhosNaHome) window.renderizarTrilhosNaHome();
-                
-                // Pré-carrega ativos de sistema na entrada online
-                window.precacheSystem();
-            }
-        };
-
-        window.precacheSystem = async function() {
-            if (!('caches' in window)) return;
-            const cache = await caches.open(OFFLINE_CACHE_NAME);
-            const core = [
-                "https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev/0416.mp4",
-                "https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev/Cinematic%20logo%20intro%20sound%20effect%20(no%20copyright)%20%23logointro%20%23soundeffects%20%23cinematic%20-%20Vfx%20Secrets%20(youtube).mp3"
-            ];
-            core.forEach(url => {
-                caches.match(url).then(m => { if(!m) fetch(url).then(r => cache.put(url, r)).catch(()=>{}); });
-            });
-        };
-
-        window.renderizarModoOffline = function() {
-            const offlineList = JSON.parse(localStorage.getItem('am_offline_metadata') || '[]').filter(visibleOfflineItem);
-            const container = document.getElementById('dynamic-rails-container');
-            const sectionLista = document.getElementById('section-minha-lista');
-            const hero = document.querySelector('#view-home > div.relative');
-            
-            if (sectionLista) sectionLista.classList.add('hidden');
-            if (hero) hero.classList.add('hidden'); // Oculta o Hero online para focar na aba única
-            
-            if (offlineList.length === 0) {
-                container.innerHTML = `
-                    <div class="flex flex-col items-center justify-center py-40 text-center px-8">
-                        <i class="ph ph-cloud-slash text-7xl text-white/10 mb-6"></i>
-                        <h3 class="text-2xl font-bold text-white mb-3 uppercase tracking-tighter">Nenhum vídeo disponível</h3>
-                        <p class="text-brand-text text-sm max-w-xs mx-auto leading-relaxed">Os seus downloads aparecerão aqui quando estiver sem internet.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            let cardsHtml = offlineList.map(item => renderCardPaisagem(item, "text-[var(--brand-gold)]")).join('');
-            
-            container.innerHTML = `
-                <div class="relative pb-10 animate-fadeIn px-4 md:px-0">
-                    <div class="flex items-center justify-between mb-8">
-                        <h3 class="text-xl md:text-2xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
-                            <i class="ph-fill ph-download-simple text-[var(--brand-gold)]"></i> Seus Downloads Offline
-                        </h3>
-                        <span class="text-[10px] bg-brand-gold/10 text-brand-gold px-3 py-1 rounded-full font-bold border border-brand-gold/20">${offlineList.length} TÍTULOS</span>
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        ${cardsHtml.replace(/min-w-\[220px\]/g, 'w-full')} 
-                    </div>
-                </div>
-            `;
-        };
-
-        window.addEventListener('online', window.atualizarModoConexao);
-        window.addEventListener('offline', window.atualizarModoConexao);
-        
-        // Execução Imediata: Verifica se já iniciou offline para evitar ecrãs de erro do Firebase
-        if (!navigator.onLine) {
-            setTimeout(window.atualizarModoConexao, 100);
-        } else {
-            setTimeout(window.atualizarModoConexao, 3000);
-        }
-        window.dispatchEvent(new Event('stream-ready'));
-    </script>
-</body>
-</html>
