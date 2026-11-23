@@ -404,14 +404,6 @@
             position: absolute; width: 400px; height: 180px; z-index: 10;
             opacity: 0; transform: scale3d(0.5, 0.5, 1); filter: drop-shadow(-3px 3px 3px rgba(0,0,0,0.8));
         }
-        .animate-logo { animation: netflixZoom 1.5s forwards; }
-        @keyframes netflixZoom {
-            0% { transform: scale3d(0.5, 0.5, 1); opacity: 0; }
-            10% { transform: scale3d(1, 1, 1); opacity: 1; }
-            50% { transform: scale3d(1.12, 1.12, 1); opacity: 1; }
-            100% { transform: scale3d(1.16, 1.16, 1); opacity: 1; }
-        }
-
         /* Netflix Style Loader */
         #netflix-loader {
             position: absolute;
@@ -2130,7 +2122,12 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             const skip = document.getElementById('intro-skip');
             landing.style.display = 'none';
             intro.style.display = 'flex';
-            document.getElementById('am-logo').classList.add('animate-logo');
+            const logo = document.getElementById('am-logo');
+            const entrance = logo.animate([
+                {transform:'scale(.55)',opacity:0},
+                {transform:'scale(1)',opacity:1}
+            ],{duration:1400,easing:'ease-out',fill:'forwards'});
+            let motion = entrance;
             skip.focus();
             let finished = false;
             function finishIntro() {
@@ -2140,6 +2137,8 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                 intro.style.opacity = '0';
                 setTimeout(() => {
                     intro.style.display = 'none';
+                    motion.cancel();
+                    entrance.cancel();
                     document.body.style.overflow = '';
                     for (const id of ['main-header', 'main-content', 'main-footer']) {
                         const element = document.getElementById(id);
@@ -2150,9 +2149,24 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                 }, 500);
             }
             skip.onclick = finishIntro;
-            introAudioSetup.onended = finishIntro;
-            introAudioSetup.onerror = finishIntro;
-            introAudioSetup.play().catch(finishIntro);
+            const soundtrack = new Promise(resolve => {
+                introAudioSetup.onended = resolve;
+                introAudioSetup.onerror = resolve;
+                introAudioSetup.play().catch(resolve);
+            });
+            entrance.finished.then(async () => {
+                if (finished) return;
+                motion = logo.animate([{transform:'scale(1)'},{transform:'scale(1.15)'}],
+                    {duration:2500,direction:'alternate',iterations:Infinity,easing:'ease-in-out'});
+                await soundtrack;
+                if (finished) return;
+                const from = getComputedStyle(logo).transform;
+                motion.cancel();
+                motion = logo.animate([{transform:from,opacity:1},{transform:'scale(18)',opacity:0}],
+                    {duration:1000,easing:'ease-in',fill:'forwards'});
+                await motion.finished;
+                finishIntro();
+            }).catch(error => { if (error.name !== 'AbortError') finishIntro(); });
         };
 
         // ==========================================
@@ -2274,6 +2288,9 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
         }
         window.preferredTikTokCategory = null; // Armazena o interesse do utilizador
 
+        function catalogText(value) {
+            return String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+        }
         window.renderTikTokMode = function() {
             const feed = document.getElementById('tiktok-feed');
 
@@ -2368,7 +2385,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                                 </div>
                                 <span onclick="window.abrirPerfilTikTok('${item.selo || 'A&M Produções'}')" class="text-white font-bold text-sm tracking-tight cursor-pointer hover:underline">${item.selo || 'A&M Official'} <i class="ph-fill ph-seal-check text-blue-400"></i></span>
                             </div>
-                            <h2 class="text-white font-bold text-base mb-1 drop-shadow-lg">${item.titulo}</h2>
+                            <h2 class="text-white font-bold text-base mb-1 drop-shadow-lg">${catalogText(item.titulo)}</h2>
                             <p class="text-gray-300 text-xs line-clamp-2 drop-shadow-md font-medium leading-relaxed">${item.descricao || ''}</p>
                             <div class="flex items-center gap-2 mt-3 text-[10px] text-white/60">
                                 <i class="ph ph-music-note"></i>
@@ -2394,7 +2411,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                             </div>
                             <!-- Compartilhar -->
                             <div class="flex flex-col items-center">
-                                <button onclick="window.compartilharConteudo('${item.titulo}', '${item.id}')" class="w-12 h-12 flex items-center justify-center">
+                                <button onclick="window.compartilharConteudo(null, '${item.id}')" class="w-12 h-12 flex items-center justify-center">
                                     <i class="ph ph-share-network text-4xl drop-shadow-lg text-white"></i>
                                 </button>
                                 <span class="text-[10px] text-white font-bold mt-[-4px] drop-shadow-md">Compartilhar</span>
@@ -2431,7 +2448,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                         <div id="drawer-${item.id}" class="tiktok-details-drawer pointer-events-auto">
                             <div class="flex justify-between items-start mb-6">
                                 <div>
-                                    <h3 class="text-white font-black text-2xl uppercase drop-shadow-md">${item.titulo}</h3>
+                                    <h3 class="text-white font-black text-2xl uppercase drop-shadow-md">${catalogText(item.titulo)}</h3>
                                     <p class="text-brand-gold text-[10px] font-black uppercase tracking-[0.3em] mt-1">${item.trilho || 'Conteúdo'}</p>
                                 </div>
                                 <button onclick="window.fecharDetalhesTikTok('${item.id}')" class="w-12 h-12 bg-white/10 backdrop-blur-md border border-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition"><i class="ph ph-x text-2xl"></i></button>
@@ -3845,7 +3862,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                         <div class="absolute top-0 w-full p-2 bg-gradient-to-b from-black/60 to-transparent"><p class="text-[8px] text-[var(--brand-gold)] font-bold tracking-widest uppercase">${data.selo}</p></div>
                     </div>
                     <div class="card-expand-info">
-                        <p class="text-white font-bold text-[10px] uppercase truncate">${data.titulo}</p>
+                        <p class="text-white font-bold text-[10px] uppercase truncate">${catalogText(data.titulo)}</p>
                         <div class="flex items-center gap-1.5 mt-1 text-[8px] font-black">
                             <span class="text-yellow-500">${data.imdb || '8.5'}/10</span>
                             <span class="text-gray-400">${data.ano || '2024'}</span>
@@ -3872,11 +3889,11 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                     <div class="absolute inset-0 bg-black rounded-xl overflow-hidden border border-white/10 shadow-lg">
                         <img src="${data.capaUrl}" loading="lazy" decoding="async" fetchpriority="low" class="w-full h-full object-cover opacity-100 brightness-[1.2] saturate-[1.25] will-change-transform">
                         <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex items-end p-3">
-                            <p class="text-[10px] md:text-xs font-bold ${colorClass} tracking-wider uppercase drop-shadow-md truncate">${data.titulo}</p>
+                            <p class="text-[10px] md:text-xs font-bold ${colorClass} tracking-wider uppercase drop-shadow-md truncate">${catalogText(data.titulo)}</p>
                         </div>
                     </div>
                     <div class="card-expand-info">
-                        <p class="text-white font-bold text-[10px] uppercase truncate">${data.titulo}</p>
+                        <p class="text-white font-bold text-[10px] uppercase truncate">${catalogText(data.titulo)}</p>
                         <div class="flex items-center gap-1.5 mt-1 text-[8px] font-black">
                             <span class="text-yellow-500">IMDb ${data.imdb || '8.5'}</span>
                             <span class="text-gray-400">${data.ano || '2024'}</span>
@@ -3909,7 +3926,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                         </div>
                     </div>
                     <div class="card-expand-info">
-                        <p class="text-white font-bold text-[10px] uppercase truncate">${data.titulo}</p>
+                        <p class="text-white font-bold text-[10px] uppercase truncate">${catalogText(data.titulo)}</p>
                         <div class="flex items-center gap-1.5 mt-1 text-[8px] font-black">
                             <span class="text-yellow-500">IMDb ${data.imdb || '8.5'}</span>
                             <span class="text-gray-400">${data.ano || '2024'}</span>
@@ -5552,7 +5569,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                     <div onclick="closeSearch(); window.abrirDetalhes('${dataStr}')" class="focusable bg-[#1A1C23] rounded-xl overflow-hidden border border-white/5 relative cursor-pointer transition-all hover:scale-105 shadow-xl aspect-[2/3] group" tabindex="0">
                         <img src="${item.capaUrl}" loading="lazy" decoding="async" class="w-full h-full object-cover brightness-110">
                         <div class="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
-                            <p class="text-white font-bold text-xs uppercase drop-shadow-md">${item.titulo}</p>
+                            <p class="text-white font-bold text-xs uppercase drop-shadow-md">${catalogText(item.titulo)}</p>
                             <p class="text-[var(--brand-gold)] text-[10px] font-black uppercase mt-1">${item.trilho || ''}</p>
                         </div>
                     </div>`;
