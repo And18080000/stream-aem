@@ -2,6 +2,19 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
+    <script>
+        window.addEventListener('contextmenu', event => event.preventDefault(), true);
+        window.addEventListener('keydown', event => {
+            const key = event.key.toLowerCase();
+            const inspectKey = ['i', 'j', 'c'].includes(key);
+            const ctrlInspect = event.ctrlKey && event.shiftKey && inspectKey;
+            const macInspect = event.metaKey && event.altKey && inspectKey;
+            const viewSource = key === 'u' && (event.ctrlKey || (event.metaKey && event.altKey));
+            if (key === 'f12' || ctrlInspect || macInspect || viewSource) {
+                event.preventDefault();
+            }
+        }, true);
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>A&amp;M Streaming</title>
     
@@ -790,7 +803,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
     <header id="main-header" class="opacity-0 pointer-events-none fixed w-full top-0 z-40 bg-black/90 backdrop-blur-md border-b border-white/5 transition-all py-3 px-4 md:px-8 flex justify-between items-center">
         <div class="flex items-center gap-6 md:gap-10 overflow-x-auto scrollbar-hide">
             <div class="flex flex-col cursor-pointer shrink-0 items-start max-w-[140px] md:max-w-none" onclick="navigate('home')">
-                <div id="main-logo-text" class="flex flex-col items-start scale-75 md:scale-90 origin-left">
+                <img id="app-header-logo" alt="Início" class="hidden h-10 max-w-[140px] object-contain" onload="this.classList.remove('hidden');document.getElementById('main-logo-text').classList.add('hidden')" onerror="this.classList.add('hidden');document.getElementById('main-logo-text').classList.remove('hidden')"><div id="main-logo-text" class="flex flex-col items-start scale-75 md:scale-90 origin-left">
                     <h1 class="text-xl md:text-2xl font-sans text-white tracking-tighter font-black italic leading-none flex items-baseline gap-1" fetchpriority="high">
                     A&amp;M <span class="text-[var(--prime-blue)] font-light not-italic text-sm md:text-base">streaming</span>
                 </h1>
@@ -3311,63 +3324,47 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
         // ==========================================
         // FIREBASE SYNC (BRANDING, MENUS, ORDEM)
         // ==========================================
-        window.carregarBrandingRealtime = function() {
-            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'configuracoes', 'branding'), (snap) => {
-                if(snap.exists()) {
-                    const dados = snap.data();
-                    window.brandingConfig = dados; // Salva config globalmente para o APK
-                    
-                    if (dados.logoUrl) {
-                        // Mantemos a logo apenas na tela de detalhes como uma marca d'água discreta se desejar
-                        const detailsLogo = document.getElementById('details-brand-logo');
-                        if (detailsLogo) {
-                            detailsLogo.src = dados.logoUrl;
-                            detailsLogo.classList.remove('hidden');
-                        }
-
-                        let linkIcon = document.querySelector("link[rel~='icon']");
-                        if (!linkIcon) { linkIcon = document.createElement('link'); linkIcon.rel = 'icon'; document.head.appendChild(linkIcon); }
-                        linkIcon.href = dados.logoUrl;
-
-                        let appleIcon = document.querySelector("link[rel='apple-touch-icon']");
-                        if (!appleIcon) { appleIcon = document.createElement('link'); appleIcon.rel = 'apple-touch-icon'; document.head.appendChild(appleIcon); }
-                        appleIcon.href = dados.logoUrl;
-
-                        // Apenas atualizar o Manifest se ele for realmente diferente para evitar reset do Prompt PWA
-                        const newManifestObj = {
-                            "name": "Streaming App",
-                            "short_name": "Streaming",
-                            "display": "standalone",
-                            "start_url": ".",
-                            "background_color": "#0B0D12",
-                            "theme_color": dados.corPrincipal || "#D6B778",
-                            "icons": [{ "src": dados.logoUrl, "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }]
-                        };
-                        const newManifestStr = JSON.stringify(newManifestObj);
-                        
-                        if (window.lastManifestString !== newManifestStr) {
-                            window.lastManifestString = newManifestStr;
-                            const manifestBlob = new Blob([newManifestStr], {type: 'application/json'});
-                            let manifestLink = document.querySelector("link[rel='manifest']");
-                            if (manifestLink) manifestLink.href = URL.createObjectURL(manifestBlob);
-                        }
-                    }
-                    
-                    if (dados.corPrincipal) {
-                        document.documentElement.style.setProperty('--brand-gold', dados.corPrincipal);
-                        document.documentElement.style.setProperty('--brand-gold-hover', dados.corPrincipal + 'CC');
-                        let themeMeta = document.querySelector("meta[name='theme-color']");
-                        if(themeMeta) themeMeta.content = dados.corPrincipal;
-                        
-                        // Atualiza os estilos de foco e cores globais
-                        let styleEl = document.getElementById('brand-custom-styles');
-                        if (!styleEl) { styleEl = document.createElement('style'); styleEl.id = 'brand-custom-styles'; document.head.appendChild(styleEl); }
-                        styleEl.innerHTML = `
-                            #toast.bg-green-600 { background-color: ${dados.corPrincipal} !important; color: #000 !important; font-weight: bold; }
-                            .nav-link.active { border-bottom-color: ${dados.corPrincipal} !important; }
-                        `;
-                    }
+        const manifestLink = document.querySelector('link[rel="manifest"]');
+        const baseManifest = JSON.parse(decodeURIComponent(manifestLink.href.split(',')[1]));
+        const brandCacheKey = 'aem.branding.' + appId;
+        function applyBranding(dados) {
+            window.brandingConfig = dados;
+            const color = /^#[0-9a-f]{6}$/i.test(dados.corPrincipal) ? dados.corPrincipal : baseManifest.theme_color;
+            const root = document.documentElement.style;
+            root.setProperty('--brand-gold', color);
+            root.setProperty('--brand-gold-hover', color + 'CC');
+            if (dados.corPrincipal) root.setProperty('--prime-blue', color);
+            document.querySelector('meta[name="theme-color"]').content = color;
+            const manifest = {...baseManifest, theme_color:color, start_url:new URL('.', location.href).href};
+            if (dados.logoUrl) {
+                document.getElementById('app-header-logo').src = dados.logoUrl;
+                for (const id of ['details-brand-logo','login-logo-img']) {
+                    const img = document.getElementById(id);
+                    if (img) { img.src = dados.logoUrl; img.classList.remove('hidden'); }
                 }
+                for (const rel of ['icon','apple-touch-icon']) {
+                    const link = document.querySelector('link[rel="'+rel+'"]') || document.createElement('link');
+                    link.rel = rel; link.href = dados.logoUrl;
+                    if (!link.isConnected) document.head.append(link);
+                }
+                manifest.icons = [{src:new URL(dados.logoUrl,location.href).href, sizes:'any', purpose:'any'}];
+            }
+            const serialized = JSON.stringify(manifest);
+            if (serialized !== window.lastManifestString) {
+                manifestLink.href = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(serialized);
+                window.lastManifestString = serialized;
+            }
+        }
+        try {
+            const cached = JSON.parse(localStorage.getItem(brandCacheKey));
+            if (cached) applyBranding(cached);
+        } catch {}
+        window.carregarBrandingRealtime = function() {
+            onSnapshot(doc(db,'artifacts',appId,'public','data','configuracoes','branding'), snap => {
+                if (!snap.exists()) return;
+                const dados = snap.data();
+                applyBranding(dados);
+                try { localStorage.setItem(brandCacheKey, JSON.stringify({logoUrl:dados.logoUrl,corPrincipal:dados.corPrincipal})); } catch {}
             });
         };
 
