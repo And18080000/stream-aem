@@ -1654,17 +1654,40 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             if(ordered.length) return ordered;
             return item?.trailerUrl ? [{nome:'Trailer 1',url:item.trailerUrl}] : [];
         }
+        let catalogSnapshotItems=[];
+        let categoryPhotos=Object.create(null), stopCategoryPhotos;
+        const unavailableInPlayer=new Set();
+        function canDisplayVideo(item){
+            const id=streamYoutubeId(item.videoUrl || item.trailerUrl);
+            return !id || (!unavailableInPlayer.has(id) && item.youtubeCheck?.id===id && item.youtubeCheck.ready===true);
+        }
+        function listenCategoryPhotos(){
+            stopCategoryPhotos?.();
+            stopCategoryPhotos=onSnapshot(doc(db,'artifacts',appId,'public','data','configuracoes','fotosPerfisConteudos'),snap=>{
+                categoryPhotos=Object.assign(Object.create(null),snap.data());
+                partitionCatalog(catalogSnapshotItems);
+                for(const card of document.querySelectorAll('#tiktok-feed .tiktok-item')){
+                    const group=contentProfiles.get(categoryKey(card.dataset.category || ''));
+                    const avatar=card.querySelector('.category-avatar');
+                    if(!group || !avatar)continue;
+                    if(group.cover){const img=document.createElement('img');img.alt='';img.src=group.cover;avatar.replaceChildren(img);}
+                    else avatar.textContent=group.name.slice(0,1);
+                }
+                if(activeCategoryKey)window.switchProfileTab(window.activeProfileTab);
+            });
+        }
         function partitionCatalog(items) {
             cacheCatalogo = [];
             contentFeed = [];
             contentProfiles = new Map();
             for (const item of items) {
+                if(!canDisplayVideo(item))continue;
                 item.trailers=filmTrailers(item);
                 if (!isFeedContent(item)) { cacheCatalogo.push(item); continue; }
                 if (!item.videoUrl && !item.trailerUrl) continue;
                 contentFeed.push(item);
                 const name = categoryName(item), key = categoryKey(name);
-                if (!contentProfiles.has(key)) contentProfiles.set(key,{name,cover:'',videos:[]});
+                if (!contentProfiles.has(key)) contentProfiles.set(key,{name,cover:categoryPhotos[key] || '',videos:[]});
                 const group = contentProfiles.get(key);
                 group.videos.push(item);
                 if (!group.cover && item.capaUrl) group.cover = item.capaUrl;
@@ -1675,7 +1698,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             }
         }
         function visibleOfflineItem(item) {
-            return !isFeedContent(item) && !contentFeed.some(video=>video.id===item.id);
+            return canDisplayVideo(item) && !isFeedContent(item) && !contentFeed.some(video=>video.id===item.id);
         }
 
         let roomSettings=Object.create(null), currentRoom='';
@@ -1945,7 +1968,15 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                                 if (!player.isMuted()) { player.mute(); player.playVideo(); }
                                 else { activeFrame().style.pointerEvents = 'auto'; tapLayer.style.display = 'none'; player.getIframe().setAttribute('title','Toque para reproduzir'); }
                             },
-                            onError: () => { if(background) video.parentElement.classList.remove('preview-playing');emit('error'); }
+                            onError: event => {
+                                if(background) video.parentElement?.classList.remove('preview-playing');
+                                emit('error');
+                                if(!video.isConnected || !youtubeMode || ![100,101,150].includes(event.data))return;
+                                const id=event.target.getVideoData?.()?.video_id || ytId();
+                                if(!id || unavailableInPlayer.has(id))return;
+                                unavailableInPlayer.add(id);
+                                if(catalogSnapshotItems.some(item=>streamYoutubeId(item.videoUrl || item.trailerUrl)===id))queueMicrotask(refreshCatalogViews);
+                            }
                         }
                     });
                 } catch (error) { host.dataset.loading = '0'; console.warn('YouTube player:', error); emit('error'); }
@@ -2098,6 +2129,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                     document.getElementById('profile-email-display').innerText = "Utilizador Temporário";
                 }
 
+                listenCategoryPhotos();
                 window.carregarBrandingRealtime();
                 onSnapshot(doc(db,'artifacts',appId,'public','data','configuracoes','salas'),snap=>{roomSettings=Object.assign(Object.create(null),snap.data());renderRooms();});
                 window.carregarOrdemCategorias();
@@ -3533,7 +3565,12 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
         // ==========================================
         window.carregarCatalogoRealtime = function() {
             onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'catalog'), (snap) => {
-                partitionCatalog(snap.docs.map(doc => ({ ...doc.data(), id:doc.id })).sort((a,b)=>a.createdAt-b.createdAt));
+                catalogSnapshotItems=snap.docs.map(doc => ({ ...doc.data(), id:doc.id })).sort((a,b)=>a.createdAt-b.createdAt);
+                refreshCatalogViews();
+            });
+        };
+        function refreshCatalogViews(){
+                partitionCatalog(catalogSnapshotItems);
                 if (activeCategoryKey) {
                     if (contentProfiles.has(activeCategoryKey)) window.switchProfileTab(window.activeProfileTab);
                     else window.fecharPerfilTikTok();
@@ -3570,7 +3607,6 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
 
                 // Chama a sincronização para atualizar a tela do usuário ao vivo
                 window.sincronizarInterfaceAoVivo(cacheCatalogo);
-            });
         }
 
         // Função responsável por atualizar textos, CAPAS e VÍDEOS ao vivo sem recarregar a página
@@ -5996,39 +6032,3 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                     <div class="flex flex-col items-center justify-center py-40 text-center px-8">
                         <i class="ph ph-cloud-slash text-7xl text-white/10 mb-6"></i>
                         <h3 class="text-2xl font-bold text-white mb-3 uppercase tracking-tighter">Nenhum vídeo disponível</h3>
-                        <p class="text-brand-text text-sm max-w-xs mx-auto leading-relaxed">Os seus downloads aparecerão aqui quando estiver sem internet.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            let cardsHtml = offlineList.map(item => renderCardPaisagem(item, "text-[var(--brand-gold)]")).join('');
-            
-            container.innerHTML = `
-                <div class="relative pb-10 animate-fadeIn px-4 md:px-0">
-                    <div class="flex items-center justify-between mb-8">
-                        <h3 class="text-xl md:text-2xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
-                            <i class="ph-fill ph-download-simple text-[var(--brand-gold)]"></i> Seus Downloads Offline
-                        </h3>
-                        <span class="text-[10px] bg-brand-gold/10 text-brand-gold px-3 py-1 rounded-full font-bold border border-brand-gold/20">${offlineList.length} TÍTULOS</span>
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        ${cardsHtml.replace(/min-w-\[220px\]/g, 'w-full')} 
-                    </div>
-                </div>
-            `;
-        };
-
-        window.addEventListener('online', window.atualizarModoConexao);
-        window.addEventListener('offline', window.atualizarModoConexao);
-        
-        // Execução Imediata: Verifica se já iniciou offline para evitar ecrãs de erro do Firebase
-        if (!navigator.onLine) {
-            setTimeout(window.atualizarModoConexao, 100);
-        } else {
-            setTimeout(window.atualizarModoConexao, 3000);
-        }
-        window.dispatchEvent(new Event('stream-ready'));
-    </script>
-</body>
-</html>
