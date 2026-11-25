@@ -706,7 +706,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
 .trailer-card{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;background:#121822;border-radius:.75rem;text-align:left}
 .trailer-card img,.trailer-card video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .trailer-card strong{position:absolute;inset:auto 0 0;padding:1.4rem .7rem .55rem;background:linear-gradient(transparent,rgba(0,0,0,.93));color:white;font-size:.85rem;line-height:1.25;overflow-wrap:anywhere}
-</style></head>
+</style><style>.short-actions .short-cc[aria-pressed="true"]{color:var(--brand-gold);background:#111b}.short-actions .short-cc{justify-content:center;gap:2px}</style></head>
 <body class="antialiased flex flex-col min-h-screen" id="app-body"><section id="maintenancePage" role="status"><h1>Estamos atualizando o portfólio</h1><p>Volte em instantes.</p></section>
 
     <!-- NOVA LANDING PAGE (PRIME VIDEO STYLE) -->
@@ -1812,6 +1812,58 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             tapLayer.addEventListener('click', () => video.dispatchEvent(new Event('click')));
             host.addEventListener('click', () => video.dispatchEvent(new Event('click')));
             let youtubeMode = false, source = initialSource, player = null, playerReady = false, pendingPlay = false, pendingSeek = 0, state = -1, ticker = null, metadataSent = false, storedLoop = !!read('loop');
+            let initialCaptionCheck=true, captionsRequested=false;
+            function paintCaptions(active){
+                const button=video.closest('.tiktok-item')?.querySelector('.short-cc');
+                button?.setAttribute('aria-pressed',String(active));
+                button?.setAttribute('aria-label',active?'Desativar legenda':'Ativar legenda');
+            }
+            const captionTracks=()=>Array.from(video.textTracks).filter(t=>['subtitles','captions'].includes(t.kind));
+            function readPlayerCaptions(){
+                const track=player?.getOption?.('captions','track');
+                if(track!==undefined)return !!track?.languageCode;
+                return !!player?.getOptions?.()?.includes('captions');
+            }
+            function syncPlayerCaptions(){
+                if(!isShortFeed || !playerReady || !youtubeMode)return;
+                if(initialCaptionCheck && !captionsRequested && readPlayerCaptions() && player.unloadModule){
+                    initialCaptionCheck=false;
+                    player.unloadModule('captions');
+                }
+                paintCaptions(readPlayerCaptions());
+            }
+            if(isShortFeed){
+                const syncNative=()=>{if(!youtubeMode)paintCaptions(captionTracks().some(t=>t.mode==='showing'));};
+                video.addEventListener('loadedmetadata',()=>{
+                    if(youtubeMode)return;
+                    if(!captionsRequested)for(const track of captionTracks())track.mode='disabled';
+                    syncNative();
+                });
+                video.textTracks.addEventListener('change',syncNative);
+                video.toggleFeedCaptions=()=>{
+                    initialCaptionCheck=false;
+                    if(youtubeMode){
+                        if(!playerReady){window.showToast('Aguarde o vídeo começar.');return;}
+                        const enable=!readPlayerCaptions(), method=enable?'loadModule':'unloadModule';
+                        if(typeof player[method]!=='function'){
+                            window.showToast('Use o botão CC nos controles do YouTube, se disponível.');return;
+                        }
+                        captionsRequested=enable;player[method]('captions');
+                        setTimeout(()=>{
+                            if(!video.isConnected)return;
+                            syncPlayerCaptions();
+                            if(enable && !readPlayerCaptions())window.showToast('Confira a disponibilidade de legendas no botão CC do YouTube.');
+                        },700);
+                    }else{
+                        const tracks=captionTracks();
+                        if(!tracks.length){window.showToast('Este vídeo não oferece uma faixa de legenda.');return;}
+                        captionsRequested=!tracks.some(t=>t.mode==='showing');
+                        const chosen=tracks.find(t=>t.language.startsWith('pt')) || tracks[0];
+                        for(const t of tracks)t.mode=captionsRequested && t===chosen?'showing':'disabled';
+                        syncNative();
+                    }
+                };
+            }
             const emit = type => { try { video.dispatchEvent(new Event(type)); } catch (_) {} };
             const activeFrame = () => player?.getIframe?.() || host;
             const syncHostStyles = () => {
@@ -1848,6 +1900,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                                 if (pendingPlay) event.target.playVideo();
                                 syncHostStyles();
                             },
+                            onApiChange: syncPlayerCaptions,
                             onPlaybackQualityChange: event => {
                                 if (!background || !youtubeMode || event.target.getVideoData()?.video_id !== ytId()) return;
                                 const quality = String(event.data);
@@ -1869,6 +1922,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                                 if (state === (Y.CUED ?? 5) && !metadataSent && event.target.getDuration() > 0) { metadataSent = true; emit('loadedmetadata'); emit('canplay'); }
                                 if (state === (Y.PLAYING ?? 1)) {
                                     if (!metadataSent && event.target.getDuration() > 0) { metadataSent = true; emit('loadedmetadata'); }
+                                    syncPlayerCaptions();
                                     emit('canplay'); emit('playing');
                                     if (!ticker) ticker = setInterval(() => { if (youtubeMode && playerReady && state === (window.YT.PlayerState?.PLAYING ?? 1)) { if (!metadataSent && player.getDuration() > 0) { metadataSent = true; emit('loadedmetadata'); } emit('timeupdate'); emit('progress'); } }, 400);
                                 } else if (state === (Y.PAUSED ?? 2)) emit('pause');
@@ -1890,6 +1944,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             };
             const setSource = value => {
                 const next = String(value || '');
+                if(isShortFeed && source!==next){initialCaptionCheck=true;captionsRequested=false;paintCaptions(false);}
                 source = next;
                 const id = streamYoutubeId(next);
                 youtubeMode = !!id;
@@ -2472,13 +2527,9 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                                 </button>
                                 <span id="count-comments-${item.id}" class="text-[10px] text-white font-bold mt-[-4px] drop-shadow-md">0</span>
                             </div>
-                            <!-- Compartilhar -->
-                            <div class="flex flex-col items-center">
-                                <button onclick="window.compartilharConteudo(null, '${item.id}')" class="w-12 h-12 flex items-center justify-center">
-                                    <i class="ph ph-share-network text-4xl drop-shadow-lg text-white"></i>
-                                </button>
-                                <span class="text-[10px] text-white font-bold mt-[-4px] drop-shadow-md">Compartilhar</span>
-                            </div>
+                            <button type="button" class="short-cc flex flex-col items-center" aria-pressed="false" aria-label="Ativar legenda" onclick="this.closest('.tiktok-item').querySelector('.tiktok-video').toggleFeedCaptions?.()">
+                                <span class="font-bold border rounded px-1" aria-hidden="true">CC</span><span class="text-[10px]">Legenda</span>
+                            </button>
                             <!-- Salvar (Minha Lista) -->
                             <div class="flex flex-col items-center">
                                 <button onclick="window.toggleMinhaListaById('${item.id}')" class="w-12 h-12 flex items-center justify-center">
@@ -5916,54 +5967,3 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                 caches.match(url).then(m => { if(!m) fetch(url).then(r => cache.put(url, r)).catch(()=>{}); });
             });
         };
-
-        window.renderizarModoOffline = function() {
-            const offlineList = JSON.parse(localStorage.getItem('am_offline_metadata') || '[]').filter(visibleOfflineItem);
-            const container = document.getElementById('dynamic-rails-container');
-            const sectionLista = document.getElementById('section-minha-lista');
-            const hero = document.querySelector('#view-home > div.relative');
-            
-            if (sectionLista) sectionLista.classList.add('hidden');
-            if (hero) hero.classList.add('hidden'); // Oculta o Hero online para focar na aba única
-            
-            if (offlineList.length === 0) {
-                container.innerHTML = `
-                    <div class="flex flex-col items-center justify-center py-40 text-center px-8">
-                        <i class="ph ph-cloud-slash text-7xl text-white/10 mb-6"></i>
-                        <h3 class="text-2xl font-bold text-white mb-3 uppercase tracking-tighter">Nenhum vídeo disponível</h3>
-                        <p class="text-brand-text text-sm max-w-xs mx-auto leading-relaxed">Os seus downloads aparecerão aqui quando estiver sem internet.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            let cardsHtml = offlineList.map(item => renderCardPaisagem(item, "text-[var(--brand-gold)]")).join('');
-            
-            container.innerHTML = `
-                <div class="relative pb-10 animate-fadeIn px-4 md:px-0">
-                    <div class="flex items-center justify-between mb-8">
-                        <h3 class="text-xl md:text-2xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
-                            <i class="ph-fill ph-download-simple text-[var(--brand-gold)]"></i> Seus Downloads Offline
-                        </h3>
-                        <span class="text-[10px] bg-brand-gold/10 text-brand-gold px-3 py-1 rounded-full font-bold border border-brand-gold/20">${offlineList.length} TÍTULOS</span>
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        ${cardsHtml.replace(/min-w-\[220px\]/g, 'w-full')} 
-                    </div>
-                </div>
-            `;
-        };
-
-        window.addEventListener('online', window.atualizarModoConexao);
-        window.addEventListener('offline', window.atualizarModoConexao);
-        
-        // Execução Imediata: Verifica se já iniciou offline para evitar ecrãs de erro do Firebase
-        if (!navigator.onLine) {
-            setTimeout(window.atualizarModoConexao, 100);
-        } else {
-            setTimeout(window.atualizarModoConexao, 3000);
-        }
-        window.dispatchEvent(new Event('stream-ready'));
-    </script>
-</body>
-</html>
