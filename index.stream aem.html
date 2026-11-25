@@ -744,37 +744,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                 <span>Carregando…</span> <i class="ph-bold ph-arrow-right text-lg"></i>
             </button>
             <p id="landing-status" role="status" class="mt-2 text-sm text-white"></p>
-            <script>
-                (() => {
-                    const button = document.getElementById('landing-enter');
-                    const label = button.querySelector('span');
-                    const status = document.getElementById('landing-status');
-                    let ready = false;
-                    function offerRetry(message) {
-                        if (ready) return;
-                        label.textContent = 'Tentar novamente';
-                        status.textContent = message || 'A página demorou para iniciar. Confira a conexão e tente novamente.';
-                        button.onclick = () => location.reload();
-                        button.disabled = false;
-                    }
-                    const timer = setTimeout(offerRetry, 20000);
-                    window.addEventListener('stream-load-error', () => {
-                        clearTimeout(timer);
-                        offerRetry('Não foi possível carregar os serviços da página. Confira a conexão e tente novamente.');
-                    });
-                    window.addEventListener('stream-ready', () => {
-                        ready = true;
-                        clearTimeout(timer);
-                        status.textContent = '';
-                        label.textContent = 'Entrar';
-                        button.onclick = () => {
-                            button.disabled = true;
-                            window.startAppFromLanding();
-                        };
-                        button.disabled = false;
-                    }, { once: true });
-                })();
-            </script>
+
         </div>
     </div>
 
@@ -859,7 +829,8 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
 
         <!-- VIEW 1: HOME PRINCIPAL -->
         <section id="view-home" class="block w-full">
-            <div class="feature-banner relative w-full h-[65vh] md:h-[85vh] bg-black overflow-hidden group cursor-pointer" onclick="abrirDetalhesViaHero()">
+            <div id="catalog-startup" role="status" class="text-center py-8"><span>Carregando catálogo…</span> <button hidden type="button" class="underline" onclick="location.reload()">Tentar novamente</button></div>
+            <div style="display:none" class="feature-banner relative w-full h-[65vh] md:h-[85vh] bg-black overflow-hidden group cursor-pointer" onclick="abrirDetalhesViaHero()">
                 <!-- IMAGEM HERO COM PRIORIDADE MÁXIMA E CARREGAMENTO IMEDIATO -->
                 <div class="feature-picture"><img id="hero-img" alt="" decoding="async" fetchpriority="high" loading="eager" class="absolute inset-0 w-full h-full object-cover opacity-100 brightness-110 saturate-[1.1] transition-opacity duration-1000 z-0">
                 <!-- VÍDEO HERO COM PRELOAD DE METADADOS PARA EVITAR TRAVAMENTO INICIAL -->
@@ -1619,11 +1590,95 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
     </div>
 
     <!-- SCRIPTS CORE E FIREBASE -->
-    <script type="module" onerror="window.dispatchEvent(new Event('stream-load-error'))">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, runTransaction, collection, addDoc, onSnapshot, deleteDoc, doc, setDoc, getDoc, updateDoc, query, orderBy, limit, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <script>
+        const introAudioSetup = new Audio("https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev/Cinematic%20logo%20intro%20sound%20effect%20(no%20copyright)%20%23logointro%20%23soundeffects%20%23cinematic%20-%20Vfx%20Secrets%20(youtube).mp3");
+        document.body.style.overflow = 'hidden';
+        
+        window.startAppFromLanding = function() {
+            const landing = document.getElementById('landing-page');
+            const intro = document.getElementById('intro-container');
+            const skip = document.getElementById('intro-skip');
+            landing.style.display = 'none';
+            intro.style.display = 'flex';
+            const logo = document.getElementById('am-logo');
+            const entrance = logo.animate([
+                {transform:'scale(.55)',opacity:0},
+                {transform:'scale(1)',opacity:1}
+            ],{duration:1400,easing:'ease-out',fill:'forwards'});
+            let motion = entrance;
+            skip.focus();
+            let finished = false;
+            function finishIntro() {
+                if (finished) return;
+                finished = true;
+                introAudioSetup.pause();
+                intro.style.opacity = '0';
+                setTimeout(() => {
+                    intro.style.display = 'none';
+                    motion.cancel();
+                    entrance.cancel();
+                    document.body.style.overflow = '';
+                    for (const id of ['main-header', 'main-content', 'main-footer']) {
+                        const element = document.getElementById(id);
+                        element.classList.remove('opacity-0', 'pointer-events-none');
+                        element.classList.add('opacity-100');
+                    }
+                    window.dispatchEvent(new Event('intro-complete'));
+                }, 500);
+            }
+            skip.onclick = finishIntro;
+            const soundtrack = new Promise(resolve => {
+                introAudioSetup.onended = resolve;
+                introAudioSetup.onerror = resolve;
+                introAudioSetup.play().catch(resolve);
+            });
+            entrance.finished.then(async () => {
+                if (finished) return;
+                motion = logo.animate([{transform:'scale(1)'},{transform:'scale(1.15)'}],
+                    {duration:2500,direction:'alternate',iterations:Infinity,easing:'ease-in-out'});
+                await soundtrack;
+                if (finished) return;
+                const from = getComputedStyle(logo).transform;
+                motion.cancel();
+                motion = logo.animate([{transform:from,opacity:1},{transform:'scale(18)',opacity:0}],
+                    {duration:1000,easing:'ease-in',fill:'forwards'});
+                await motion.finished;
+                finishIntro();
+            }).catch(error => { if (error.name !== 'AbortError') finishIntro(); });
+        };
 
+
+        const enterButton=document.getElementById('landing-enter');
+        enterButton.disabled=false;
+        enterButton.querySelector('span').textContent='Entrar';
+        enterButton.onclick=()=>{enterButton.disabled=true;window.startAppFromLanding();};
+        function catalogStartupMessage(text,retry=false){
+            const panel=document.getElementById('catalog-startup');
+            panel.hidden=!text;
+            panel.querySelector('span').textContent=text;
+            panel.querySelector('button').hidden=!retry;
+        }
+        const startupWatch=setTimeout(()=>catalogStartupMessage('O catálogo ainda está carregando.',true),20000);
+    </script>
+    <script>
+    (async () => {
+        'use strict';
+        const services=['app','auth','firestore'];
+        async function loadFirebase(){
+            let timer;
+            try{
+                return await Promise.race([
+                    Promise.all(services.map(service=>import('https://www.gstatic.com/firebasejs/11.6.1/firebase-'+service+'.js'))),
+                    new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Tempo de conexão excedido')),10000);})
+                ]);
+            }catch{
+                return Promise.all(services.map(service=>import('https://esm.sh/firebase@11.6.1/'+service)));
+            }finally{clearTimeout(timer);}
+        }
+        const modules=await loadFirebase();
+        const { initializeApp }=modules[0];
+        const { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, setPersistence, browserLocalPersistence }=modules[1];
+        const { getFirestore, runTransaction, collection, addDoc, onSnapshot, deleteDoc, doc, setDoc, getDoc, updateDoc, query, orderBy, limit, increment }=modules[2];
         const firebaseConfig = {
             apiKey: "AIzaSyC9mGKW38Dh8xIIphde_V41dit52CRctgo",
             authDomain: "stream-aem.firebaseapp.com",
@@ -2143,7 +2198,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                 window.carregarContinuarAssistindoRealtime();
                 window.carregarTop10Realtime();
             } else {
-                signInAnonymously(auth);
+                signInAnonymously(auth).catch(error=>{clearTimeout(startupWatch);catalogStartupMessage('Falha ao conectar ao catálogo: '+(error.code || error.message),true);});
             }
             
             // Força a verificação visual dos botões em qualquer mudança de estado (Login/Logout)
@@ -2245,9 +2300,6 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
         // ==========================================
         // NOVA LÓGICA DE INTRODUÇÃO / LANDING PAGE
         // ==========================================
-        const introAudioSetup = new Audio("https://pub-a62c7f1bfc0248cab53121a7a3f99245.r2.dev/Cinematic%20logo%20intro%20sound%20effect%20(no%20copyright)%20%23logointro%20%23soundeffects%20%23cinematic%20-%20Vfx%20Secrets%20(youtube).mp3");
-        document.body.style.overflow = 'hidden';
-        
         window.renderLandingGrid = function(catalog) {
             const grid = document.getElementById('landing-grid');
             if (!grid || grid.children.length > 0 || !catalog.length) return; 
@@ -2275,59 +2327,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             const hero=document.getElementById('hero-video');
             if(streamYoutubeId(hero.src) && document.getElementById('netflix-player').classList.contains('hidden') && !document.getElementById('view-home').classList.contains('hidden')) hero.play().catch(()=>{});
         }
-        window.startAppFromLanding = function() {
-            const landing = document.getElementById('landing-page');
-            const intro = document.getElementById('intro-container');
-            const skip = document.getElementById('intro-skip');
-            landing.style.display = 'none';
-            intro.style.display = 'flex';
-            const logo = document.getElementById('am-logo');
-            const entrance = logo.animate([
-                {transform:'scale(.55)',opacity:0},
-                {transform:'scale(1)',opacity:1}
-            ],{duration:1400,easing:'ease-out',fill:'forwards'});
-            let motion = entrance;
-            skip.focus();
-            let finished = false;
-            function finishIntro() {
-                if (finished) return;
-                finished = true;
-                introAudioSetup.pause();
-                intro.style.opacity = '0';
-                setTimeout(() => {
-                    intro.style.display = 'none';
-                    motion.cancel();
-                    entrance.cancel();
-                    document.body.style.overflow = '';
-                    for (const id of ['main-header', 'main-content', 'main-footer']) {
-                        const element = document.getElementById(id);
-                        element.classList.remove('opacity-0', 'pointer-events-none');
-                        element.classList.add('opacity-100');
-                    }
-                    resumeHomePreview();
-                }, 500);
-            }
-            skip.onclick = finishIntro;
-            const soundtrack = new Promise(resolve => {
-                introAudioSetup.onended = resolve;
-                introAudioSetup.onerror = resolve;
-                introAudioSetup.play().catch(resolve);
-            });
-            entrance.finished.then(async () => {
-                if (finished) return;
-                motion = logo.animate([{transform:'scale(1)'},{transform:'scale(1.15)'}],
-                    {duration:2500,direction:'alternate',iterations:Infinity,easing:'ease-in-out'});
-                await soundtrack;
-                if (finished) return;
-                const from = getComputedStyle(logo).transform;
-                motion.cancel();
-                motion = logo.animate([{transform:from,opacity:1},{transform:'scale(18)',opacity:0}],
-                    {duration:1000,easing:'ease-in',fill:'forwards'});
-                await motion.finished;
-                finishIntro();
-            }).catch(error => { if (error.name !== 'AbortError') finishIntro(); });
-        };
-
+        window.addEventListener('intro-complete',resumeHomePreview);
         // ==========================================
         // NAVEGAÇÃO SPA E MENUS
         // ==========================================
@@ -3567,6 +3567,11 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'catalog'), (snap) => {
                 catalogSnapshotItems=snap.docs.map(doc => ({ ...doc.data(), id:doc.id })).sort((a,b)=>a.createdAt-b.createdAt);
                 refreshCatalogViews();
+                clearTimeout(startupWatch);
+                catalogStartupMessage('');
+            },error=>{
+                clearTimeout(startupWatch);
+                catalogStartupMessage('Falha ao ler o catálogo: '+(error.code || error.message),true);
             });
         };
         function refreshCatalogViews(){
@@ -3593,8 +3598,8 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                 if(cacheCatalogo.length > 0 && !window.currentDestaqueData) {
                     // Seleciona o primeiro item que não pertença à categoria Conteúdos para o destaque inicial
                     const firstDisplayable = cacheCatalogo.find(item => 
-                        item.trilho?.toLowerCase() !== 'conteúdos' && 
-                        item.trilho?.toLowerCase() !== 'conteudos' &&
+                        categoryKey(categoryName(item)) !== 'conteúdos' && 
+                        categoryKey(categoryName(item)) !== 'conteudos' &&
                         !(item.menuIds && item.menuIds.includes('menu2'))
                     ) || cacheCatalogo[0];
                     window.mudarDestaque(btoa(encodeURIComponent(JSON.stringify(firstDisplayable))));
@@ -5550,8 +5555,8 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             window.autoCycleInterval = setInterval(() => {
                 const list = window.currentActiveMenu === 'home' 
                     ? cacheCatalogo.filter(item => 
-                        item.trilho?.toLowerCase() !== 'conteúdos' && 
-                        item.trilho?.toLowerCase() !== 'conteudos' &&
+                        categoryKey(categoryName(item)) !== 'conteúdos' && 
+                        categoryKey(categoryName(item)) !== 'conteudos' &&
                         !(item.menuIds && item.menuIds.includes('menu2'))
                       ) 
                     : cacheCatalogo.filter(i => (i.menuIds && i.menuIds.includes(window.currentActiveMenu)) || i.menuId === window.currentActiveMenu);
@@ -6032,3 +6037,43 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                     <div class="flex flex-col items-center justify-center py-40 text-center px-8">
                         <i class="ph ph-cloud-slash text-7xl text-white/10 mb-6"></i>
                         <h3 class="text-2xl font-bold text-white mb-3 uppercase tracking-tighter">Nenhum vídeo disponível</h3>
+                        <p class="text-brand-text text-sm max-w-xs mx-auto leading-relaxed">Os seus downloads aparecerão aqui quando estiver sem internet.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let cardsHtml = offlineList.map(item => renderCardPaisagem(item, "text-[var(--brand-gold)]")).join('');
+            
+            container.innerHTML = `
+                <div class="relative pb-10 animate-fadeIn px-4 md:px-0">
+                    <div class="flex items-center justify-between mb-8">
+                        <h3 class="text-xl md:text-2xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
+                            <i class="ph-fill ph-download-simple text-[var(--brand-gold)]"></i> Seus Downloads Offline
+                        </h3>
+                        <span class="text-[10px] bg-brand-gold/10 text-brand-gold px-3 py-1 rounded-full font-bold border border-brand-gold/20">${offlineList.length} TÍTULOS</span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        ${cardsHtml.replace(/min-w-\[220px\]/g, 'w-full')} 
+                    </div>
+                </div>
+            `;
+        };
+
+        window.addEventListener('online', window.atualizarModoConexao);
+        window.addEventListener('offline', window.atualizarModoConexao);
+        
+        // Execução Imediata: Verifica se já iniciou offline para evitar ecrãs de erro do Firebase
+        if (!navigator.onLine) {
+            setTimeout(window.atualizarModoConexao, 100);
+        } else {
+            setTimeout(window.atualizarModoConexao, 3000);
+        }
+    })().catch(error=>{
+        clearTimeout(startupWatch);
+        console.error('Inicialização do cliente:',error);
+        catalogStartupMessage('Falha ao iniciar os serviços do catálogo: '+error.message,true);
+    });
+    </script>
+</body>
+</html>
