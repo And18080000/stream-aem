@@ -1711,11 +1711,18 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
         }
         let catalogSnapshotItems=[];
         let categoryPhotos=Object.create(null), stopCategoryPhotos;
+        function statusParcial(check){
+            return check?.kind==='partial' || (!check?.kind && check?.reason==='YouTube bloqueia a reprodução no Brasil.');
+        }
+        function listarNoPortfolio(item,id){
+            const decision=item.youtubeDecision;
+            if(decision?.id===id && typeof decision.visible==='boolean')return decision.visible;
+            const check=item.youtubeCheck;
+            return check?.id===id && (statusParcial(check) || check.ready===true);
+        }
         function canDisplayVideo(item){
             const id=streamYoutubeId(item.videoUrl || item.trailerUrl);
-            if(!id)return true;
-            if(item.youtubeDecision?.id===id && typeof item.youtubeDecision.visible==='boolean')return item.youtubeDecision.visible;
-            return item.youtubeCheck?.id===id && item.youtubeCheck.ready===true;
+            return !id || listarNoPortfolio(item,id);
         }
         function listenCategoryPhotos(){
             stopCategoryPhotos?.();
