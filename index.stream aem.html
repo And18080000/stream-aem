@@ -1711,10 +1711,11 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
         }
         let catalogSnapshotItems=[];
         let categoryPhotos=Object.create(null), stopCategoryPhotos;
-        const unavailableInPlayer=new Set();
         function canDisplayVideo(item){
             const id=streamYoutubeId(item.videoUrl || item.trailerUrl);
-            return !id || (!unavailableInPlayer.has(id) && item.youtubeCheck?.id===id && item.youtubeCheck.ready===true);
+            if(!id)return true;
+            if(item.youtubeDecision?.id===id && typeof item.youtubeDecision.visible==='boolean')return item.youtubeDecision.visible;
+            return item.youtubeCheck?.id===id && item.youtubeCheck.ready===true;
         }
         function listenCategoryPhotos(){
             stopCategoryPhotos?.();
@@ -1898,6 +1899,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             tapLayer.addEventListener('click', () => video.dispatchEvent(new Event('click')));
             host.addEventListener('click', () => video.dispatchEvent(new Event('click')));
             let youtubeMode = false, source = initialSource, player = null, playerReady = false, pendingPlay = false, pendingSeek = 0, state = -1, ticker = null, metadataSent = false, storedLoop = !!read('loop');
+            let watchLink=null;
             let initialCaptionCheck=true, captionsRequested=false;
             function paintCaptions(active){
                 const button=video.closest('.tiktok-item')?.querySelector('.short-cc');
@@ -1996,6 +1998,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                             onStateChange: event => {
                                 if(!youtubeMode) return;
                                 state = event.data;
+                                if(state===1 && watchLink)watchLink.hidden=true;
                                 if (state !== 1 && ticker) {
                                     clearInterval(ticker);
                                     ticker = null;
@@ -2026,17 +2029,26 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                             onError: event => {
                                 if(background) video.parentElement?.classList.remove('preview-playing');
                                 emit('error');
-                                if(!video.isConnected || !youtubeMode || ![100,101,150].includes(event.data))return;
                                 const id=event.target.getVideoData?.()?.video_id || ytId();
-                                if(!id || unavailableInPlayer.has(id))return;
-                                unavailableInPlayer.add(id);
-                                if(catalogSnapshotItems.some(item=>streamYoutubeId(item.videoUrl || item.trailerUrl)===id))queueMicrotask(refreshCatalogViews);
+                                if(!interactive || !video.isConnected || !youtubeMode || !id || id!==ytId() ||
+                                    (isMain && window.isMandatoryTrailer) || ![100,101,150].includes(event.data))return;
+                                if(!watchLink){
+                                    watchLink=document.createElement('a');
+                                    watchLink.textContent='Ver disponibilidade no YouTube ↗';
+                                    watchLink.target='_blank';watchLink.rel='noopener noreferrer';
+                                    watchLink.style.cssText='position:absolute;left:50%;top:58%;transform:translateX(-50%);z-index:30;padding:.7rem 1rem;border-radius:1rem;background:#161616;color:white;text-align:center';
+                                    watchLink.onclick=e=>e.stopPropagation();
+                                    video.parentElement.append(watchLink);
+                                }
+                                watchLink.href='https://www.youtube.com/watch?v='+encodeURIComponent(id);
+                                watchLink.hidden=false;
                             }
                         }
                     });
                 } catch (error) { host.dataset.loading = '0'; console.warn('YouTube player:', error); emit('error'); }
             };
             const setSource = value => {
+                if(watchLink)watchLink.hidden=true;
                 const next = String(value || '');
                 if(isShortFeed && source!==next){initialCaptionCheck=true;captionsRequested=false;paintCaptions(false);}
                 source = next;
@@ -2212,12 +2224,28 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
         // ==========================================
         window.adsConfig = { frequencia: 3, videos: [] };
         
+        let atualizarAnuncioEmExibicao = null;
+        let unsubscribeAnuncios;
+        function anuncioVigente(ad) {
+            const agora = Date.now();
+            return typeof ad?.url === 'string' && ad.url.trim() &&
+                (!ad.inicio || Date.parse(ad.inicio) <= agora) &&
+                (!ad.fim || agora < Date.parse(ad.fim));
+        }
         window.carregarConfigAnunciosRealtime = function() {
-            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'configuracoes', 'anuncios'), (snap) => {
-                if(snap.exists()) {
-                    window.adsConfig = snap.data();
-                }
-            });
+            unsubscribeAnuncios?.();
+            function aplicar(config) {
+                window.adsConfig = {
+                    frequencia: config?.frequencia || 3,
+                    videos: Array.isArray(config?.videos) ? config.videos : []
+                };
+                atualizarAnuncioEmExibicao?.();
+            }
+            aplicar(null);
+            unsubscribeAnuncios = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'configuracoes', 'anuncios'),
+                { includeMetadataChanges: true },
+                snap => aplicar(snap.metadata.fromCache ? null : snap.data()),
+                () => aplicar(null));
         };
 
         // SISTEMA DE LOGIN / REGISTRO
@@ -5226,7 +5254,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
             window.videoSessionCount++;
             
             const freq = window.adsConfig?.frequencia || 3;
-            const shouldShowAd = (window.videoSessionCount % freq === 0);
+            const shouldShowAd = window.videoSessionCount % freq === 0 && window.adsConfig.videos.some(anuncioVigente);
 
             if (shouldShowAd && !window.isAdsApproved) {
                 // Se houver propaganda, removemos a vinheta da transição (conforme pedido)
@@ -5269,34 +5297,35 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
         };
 
         window.iniciarTrailerObrigatorio = function(proximoDestino) {
-            window.isMandatoryTrailer = true; document.getElementById('youtube-actions').inert = true;
-
-            // Mostra o carregamento ao iniciar anúncio
-            const loader = document.getElementById('netflix-loader');
-            if(loader) loader.style.display = 'flex';
-            
-            let adVideoUrl = "";
-            let adTitle = "Sugestão A&amp;M";
-            let isFallbackLongVideo = false;
-            let playingAd=null;
-
-            // Escolhe anúncios exclusivos subidos no Painel Admin ou usa o catálogo como fallback
-            if (window.adsConfig && window.adsConfig.videos && window.adsConfig.videos.length > 0) {
-                const ads = window.adsConfig.videos;
-                const randomAd = ads[Math.floor(Math.random() * ads.length)];
-                playingAd=randomAd; adVideoUrl = randomAd.url;
-                adTitle = randomAd.nome || "Publicidade";
-            } else {
-                const outrosVideos = cacheCatalogo.filter(v => v.id !== window.currentDestaqueData.id && (v.trailerUrl || v.videoUrl));
-                const randomVideo = outrosVideos.length > 0 ? outrosVideos[Math.floor(Math.random() * outrosVideos.length)] : window.currentDestaqueData;
-                
-                adVideoUrl = randomVideo.trailerUrl || randomVideo.videoUrl || "";
-                adTitle = `Sugestão: ${randomVideo.titulo || 'A&amp;M'}`;
-                
-                // Marca se tivemos que puxar o filme grande por não ter um trailer
-                isFallbackLongVideo = !randomVideo.trailerUrl && (randomVideo.videoUrl === adVideoUrl);
-                mainVid.poster = randomVideo.capaUrl || '';
+            const ads = window.adsConfig.videos.filter(anuncioVigente);
+            if (!ads.length || window.isAdsApproved) return window.executarTrocaVideo(proximoDestino);
+            const playingAd = ads[Math.floor(Math.random() * ads.length)];
+            const adVideoUrl = playingAd.url;
+            const adTitle = playingAd.nome || "Publicidade";
+            const registroAtual = () => window.adsConfig.videos.find(ad =>
+                anuncioVigente(ad) && ad.id === playingAd.id && ad.url === adVideoUrl);
+            function finalizarAnuncio() {
+                if (!window.isMandatoryTrailer) return;
+                window.isMandatoryTrailer = false;
+                atualizarAnuncioEmExibicao = null;
+                clearInterval(window.mandatoryInterval);
+                clearInterval(mainVid._fadeInterval);
+                mainVid.onloadedmetadata = null;
+                mainVid.onerror = null;
+                mainVid.pause();
+                document.getElementById('youtube-actions').inert = false;
+                document.getElementById('mandatory-trailer-overlay').classList.add('hidden');
+                mainVid.muted = false;
+                mainVid.volume = 1;
+                mainVid.style.opacity = '1';
+                window.executarTrocaVideo(proximoDestino);
             }
+            atualizarAnuncioEmExibicao = () => { if (!registroAtual()) finalizarAnuncio(); };
+            window.isMandatoryTrailer = true;
+            document.getElementById('youtube-actions').inert = true;
+            const loader = document.getElementById('netflix-loader');
+            if (loader) loader.style.display = 'flex';
+            mainVid.onerror = finalizarAnuncio;
 
             controlsUI.classList.add('hidden');
             document.getElementById('trailer-cta-container').classList.add('hidden');
@@ -5319,14 +5348,11 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                 
                 document.getElementById('progress-bar').style.width = '0%';
 
-                let startPos = 0;
-                if (isFallbackLongVideo && mainVid.duration > 60) {
-                    startPos = mainVid.duration / 2;
-                }
+                const startPos = 0;
                 mainVid.currentTime = startPos;
                 
                 const adDuration=()=>{
-                    const current=window.adsConfig?.videos?.find(a=>a.id===playingAd?.id);
+                    const current=registroAtual();
                     const limit=Math.max(1,Number(current?.duracao || playingAd?.duracao)||15);
                     return Math.min(limit,mainVid.duration>0?Math.ceil(mainVid.duration-startPos):limit);
                 };
@@ -5347,6 +5373,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                 if(window.mandatoryInterval) clearInterval(window.mandatoryInterval);
 
                 window.mandatoryInterval = setInterval(() => {
+                    if (!registroAtual()) return finalizarAnuncio();
                     durationOfAd=adDuration();window.trailerDuration=durationOfAd;
                     const currentPos = Math.floor(mainVid.currentTime - startPos);
                     elapsed = currentPos > elapsed ? currentPos : elapsed;
@@ -5372,18 +5399,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                     }
 
                     if (elapsed >= durationOfAd || mainVid.ended) {
-                        clearInterval(window.mandatoryInterval);
-                        if (mainVid._fadeInterval) clearInterval(mainVid._fadeInterval);
-                        
-                        window.isMandatoryTrailer = false; document.getElementById('youtube-actions').inert = false;
-                        document.getElementById('mandatory-trailer-overlay').classList.add('hidden');
-                        
-                        // RESET TOTAL PARA O FILME
-                        mainVid.muted = false;
-                        mainVid.volume = 1;
-                        mainVid.style.opacity = '1';
-
-                        window.executarTrocaVideo(proximoDestino);
+                        finalizarAnuncio();
                     }
                 }, 1000);
             };
