@@ -5,6 +5,7 @@
     <script>
         window.addEventListener('contextmenu', event => event.preventDefault(), true);
         window.addEventListener('keydown', event => {
+            if (typeof event.key !== 'string') return;
             const key = event.key.toLowerCase();
             const inspectKey = ['i', 'j', 'c'].includes(key);
             const ctrlInspect = event.ctrlKey && event.shiftKey && inspectKey;
@@ -748,14 +749,21 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                     const button = document.getElementById('landing-enter');
                     const label = button.querySelector('span');
                     const status = document.getElementById('landing-status');
-                    function offerRetry() {
+                    let ready = false;
+                    function offerRetry(message) {
+                        if (ready) return;
                         label.textContent = 'Tentar novamente';
-                        status.textContent = 'O catálogo demorou para abrir. Confira a conexão e tente novamente.';
+                        status.textContent = message || 'A página demorou para iniciar. Confira a conexão e tente novamente.';
                         button.onclick = () => location.reload();
                         button.disabled = false;
                     }
                     const timer = setTimeout(offerRetry, 20000);
+                    window.addEventListener('stream-load-error', () => {
+                        clearTimeout(timer);
+                        offerRetry('Não foi possível carregar os serviços da página. Confira a conexão e tente novamente.');
+                    });
                     window.addEventListener('stream-ready', () => {
+                        ready = true;
                         clearTimeout(timer);
                         status.textContent = '';
                         label.textContent = 'Entrar';
@@ -1611,7 +1619,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
     </div>
 
     <!-- SCRIPTS CORE E FIREBASE -->
-    <script type="module">
+    <script type="module" onerror="window.dispatchEvent(new Event('stream-load-error'))">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, runTransaction, collection, addDoc, onSnapshot, deleteDoc, doc, setDoc, getDoc, updateDoc, query, orderBy, limit, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -3376,7 +3384,13 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
         // FIREBASE SYNC (BRANDING, MENUS, ORDEM)
         // ==========================================
         const manifestLink = document.querySelector('link[rel="manifest"]');
-        const baseManifest = JSON.parse(decodeURIComponent(manifestLink.href.split(',')[1]));
+        const baseManifest = (() => {
+            const fallback = {name:'Streaming App',short_name:'Streaming',display:'standalone',background_color:'#0B0D12',theme_color:'#D6B778'};
+            const href = manifestLink?.getAttribute('href') || '';
+            if (!href.startsWith('data:')) return fallback;
+            try { return {...fallback,...JSON.parse(decodeURIComponent(href.slice(href.indexOf(',') + 1)))}; }
+            catch { return fallback; }
+        })();
         const brandCacheKey = 'aem.branding.' + appId;
         function applyBranding(dados) {
             window.brandingConfig = dados;
@@ -3401,7 +3415,7 @@ html.in-shorts,html.in-shorts body{overflow:hidden!important;overscroll-behavior
                 manifest.icons = [{src:new URL(dados.logoUrl,location.href).href, sizes:'any', purpose:'any'}];
             }
             const serialized = JSON.stringify(manifest);
-            if (serialized !== window.lastManifestString) {
+            if (manifestLink && serialized !== window.lastManifestString) {
                 manifestLink.href = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(serialized);
                 window.lastManifestString = serialized;
             }
